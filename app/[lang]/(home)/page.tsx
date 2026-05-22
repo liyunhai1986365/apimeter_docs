@@ -24,7 +24,7 @@ const content = {
         icon: TerminalSquare,
       },
       {
-        href: '/api-reference/chat/createChatCompletion',
+        href: '/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
         title: 'Open API playground',
         description: 'Inspect parameters and try API requests from the reference.',
         icon: Play,
@@ -52,7 +52,7 @@ const content = {
         icon: TerminalSquare,
       },
       {
-        href: '/api-reference/chat/createChatCompletion',
+        href: '/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
         title: '打开 API Playground',
         description: '查看参数并在 API Reference 中尝试请求。',
         icon: Play,

@@ -5,6 +5,7 @@ import { apiSource } from '@/lib/api-source';
 import { getLocalizedHref } from '@/lib/i18n-path';
 import { defaultLocale, i18n } from '@/lib/i18n';
 import { getLocaleFromParams } from '@/lib/i18n-path';
+import { getApiReferencePage } from '@/lib/api-reference-page';
 import {
   DocsBody,
   DocsDescription,
@@ -21,7 +22,7 @@ const APIPage = createAPIPage(openapi, {
 });
 
 export default async function Page(props: {
-  params: Promise<{ lang?: string; slug?: string[] }>;
+  params: Promise<{ lang?: string; slug?: string[] | string }>;
 }) {
   const params = await props.params;
   const locale = getLocaleFromParams(params.lang);
@@ -31,7 +32,7 @@ export default async function Page(props: {
     if (firstPage) redirect(getLocalizedHref(firstPage.url, locale));
   }
 
-  const page = apiSource.getPage(params.slug);
+  const page = getApiReferencePage(params.slug);
 
   if (!page) notFound();
 
@@ -58,10 +59,10 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug?: string[] | string }>;
 }) {
   const params = await props.params;
-  const page = apiSource.getPage(params.slug);
+  const page = getApiReferencePage(params.slug);
 
   if (!page) notFound();
 

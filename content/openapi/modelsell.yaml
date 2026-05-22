@@ -2,24 +2,94 @@ openapi: 3.1.0
 info:
   title: ModelSell API
   version: 1.0.0
-  description: API reference for ModelSell model endpoints.
-tags:
-  - name: Chat
-    description: Generate responses from conversational model inputs.
-  - name: Models
-    description: Discover model capabilities available to the current key.
+  description: >
+    ModelSell API 参考文档，按远端中文 API 文档目录同步分类。包含 AI 模型接口和管理接口，
+    每个接口都可在生成的 API Reference 中使用 Playground 调试。
 servers:
   - url: https://modelsell.com
+tags:
+  - name: AI 模型 - 聊天
+    description: Claude、OpenAI ChatCompletions、OpenAI Responses 与 Gemini 文本/媒体聊天接口。
+  - name: AI 模型 - 补全
+    description: OpenAI Completions 兼容的文本补全接口。
+  - name: AI 模型 - 嵌入
+    description: OpenAI Embeddings 兼容的文本向量化接口。
+  - name: AI 模型 - 图像
+    description: OpenAI Images 与 Gemini 图像生成/编辑接口。
+  - name: AI 模型 - 模型列表
+    description: OpenAI 与 Gemini 兼容的模型列表查询接口。
+  - name: AI 模型 - 视频
+    description: HappyHorse、PixVerse、Seedance、Veo、万相等视频生成、任务查询和内容下载接口。
+  - name: 管理接口 - 鉴权
+    description: 管理接口使用 Bearer Token，也可通过 New-Api-User 请求头指定管理用户上下文。
+  - name: 管理接口 - 日志
+    description: 请求日志查询、搜索、统计、按令牌查询和历史日志删除接口。
+  - name: 管理接口 - 令牌管理
+    description: API 令牌创建、更新、查询、搜索、删除和批量删除接口。
+  - name: 管理接口 - 用户管理
+    description: 当前用户信息查询接口。
+  - name: 管理接口 - 真人认证
+    description: BytePlus 真人认证会话、人像素材和素材组管理接口。
 security:
   - bearerAuth: []
 paths:
+  /v1/messages:
+    post:
+      operationId: createMessage
+      summary: Claude 格式
+      description: >
+        Anthropic Claude Messages API 兼容请求。需要在请求头中包含 `anthropic-version`。
+      tags:
+        - AI 模型 - 聊天
+      parameters:
+        - name: anthropic-version
+          in: header
+          required: true
+          description: Anthropic API 版本。
+          schema:
+            type: string
+            example: '2023-06-01'
+        - name: x-api-key
+          in: header
+          required: false
+          description: 可选的 Anthropic 风格 API Key 请求头，也可使用 Bearer Token。
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaudeMessageRequest'
+            examples:
+              basic:
+                summary: Claude 消息请求
+                value:
+                  model: claude-sonnet-4-5-20250929
+                  max_tokens: 1024
+                  messages:
+                    - role: user
+                      content: 你好，请用一句话介绍 ModelSell。
+      responses:
+        '200':
+          description: Claude 消息响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaudeMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
   /v1/chat/completions:
     post:
       operationId: createChatCompletion
-      summary: Create chat completion
-      description: Generate an assistant response from ordered chat messages.
+      summary: ChatCompletions 格式
+      description: >
+        OpenAI Chat Completions 兼容接口。支持标准聊天请求，也可用于通过 OpenAI 聊天格式调用具备图像能力的 Gemini 模型。
       tags:
-        - Chat
+        - AI 模型 - 聊天
       requestBody:
         required: true
         content:
@@ -28,15 +98,27 @@ paths:
               $ref: '#/components/schemas/CreateChatCompletionRequest'
             examples:
               basic:
-                summary: Basic chat request
+                summary: 基础聊天请求
                 value:
-                  model: modelsell-chat
+                  model: gpt-5.4-nano
                   messages:
                     - role: user
                       content: Write a concise launch note.
+              vision:
+                summary: 图片理解请求
+                value:
+                  model: gemini-2.5-flash
+                  messages:
+                    - role: user
+                      content:
+                        - type: text
+                          text: 这张图里有什么？
+                        - type: image_url
+                          image_url:
+                            url: https://example.com/image.png
       responses:
         '200':
-          description: Chat completion response.
+          description: Chat Completions 响应。
           content:
             application/json:
               schema:
@@ -45,53 +127,1165 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-  /v1/models:
-    get:
-      operationId: listModels
-      summary: List models
-      description: Return the models available to the authenticated project.
+
+  /v1/responses:
+    post:
+      operationId: createResponse
+      summary: Responses 格式
+      description: >
+        OpenAI Responses API 兼容接口，支持单轮/多轮输入、工具调用和推理参数。
       tags:
-        - Models
+        - AI 模型 - 聊天
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResponseRequest'
+            examples:
+              basic:
+                value:
+                  model: gpt-5.4-nano
+                  input: 你好
       responses:
         '200':
-          description: Available models.
+          description: Responses 响应对象。
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - object
-                  - data
-                properties:
-                  object:
-                    type: string
-                    enum:
-                      - list
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Model'
+                $ref: '#/components/schemas/ResponseObject'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /v1/completions:
+    post:
+      operationId: createCompletion
+      summary: 原生 OpenAI 格式
+      description: OpenAI Completions 兼容的文本补全接口。
+      tags:
+        - AI 模型 - 补全
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompletionRequest'
+            examples:
+              basic:
+                value:
+                  model: gpt-5.4-nano
+                  prompt: 讲一个关于 API 网关的短故事。
+                  max_tokens: 256
+      responses:
+        '200':
+          description: 文本补全响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Completion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /v1/embeddings:
+    post:
+      operationId: createEmbedding
+      summary: 嵌入（Embeddings）
+      description: >
+        OpenAI Embeddings API 兼容接口，用于将文本转换为向量。支持 `gemini-embedding-001`、`text-embedding-004`、`amazon.titan-embed-text-v2:0` 等模型。
+      tags:
+        - AI 模型 - 嵌入
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmbeddingRequest'
+            examples:
+              gemini:
+                value:
+                  model: gemini-embedding-001
+                  input: ModelSell 是一个企业级 AI API 网关
+              batch:
+                value:
+                  model: text-embedding-004
+                  input:
+                    - 第一段文本
+                    - 第二段文本
+                  dimensions: 768
+      responses:
+        '200':
+          description: 向量嵌入响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /v1beta/models/{model}:generateContent:
+    post:
+      operationId: generateGeminiContent
+      summary: Gemini 文本聊天 / 媒体识别
+      description: >
+        Gemini `generateContent` 兼容接口，用于文本聊天和媒体识别请求。
+      tags:
+        - AI 模型 - 聊天
+      parameters:
+        - $ref: '#/components/parameters/GeminiModel'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeminiGenerateContentRequest'
+            examples:
+              text:
+                value:
+                  contents:
+                    - role: user
+                      parts:
+                        - text: 你好，请介绍 ModelSell。
+              media:
+                value:
+                  contents:
+                    - role: user
+                      parts:
+                        - text: 描述这张图片。
+                        - inline_data:
+                            mime_type: image/png
+                            data: BASE64_IMAGE_DATA
+      responses:
+        '200':
+          description: Gemini 内容生成响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeminiGenerateContentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1beta/models/{model}:generateContent/:
+    post:
+      operationId: generateGeminiImageContent
+      summary: Gemini 原生格式
+      description: Gemini 兼容的图像生成接口，路径带尾部斜杠。
+      tags:
+        - AI 模型 - 图像
+      parameters:
+        - $ref: '#/components/parameters/GeminiModel'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeminiGenerateContentRequest'
+            examples:
+              image:
+                value:
+                  contents:
+                    - role: user
+                      parts:
+                        - text: 生成一张 ModelSell 控制台插图。
+      responses:
+        '200':
+          description: Gemini 图像生成响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeminiGenerateContentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/images/generations:
+    post:
+      operationId: createImageGeneration
+      summary: 生成图像
+      description: OpenAI Images API 兼容的图像生成接口。
+      tags:
+        - AI 模型 - 图像
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImageGenerationRequest'
+            examples:
+              basic:
+                value:
+                  model: gpt-image-1
+                  prompt: 一张未来感 API 网关控制台截图
+                  size: 1024x1024
+      responses:
+        '200':
+          description: 图像生成响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/images/edits:
+    post:
+      operationId: editImage
+      summary: 编辑图像
+      description: OpenAI Images API 兼容的图像编辑接口。
+      tags:
+        - AI 模型 - 图像
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EditImageRequest'
+      responses:
+        '200':
+          description: 图像编辑响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/models:
+    get:
+      operationId: listModels
+      summary: OpenAI 格式
+      description: 查询当前 API Key 可用的 OpenAI 兼容模型列表。
+      tags:
+        - AI 模型 - 模型列表
+      responses:
+        '200':
+          description: 可用模型列表。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListModelsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1beta/models:
+    get:
+      operationId: listGeminiModels
+      summary: Gemini 格式
+      description: 查询当前 API Key 可用的 Gemini 兼容模型列表。
+      tags:
+        - AI 模型 - 模型列表
+      responses:
+        '200':
+          description: 可用 Gemini 模型列表。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeminiModelsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/video/generations:
+    post:
+      operationId: createVideoGeneration
+      summary: 创建视频生成任务
+      description: >
+        创建视频生成任务。该通用接口覆盖 HappyHorse、Seedance、Veo、万相等 `/v1/video/generations` 提供商。
+      tags:
+        - AI 模型 - 视频
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVideoGenerationRequest'
+            examples:
+              textToVideo:
+                value:
+                  model: veo-3.1-generate-preview
+                  prompt: 一只机械手臂在现代工厂中组装芯片
+                  duration: 8
+                  size: 16:9
+              imageToVideo:
+                value:
+                  model: seedance-1-0-lite-i2v
+                  prompt: 让图片中的产品缓慢旋转
+                  image: https://example.com/product.png
+      responses:
+        '200':
+          description: 视频任务响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/video/generations/{task_id}:
+    get:
+      operationId: getVideoGeneration
+      summary: 查询视频生成任务
+      description: 查询 `/v1/video/generations` 视频任务状态与结果。
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 视频任务响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/videos:
+    post:
+      operationId: createOpenAIVideo
+      summary: OpenAI 兼容视频生成
+      description: >
+        通过 OpenAI 兼容的 `/v1/videos` 接口创建视频生成任务，适用于 PixVerse、Veo、Seedance 等兼容提供商。
+      tags:
+        - AI 模型 - 视频
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVideoGenerationRequest'
+            examples:
+              pixverse:
+                value:
+                  model: pixverse-v4.5
+                  prompt: 城市夜景中的霓虹招牌缓慢亮起
+                  duration: 5
+                  aspect_ratio: 16:9
+      responses:
+        '200':
+          description: OpenAI 兼容视频任务响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/videos/{task_id}:
+    get:
+      operationId: getOpenAIVideo
+      summary: 查询 OpenAI 兼容视频任务
+      description: 查询 OpenAI 兼容 `/v1/videos` 任务状态与结果。
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OpenAI 兼容视频任务响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/videos/{task_id}/content:
+    get:
+      operationId: downloadVideoContent
+      summary: 下载视频内容
+      description: 下载已生成的视频内容，适用于提供 content 端点的视频模型。
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 生成的视频文件。
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/log/:
+    get:
+      operationId: listLogs
+      summary: 获取所有日志
+      description: 获取当前用户可见的全部请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/StartTimestamp'
+        - $ref: '#/components/parameters/EndTimestamp'
+      responses:
+        '200':
+          description: 日志列表响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+    delete:
+      operationId: deleteLogs
+      summary: 删除历史日志
+      description: 删除当前用户可见的历史请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchIdsRequest'
+      responses:
+        '200':
+          description: 删除结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+
+  /api/log/search:
+    get:
+      operationId: searchLogs
+      summary: 搜索日志
+      description: 按关键词和常用筛选条件搜索请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 日志搜索响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+
+  /api/log/self:
+    get:
+      operationId: listSelfLogs
+      summary: 获取个人日志
+      description: 获取当前用户自己的请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 个人日志列表响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+
+  /api/log/self/search:
+    get:
+      operationId: searchSelfLogs
+      summary: 搜索个人日志
+      description: 搜索当前用户自己的请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 个人日志搜索响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+
+  /api/log/self/stat:
+    get:
+      operationId: getSelfLogStat
+      summary: 获取个人日志统计
+      description: 获取当前用户自己的请求日志统计。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/StartTimestamp'
+        - $ref: '#/components/parameters/EndTimestamp'
+      responses:
+        '200':
+          description: 个人日志统计响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+
+  /api/log/stat:
+    get:
+      operationId: getLogStat
+      summary: 获取日志统计
+      description: 获取聚合请求日志统计。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/StartTimestamp'
+        - $ref: '#/components/parameters/EndTimestamp'
+      responses:
+        '200':
+          description: 日志统计响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+
+  /api/log/token:
+    get:
+      operationId: getTokenLogs
+      summary: 通过令牌获取日志
+      description: 获取指定 API 令牌关联的请求日志。
+      tags:
+        - 管理接口 - 日志
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - name: token_name
+          in: query
+          required: false
+          description: 令牌名称。
+          schema:
+            type: string
+        - name: token_id
+          in: query
+          required: false
+          description: 令牌 ID。
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 令牌日志响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+
+  /api/token/:
+    get:
+      operationId: listTokens
+      summary: 获取所有令牌
+      description: 获取当前用户可见的全部 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 令牌列表响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenListResponse'
+    post:
+      operationId: createToken
+      summary: 创建令牌
+      description: 创建新的 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertTokenRequest'
+            examples:
+              basic:
+                value:
+                  name: default
+                  remain_quota: 500000
+                  expired_time: -1
+      responses:
+        '200':
+          description: 创建令牌响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+    put:
+      operationId: updateToken
+      summary: 更新令牌
+      description: 更新已有 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertTokenRequest'
+      responses:
+        '200':
+          description: 更新令牌响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /api/token/batch:
+    post:
+      operationId: batchDeleteTokens
+      summary: 批量删除令牌
+      description: 一次请求删除多个 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchIdsRequest'
+      responses:
+        '200':
+          description: 批量删除结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+
+  /api/token/search:
+    get:
+      operationId: searchTokens
+      summary: 搜索令牌
+      description: 按关键词搜索 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 令牌搜索响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenListResponse'
+
+  /api/token/{id}:
+    get:
+      operationId: getToken
+      summary: 获取指定令牌
+      description: 按 ID 获取指定 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: 令牌响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteToken
+      summary: 删除令牌
+      description: 按 ID 删除指定 API 令牌。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: 删除结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/usage/token/:
+    get:
+      operationId: getTokenUsage
+      summary: 获取令牌使用情况
+      description: 获取 API 令牌的使用情况。
+      tags:
+        - 管理接口 - 令牌管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      parameters:
+        - name: token_name
+          in: query
+          required: false
+          description: 令牌名称。
+          schema:
+            type: string
+        - name: token_id
+          in: query
+          required: false
+          description: 令牌 ID。
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 令牌使用情况响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+
+  /api/user/self:
+    get:
+      operationId: getCurrentUser
+      summary: 获取当前用户信息
+      description: 获取当前已认证用户的信息。
+      tags:
+        - 管理接口 - 用户管理
+      security:
+        - bearerAuth: []
+        - newApiUser: []
+      responses:
+        '200':
+          description: 当前用户信息响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/resource-channel/byteplus/visual-validate/sessions:
+    post:
+      operationId: createVisualValidateSession
+      summary: 创建真人认证会话
+      description: 创建 BytePlus 真人认证会话，并返回可分发给终端用户的 H5 认证链接。
+      tags:
+        - 管理接口 - 真人认证
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisualValidateSessionRequest'
+            examples:
+              callback:
+                value:
+                  callback_url: https://modelsell.com/v1/callback
+      responses:
+        '200':
+          description: 真人认证会话创建响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualValidateSessionResponse'
+
+  /api/resource-channel/byteplus/visual-validate/sessions/{session_id}:
+    get:
+      operationId: getVisualValidateSession
+      summary: 获取真人认证结果并查询 GroupId
+      description: 获取真人认证结果，并查询关联的 GroupId。
+      tags:
+        - 管理接口 - 真人认证
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: 真人认证会话 ID。
+          schema:
+            type: string
+          example: 20260521162915BF9DC22A7A65ADF905D8
+      responses:
+        '200':
+          description: 真人认证会话结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualValidateSessionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/resource-channel/byteplus/visual-validate/assets:
+    post:
+      operationId: uploadVisualValidateAsset
+      summary: 上传人像素材
+      description: 上传用于真人认证的人像素材。
+      tags:
+        - 管理接口 - 真人认证
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadVisualValidateAssetRequest'
+      responses:
+        '200':
+          description: 人像素材上传响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualValidateAssetResponse'
+
+  /api/resource-channel/byteplus/visual-validate/assets/list:
+    post:
+      operationId: listVisualValidateAssets
+      summary: 查询人像素材列表
+      description: 查询真人认证人像素材列表。
+      tags:
+        - 管理接口 - 真人认证
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListVisualValidateAssetsRequest'
+      responses:
+        '200':
+          description: 人像素材列表响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualValidateAssetListResponse'
+
+  /api/resource-channel/byteplus/visual-validate/assets/{asset_id}:
+    get:
+      operationId: getVisualValidateAsset
+      summary: 查询单个人像素材详情
+      description: 按素材 ID 查询单个人像素材详情。
+      tags:
+        - 管理接口 - 真人认证
+      parameters:
+        - $ref: '#/components/parameters/AssetId'
+      responses:
+        '200':
+          description: 人像素材详情响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualValidateAssetResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteVisualValidateAsset
+      summary: 删除人像素材
+      description: 按素材 ID 删除单个人像素材。
+      tags:
+        - 管理接口 - 真人认证
+      parameters:
+        - $ref: '#/components/parameters/AssetId'
+      responses:
+        '200':
+          description: 删除结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/resource-channel/byteplus/visual-validate/asset-groups/{group_id}:
+    delete:
+      operationId: deleteVisualValidateAssetGroup
+      summary: 删除人像素材组
+      description: 按 GroupId 删除人像素材组。
+      tags:
+        - 管理接口 - 真人认证
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          description: 人像素材组 ID。
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 删除结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+      bearerFormat: API key
+      description: 使用 Authorization Bearer API Key 进行鉴权。
+    newApiUser:
+      type: apiKey
+      in: header
+      name: New-Api-User
+      description: 可选的管理接口用户上下文请求头。
+  parameters:
+    GeminiModel:
+      name: model
+      in: path
+      required: true
+      description: Gemini 兼容接口路径中的模型 ID。
+      schema:
+        type: string
+      example: gemini-2.5-flash
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      description: 视频生成任务 ID。
+      schema:
+        type: string
+      example: task_123456
+    Id:
+      name: id
+      in: path
+      required: true
+      description: 资源 ID。
+      schema:
+        type: integer
+      example: 1
+    AssetId:
+      name: asset_id
+      in: path
+      required: true
+      description: 人像素材 ID。
+      schema:
+        type: string
+      example: asset_123456
+    Keyword:
+      name: keyword
+      in: query
+      required: false
+      description: 搜索关键词。
+      schema:
+        type: string
+    Page:
+      name: p
+      in: query
+      required: false
+      description: 页码，从 1 开始。
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      description: 每页返回数量。
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 20
+    StartTimestamp:
+      name: start_timestamp
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: 开始时间，Unix 秒级时间戳。
+    EndTimestamp:
+      name: end_timestamp
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: 结束时间，Unix 秒级时间戳。
   responses:
     Unauthorized:
-      description: Missing or invalid API key.
+      description: API Key 缺失或无效。
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RateLimited:
-      description: Too many requests.
+      description: 请求过于频繁。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在。
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    CreateClaudeMessageRequest:
+      type: object
+      required:
+        - model
+        - messages
+        - max_tokens
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: claude-sonnet-4-5-20250929
+        messages:
+          type: array
+          description: 按顺序排列的 Claude 对话消息列表。
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ClaudeMessageInput'
+        system:
+          description: 系统提示词，可以是字符串或内容块数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/ContentBlock'
+        max_tokens:
+          type: integer
+          description: 生成回复时允许输出的最大 token 数。
+          minimum: 1
+          example: 1024
+        temperature:
+          type: number
+          description: 采样温度，数值越高输出越随机。
+          minimum: 0
+          maximum: 2
+        top_p:
+          type: number
+          description: 核采样参数，用于控制候选 token 的累计概率范围。
+        top_k:
+          type: integer
+          description: 仅从概率最高的前 K 个候选 token 中采样。
+        stream:
+          type: boolean
+          description: 是否以流式方式返回响应。
+        stop_sequences:
+          type: array
+          description: 遇到这些字符串时停止生成。
+          items:
+            type: string
+        tools:
+          type: array
+          description: 可供模型调用的工具定义列表。
+          items:
+            type: object
+            additionalProperties: true
+        tool_choice:
+          description: 工具调用策略，可以指定自动选择或强制调用某个工具。
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        thinking:
+          type: object
+          description: Claude 推理/思考相关配置。
+          additionalProperties: true
+        metadata:
+          type: object
+          description: 请求元数据，用于业务侧追踪或透传。
+          additionalProperties: true
+    ClaudeMessageInput:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          description: 消息角色。
+          enum:
+            - user
+            - assistant
+        content:
+          description: 消息内容，可以是纯文本或多模态内容块数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/ContentBlock'
+    ClaudeMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Claude 消息 ID。
+          example: msg_123
+        type:
+          type: string
+          description: 对象类型，通常为 `message`。
+          example: message
+        role:
+          type: string
+          description: 响应消息角色。
+          example: assistant
+        content:
+          type: array
+          description: 模型返回的内容块列表。
+          items:
+            $ref: '#/components/schemas/ContentBlock'
+        model:
+          type: string
+          description: 实际响应使用的模型 ID。
+        stop_reason:
+          type: string
+          description: 生成停止原因。
+        usage:
+          $ref: '#/components/schemas/Usage'
     CreateChatCompletionRequest:
       type: object
       required:
@@ -100,24 +1294,46 @@ components:
       properties:
         model:
           type: string
-          description: Model identifier.
-          example: modelsell-chat
+          description: 要调用的模型 ID。
+          example: gpt-5.4-nano
         messages:
           type: array
+          description: 按顺序排列的对话消息列表。
           minItems: 1
           items:
             $ref: '#/components/schemas/ChatMessage'
         temperature:
           type: number
+          description: 采样温度，数值越高输出越随机。
           minimum: 0
           maximum: 2
           default: 0.7
-          description: Sampling temperature.
+        top_p:
+          type: number
+          description: 核采样参数，用于控制候选 token 的累计概率范围。
         max_tokens:
           type: integer
+          description: 生成回复时允许输出的最大 token 数。
           minimum: 1
-          maximum: 8192
-          description: Maximum tokens to generate.
+        stream:
+          type: boolean
+          description: 是否以流式方式返回响应。
+        tools:
+          type: array
+          description: 可供模型调用的工具定义列表。
+          items:
+            type: object
+            additionalProperties: true
+        tool_choice:
+          description: 工具调用策略，可以指定自动选择或强制调用某个工具。
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        response_format:
+          type: object
+          description: 响应格式约束，例如 JSON Object 或 JSON Schema。
+          additionalProperties: true
     ChatMessage:
       type: object
       required:
@@ -126,12 +1342,31 @@ components:
       properties:
         role:
           type: string
+          description: 消息角色。
           enum:
             - system
             - user
             - assistant
+            - tool
         content:
+          description: 消息内容，可以是纯文本或多模态内容块数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/ContentBlock'
+        name:
           type: string
+          description: 可选的参与者名称。
+        tool_call_id:
+          type: string
+          description: 工具响应消息对应的工具调用 ID。
+        tool_calls:
+          type: array
+          description: 模型请求调用的工具列表。
+          items:
+            type: object
+            additionalProperties: true
     ChatCompletion:
       type: object
       required:
@@ -142,48 +1377,886 @@ components:
       properties:
         id:
           type: string
+          description: Chat Completions 响应 ID。
           example: chatcmpl_123
         object:
           type: string
-          enum:
-            - chat.completion
+          description: 对象类型。
+          example: chat.completion
+        created:
+          type: integer
+          description: 响应创建时间，Unix 秒级时间戳。
         model:
           type: string
+          description: 实际响应使用的模型 ID。
         choices:
           type: array
+          description: 模型生成的候选回复列表。
           items:
             type: object
-            required:
-              - index
-              - message
-              - finish_reason
             properties:
               index:
                 type: integer
+                description: 候选回复序号。
               message:
                 $ref: '#/components/schemas/ChatMessage'
+              delta:
+                type: object
+                description: 流式响应中的增量内容。
+                additionalProperties: true
               finish_reason:
                 type: string
+                description: 生成停止原因。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    CreateResponseRequest:
+      type: object
+      required:
+        - model
+        - input
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: gpt-5.4-nano
+        input:
+          description: Responses API 的输入内容，可以是字符串或消息对象数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                additionalProperties: true
+        instructions:
+          type: string
+          description: 给模型的系统级指令。
+        max_output_tokens:
+          type: integer
+          description: 生成回复时允许输出的最大 token 数。
+        temperature:
+          type: number
+          description: 采样温度，数值越高输出越随机。
+        top_p:
+          type: number
+          description: 核采样参数，用于控制候选 token 的累计概率范围。
+        stream:
+          type: boolean
+          description: 是否以流式方式返回响应。
+        tools:
+          type: array
+          description: 可供模型调用的工具定义列表。
+          items:
+            type: object
+            additionalProperties: true
+        tool_choice:
+          description: 工具调用策略，可以指定自动选择或强制调用某个工具。
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        reasoning:
+          type: object
+          description: 推理模型相关配置。
+          additionalProperties: true
+        previous_response_id:
+          type: string
+          description: 上一轮 response ID，用于延续上下文。
+        truncation:
+          type: string
+          description: 输入超出上下文窗口时的截断策略。
+    ResponseObject:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Responses 响应 ID。
+          example: resp_123
+        object:
+          type: string
+          description: 对象类型。
+          example: response
+        status:
+          type: string
+          description: 响应状态。
+        model:
+          type: string
+          description: 实际响应使用的模型 ID。
+        output:
+          type: array
+          description: 模型输出项列表。
+          items:
+            type: object
+            additionalProperties: true
+        output_text:
+          type: string
+          description: 聚合后的文本输出。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    CreateCompletionRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: gpt-5.4-nano
+        prompt:
+          description: 文本补全提示词，可以是字符串或字符串数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        suffix:
+          type: string
+          description: 插入补全时追加在生成内容后的后缀。
+        max_tokens:
+          type: integer
+          description: 生成回复时允许输出的最大 token 数。
+        temperature:
+          type: number
+          description: 采样温度，数值越高输出越随机。
+        top_p:
+          type: number
+          description: 核采样参数，用于控制候选 token 的累计概率范围。
+        stream:
+          type: boolean
+          description: 是否以流式方式返回响应。
+        stop:
+          description: 停止生成的字符串或字符串数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+    Completion:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 文本补全响应 ID。
+          example: cmpl_123
+        object:
+          type: string
+          description: 对象类型。
+          example: text_completion
+        model:
+          type: string
+          description: 实际响应使用的模型 ID。
+        choices:
+          type: array
+          description: 模型生成的候选补全列表。
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                description: 生成的补全文本。
+              index:
+                type: integer
+                description: 候选补全序号。
+              finish_reason:
+                type: string
+                description: 生成停止原因。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    CreateEmbeddingRequest:
+      type: object
+      required:
+        - model
+        - input
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: gemini-embedding-001
+        input:
+          description: 用于生成向量的输入文本，部分模型支持字符串数组。
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        dimensions:
+          type: integer
+          description: 输出向量维度，部分模型支持压缩到指定维度。
+        encoding_format:
+          type: string
+          description: 向量编码格式。
+          enum:
+            - float
+            - base64
+    EmbeddingResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          description: 对象类型。
+          example: list
+        data:
+          type: array
+          description: 向量结果列表。
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+                description: 对象类型。
+                example: embedding
+              index:
+                type: integer
+                description: 当前向量在输入列表中的序号。
+              embedding:
+                type: array
+                description: 浮点数组形式的向量。
+                items:
+                  type: number
+        model:
+          type: string
+          description: 实际生成向量使用的模型 ID。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    GeminiGenerateContentRequest:
+      type: object
+      required:
+        - contents
+      properties:
+        contents:
+          type: array
+          description: Gemini 请求内容列表，每项包含角色和 parts。
+          minItems: 1
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                description: 内容角色。
                 enum:
-                  - stop
-                  - length
+                  - user
+                  - model
+              parts:
+                type: array
+                description: 文本、图片或其他多模态内容块。
+                items:
+                  type: object
+                  additionalProperties: true
+        systemInstruction:
+          type: object
+          description: Gemini 系统指令。
+          additionalProperties: true
+        generationConfig:
+          type: object
+          description: Gemini 生成参数，例如温度、topP、最大输出 token 等。
+          additionalProperties: true
+        safetySettings:
+          type: array
+          description: Gemini 安全设置列表。
+          items:
+            type: object
+            additionalProperties: true
+        tools:
+          type: array
+          description: Gemini 可调用工具定义列表。
+          items:
+            type: object
+            additionalProperties: true
+    GeminiGenerateContentResponse:
+      type: object
+      properties:
+        candidates:
+          type: array
+          description: Gemini 返回的候选结果列表。
+          items:
+            type: object
+            additionalProperties: true
+        promptFeedback:
+          type: object
+          description: 输入提示的安全或拦截反馈。
+          additionalProperties: true
+        usageMetadata:
+          type: object
+          description: token 使用量等统计信息。
+          additionalProperties: true
+    CreateImageGenerationRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: gpt-image-1
+        prompt:
+          type: string
+          description: 生成或编辑图像时使用的文本提示词。
+        n:
+          type: integer
+          description: 需要生成的图片数量。
+          minimum: 1
+        size:
+          type: string
+          description: 图片尺寸。
+          example: 1024x1024
+        quality:
+          type: string
+          description: 图片质量参数。
+        style:
+          type: string
+          description: 图片风格参数。
+        response_format:
+          type: string
+          description: 返回图片 URL 或 Base64 编码。
+          enum:
+            - url
+            - b64_json
+        user:
+          type: string
+          description: 终端用户标识，用于安全审计或滥用检测。
+    EditImageRequest:
+      type: object
+      required:
+        - image
+        - prompt
+      properties:
+        image:
+          type: string
+          format: binary
+          description: 需要编辑的原始图片文件。
+        mask:
+          type: string
+          format: binary
+          description: 可选遮罩图片文件，用于指定编辑区域。
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: gpt-image-1
+        prompt:
+          type: string
+          description: 生成或编辑图像时使用的文本提示词。
+        n:
+          type: integer
+          description: 需要生成的图片数量。
+        size:
+          type: string
+          description: 图片尺寸。
+        response_format:
+          type: string
+          description: 返回图片 URL 或 Base64 编码。
+    ImageResponse:
+      type: object
+      properties:
+        created:
+          type: integer
+          description: 图片生成时间，Unix 秒级时间戳。
+        data:
+          type: array
+          description: 图片结果列表。
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: uri
+                description: 图片访问 URL。
+              b64_json:
+                type: string
+                description: Base64 编码的图片内容。
+              revised_prompt:
+                type: string
+                description: 模型改写后的提示词。
+    ListModelsResponse:
+      type: object
+      required:
+        - object
+        - data
+      properties:
+        object:
+          type: string
+          description: 对象类型。
+          example: list
+        data:
+          type: array
+          description: OpenAI 兼容模型列表。
+          items:
+            $ref: '#/components/schemas/Model'
+    GeminiModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          description: Gemini 兼容模型列表。
+          items:
+            type: object
+            additionalProperties: true
     Model:
       type: object
       required:
         - id
         - object
-        - context_window
       properties:
         id:
           type: string
+          description: 模型 ID。
           example: modelsell-chat
         object:
           type: string
-          enum:
-            - model
+          description: 对象类型。
+          example: model
+        owned_by:
+          type: string
+          description: 模型归属方。
         context_window:
           type: integer
+          description: 模型上下文窗口大小。
           example: 128000
+        created:
+          type: integer
+          description: 模型创建时间，Unix 秒级时间戳。
+    CreateVideoGenerationRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          description: 要调用的模型 ID。
+          example: veo-3.1-generate-preview
+        prompt:
+          type: string
+          description: 视频生成提示词，描述希望生成的视频内容。
+        image:
+          type: string
+          format: uri
+          description: 单张参考图片 URL，用于图生视频。
+        images:
+          type: array
+          description: 多张参考图片 URL，用于支持多图输入的模型。
+          items:
+            type: string
+            format: uri
+        duration:
+          description: 生成视频时长，单位通常为秒，具体取值以模型为准。
+          oneOf:
+            - type: integer
+            - type: string
+        size:
+          type: string
+          description: 视频比例或尺寸，例如 `16:9`。
+          example: 16:9
+        aspect_ratio:
+          type: string
+          description: 视频画面比例。
+          example: 16:9
+        resolution:
+          type: string
+          description: 输出视频分辨率。
+        seed:
+          type: integer
+          description: 随机种子，用于复现相似结果。
+        fps:
+          type: integer
+          description: 输出视频帧率。
+        negative_prompt:
+          type: string
+          description: 负向提示词，用于描述不希望出现在视频中的内容。
+        metadata:
+          type: object
+          description: 供应商扩展参数或业务元数据。
+          additionalProperties: true
+    VideoTask:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 视频任务 ID。
+          example: task_123456
+        task_id:
+          type: string
+          description: 视频任务 ID，兼容部分供应商返回结构。
+          example: task_123456
+        object:
+          type: string
+          description: 对象类型。
+          example: video.generation
+        status:
+          type: string
+          description: 任务状态，例如 pending、running、succeeded、failed。
+          example: succeeded
+        model:
+          type: string
+          description: 实际使用的视频模型 ID。
+        created_at:
+          type: integer
+          description: 任务创建时间，Unix 秒级时间戳。
+        updated_at:
+          type: integer
+          description: 任务更新时间，Unix 秒级时间戳。
+        url:
+          type: string
+          format: uri
+          description: 生成视频的访问 URL。
+        content_url:
+          type: string
+          format: uri
+          description: 可用于下载视频内容的 URL。
+        output:
+          type: array
+          description: 供应商返回的扩展输出结果。
+          items:
+            type: object
+            additionalProperties: true
+        error:
+          type: object
+          description: 任务失败时的错误信息。
+          additionalProperties: true
+    LogListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: 日志分页数据。
+              properties:
+                items:
+                  type: array
+                  description: 日志记录列表。
+                  items:
+                    $ref: '#/components/schemas/LogRecord'
+                total:
+                  type: integer
+                  description: 符合条件的日志总数。
+    LogRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 日志 ID。
+        user_id:
+          type: integer
+          description: 用户 ID。
+        token_name:
+          type: string
+          description: 触发请求的令牌名称。
+        model_name:
+          type: string
+          description: 请求使用的模型名称。
+        prompt_tokens:
+          type: integer
+          description: 输入 token 数。
+        completion_tokens:
+          type: integer
+          description: 输出 token 数。
+        quota:
+          type: integer
+          description: 本次请求消耗额度。
+        created_at:
+          type: integer
+          description: 日志创建时间，Unix 秒级时间戳。
+        request_id:
+          type: string
+          description: 请求 ID，用于排查问题。
+    TokenListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: API 令牌列表。
+              items:
+                $ref: '#/components/schemas/Token'
+    TokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              description: API 令牌详情。
+              $ref: '#/components/schemas/Token'
+    Token:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: API 令牌 ID。
+        name:
+          type: string
+          description: API 令牌名称。
+        key:
+          type: string
+          description: API 令牌密钥。
+        status:
+          type: integer
+          description: 令牌状态。
+        remain_quota:
+          type: integer
+          description: 令牌剩余额度。
+        used_quota:
+          type: integer
+          description: 令牌已使用额度。
+        expired_time:
+          type: integer
+          description: 令牌过期时间，Unix 秒级时间戳；支持时 -1 表示不过期。
+        created_time:
+          type: integer
+          description: 令牌创建时间，Unix 秒级时间戳。
+    UpsertTokenRequest:
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: integer
+          description: 令牌 ID，更新令牌时必填。
+        name:
+          type: string
+          description: API 令牌名称。
+        remain_quota:
+          type: integer
+          description: 令牌剩余额度，支持时可用 -1 表示不限额。
+        expired_time:
+          type: integer
+          description: 过期时间，Unix 秒级时间戳；支持时可用 -1 表示不过期。
+        unlimited_quota:
+          type: boolean
+          description: 是否启用不限额。
+        model_limits_enabled:
+          type: boolean
+          description: 是否启用模型调用限制。
+        model_limits:
+          type: string
+          description: 允许调用的模型范围。
+        allow_ips:
+          type: string
+          description: 允许访问的 IP 白名单。
+    BatchIdsRequest:
+      type: object
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          description: 要批量处理的资源 ID 列表。
+          items:
+            type: integer
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: 当前用户信息。
+              properties:
+                id:
+                  type: integer
+                  description: 用户 ID。
+                username:
+                  type: string
+                  description: 用户名。
+                display_name:
+                  type: string
+                  description: 用户展示名称。
+                role:
+                  type: integer
+                  description: 用户角色。
+                status:
+                  type: integer
+                  description: 用户状态。
+                quota:
+                  type: integer
+                  description: 用户总额度。
+                used_quota:
+                  type: integer
+                  description: 用户已使用额度。
+    CreateVisualValidateSessionRequest:
+      type: object
+      properties:
+        callback_url:
+          type: string
+          format: uri
+          description: 认证完成后跳转的公网可访问 URL。
+          example: https://modelsell.com/v1/callback
+    VisualValidateSessionResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: 真人认证会话数据。
+              properties:
+                session_id:
+                  type: string
+                  description: 真人认证会话 ID。
+                byted_token:
+                  type: string
+                  description: BytePlus 真人认证 token。
+                h5_link:
+                  type: string
+                  format: uri
+                  description: 可分发给终端用户打开的 H5 认证链接。
+                callback_url:
+                  type: string
+                  format: uri
+                  description: 认证完成后的回跳地址。
+                channel_id:
+                  type: integer
+                  description: 资源通道 ID。
+                status:
+                  type: string
+                  description: 认证会话状态。
+                group_id:
+                  type: string
+                  description: 认证通过后关联的人像素材组 ID。
+                raw_response:
+                  type: string
+                  description: 上游 BytePlus 原始响应内容。
+                expires_at:
+                  type: string
+                  description: 会话过期时间。
+                created_at:
+                  type: string
+                  description: 会话创建时间。
+                updated_at:
+                  type: string
+                  description: 会话更新时间。
+    UploadVisualValidateAssetRequest:
+      type: object
+      required:
+        - image
+      properties:
+        image:
+          type: string
+          format: binary
+          description: 人像素材文件。
+        group_id:
+          type: string
+          description: 关联的人像素材组 ID。
+        asset_name:
+          type: string
+          description: 人像素材名称。
+        callback_url:
+          type: string
+          format: uri
+          description: 素材处理完成后的回调地址。
+    ListVisualValidateAssetsRequest:
+      type: object
+      properties:
+        group_id:
+          type: string
+          description: 按人像素材组 ID 筛选。
+        page:
+          type: integer
+          description: 页码，从 1 开始。
+          default: 1
+        page_size:
+          type: integer
+          description: 每页返回数量。
+          default: 20
+    VisualValidateAssetResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              description: 人像素材详情。
+              $ref: '#/components/schemas/VisualValidateAsset'
+    VisualValidateAssetListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ManagementResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: 人像素材分页数据。
+              properties:
+                items:
+                  type: array
+                  description: 人像素材列表。
+                  items:
+                    $ref: '#/components/schemas/VisualValidateAsset'
+                total:
+                  type: integer
+                  description: 符合条件的人像素材总数。
+    VisualValidateAsset:
+      type: object
+      properties:
+        asset_id:
+          type: string
+          description: 人像素材 ID。
+        group_id:
+          type: string
+          description: 人像素材组 ID。
+        asset_name:
+          type: string
+          description: 人像素材名称。
+        status:
+          type: string
+          description: 人像素材状态。
+        image_url:
+          type: string
+          format: uri
+          description: 人像素材图片 URL。
+        created_at:
+          type: string
+          description: 人像素材创建时间。
+        updated_at:
+          type: string
+          description: 人像素材更新时间。
+    ContentBlock:
+      type: object
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          description: 内容块类型，例如 `text`、`image_url` 或 `inline_data`。
+          example: text
+        text:
+          type: string
+          description: 文本内容。
+        image_url:
+          type: object
+          description: 图片 URL 内容块。
+          additionalProperties: true
+        inline_data:
+          type: object
+          description: Base64 内联媒体内容块。
+          additionalProperties: true
+    Usage:
+      type: object
+      properties:
+        prompt_tokens:
+          type: integer
+          description: 输入 token 数。
+        completion_tokens:
+          type: integer
+          description: 输出 token 数。
+        total_tokens:
+          type: integer
+          description: 总 token 数。
+        input_tokens:
+          type: integer
+          description: 输入 token 数，兼容部分响应格式。
+        output_tokens:
+          type: integer
+          description: 输出 token 数，兼容部分响应格式。
+    ManagementResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 请求是否成功。
+        message:
+          type: string
+          description: 接口返回消息。
+        data:
+          description: 接口返回的业务数据，结构随接口不同而变化。
     ErrorResponse:
       type: object
       required:
@@ -197,7 +2270,10 @@ components:
           properties:
             code:
               type: string
+              description: 错误码。
             message:
               type: string
+              description: 错误信息。
             request_id:
               type: string
+              description: 请求 ID，用于排查问题。

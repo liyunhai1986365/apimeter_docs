@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { openapi } from '@/lib/openapi';
 import { apiSource } from '@/lib/api-source';
+import { getApiReferencePage } from '@/lib/api-reference-page';
 import { createAPIPage } from 'fumadocs-openapi/ui';
 import {
   DocsBody,
@@ -18,7 +19,7 @@ const APIPage = createAPIPage(openapi, {
 });
 
 export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug?: string[] | string }>;
 }) {
   const params = await props.params;
   if (!params.slug || params.slug.length === 0) {
@@ -26,7 +27,7 @@ export default async function Page(props: {
     if (firstPage) redirect(firstPage.url);
   }
 
-  const page = apiSource.getPage(params.slug);
+  const page = getApiReferencePage(params.slug);
 
   if (!page) notFound();
 
@@ -46,10 +47,10 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug?: string[] | string }>;
 }) {
   const params = await props.params;
-  const page = apiSource.getPage(params.slug);
+  const page = getApiReferencePage(params.slug);
 
   if (!page) notFound();
 
