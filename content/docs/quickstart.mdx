@@ -1,0 +1,76 @@
+---
+title: Quickstart
+description: Install the SDK pattern and send the first ModelSell request.
+icon: Rocket
+---
+
+This guide shows the shortest path from a new API key to a model response.
+
+## 1. Set your API key
+
+Store the key in an environment variable before running examples:
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+## 2. Call a model
+
+<CodeExampleTabs
+  examples={[
+    {
+      label: 'curl',
+      language: 'bash',
+      code: `curl https://api.modelsell.test/v1/chat/completions \\
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "modelsell-chat",
+    "messages": [
+      { "role": "user", "content": "Write a concise launch note." }
+    ]
+  }'`,
+    },
+    {
+      label: 'JavaScript',
+      language: 'ts',
+      code: `const response = await fetch('https://api.modelsell.test/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    Authorization: \`Bearer \${process.env.MODELSELL_API_KEY}\`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'modelsell-chat',
+    messages: [{ role: 'user', content: 'Write a concise launch note.' }],
+  }),
+});
+
+console.log(await response.json());`,
+    },
+    {
+      label: 'Python',
+      language: 'python',
+      code: `import os
+import requests
+
+response = requests.post(
+    "https://api.modelsell.test/v1/chat/completions",
+    headers={
+        "Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "model": "modelsell-chat",
+        "messages": [{"role": "user", "content": "Write a concise launch note."}],
+    },
+)
+
+print(response.json())`,
+    },
+  ]}
+/>
+
+## 3. Explore the reference
+
+Open [/api-reference](/api-reference) to view parameters, response schemas, and the playground.

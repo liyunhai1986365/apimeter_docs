@@ -1,0 +1,203 @@
+openapi: 3.1.0
+info:
+  title: ModelSell API
+  version: 1.0.0
+  description: API reference for ModelSell model endpoints.
+tags:
+  - name: Chat
+    description: Generate responses from conversational model inputs.
+  - name: Models
+    description: Discover model capabilities available to the current key.
+servers:
+  - url: https://api.modelsell.test
+security:
+  - bearerAuth: []
+paths:
+  /v1/chat/completions:
+    post:
+      operationId: createChatCompletion
+      summary: Create chat completion
+      description: Generate an assistant response from ordered chat messages.
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatCompletionRequest'
+            examples:
+              basic:
+                summary: Basic chat request
+                value:
+                  model: modelsell-chat
+                  messages:
+                    - role: user
+                      content: Write a concise launch note.
+      responses:
+        '200':
+          description: Chat completion response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /v1/models:
+    get:
+      operationId: listModels
+      summary: List models
+      description: Return the models available to the authenticated project.
+      tags:
+        - Models
+      responses:
+        '200':
+          description: Available models.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - object
+                  - data
+                properties:
+                  object:
+                    type: string
+                    enum:
+                      - list
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Model'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Too many requests.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    CreateChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: Model identifier.
+          example: modelsell-chat
+        messages:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 0.7
+          description: Sampling temperature.
+        max_tokens:
+          type: integer
+          minimum: 1
+          maximum: 8192
+          description: Maximum tokens to generate.
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - system
+            - user
+            - assistant
+        content:
+          type: string
+    ChatCompletion:
+      type: object
+      required:
+        - id
+        - object
+        - model
+        - choices
+      properties:
+        id:
+          type: string
+          example: chatcmpl_123
+        object:
+          type: string
+          enum:
+            - chat.completion
+        model:
+          type: string
+        choices:
+          type: array
+          items:
+            type: object
+            required:
+              - index
+              - message
+              - finish_reason
+            properties:
+              index:
+                type: integer
+              message:
+                $ref: '#/components/schemas/ChatMessage'
+              finish_reason:
+                type: string
+                enum:
+                  - stop
+                  - length
+    Model:
+      type: object
+      required:
+        - id
+        - object
+        - context_window
+      properties:
+        id:
+          type: string
+          example: modelsell-chat
+        object:
+          type: string
+          enum:
+            - model
+        context_window:
+          type: integer
+          example: 128000
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string

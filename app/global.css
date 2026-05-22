@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
+
+:root {
+  --fd-layout-width: 1500px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in oklab, var(--fd-primary) 10%, transparent), transparent 28rem),
+    var(--fd-background);
+}
+
+.code-example-panel pre {
+  margin: 0;
+}
+
+#nd-page form.not-prose {
+  max-width: 100%;
+}
+
+#nd-page form.not-prose code {
+  word-break: normal;
+}

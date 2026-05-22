@@ -1,0 +1,30 @@
+---
+title: Authentication
+description: Authenticate ModelSell API requests with bearer tokens.
+icon: KeyRound
+---
+
+ModelSell API requests use bearer token authentication.
+
+```http
+Authorization: Bearer ms_live_your_key
+```
+
+## Key handling
+
+- Keep production keys in server-side environment variables.
+- Use separate keys for development and production.
+- Rotate keys after team or deployment changes.
+
+## Failed authentication
+
+The API returns `401 Unauthorized` when the token is missing, malformed, expired, or revoked.
+
+```json
+{
+  "error": {
+    "code": "invalid_api_key",
+    "message": "The provided API key is not valid."
+  }
+}
+```
