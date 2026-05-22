@@ -1,0 +1,30 @@
+---
+title: 认证
+description: 使用 Bearer Token 认证 ModelSell API 请求。
+icon: KeyRound
+---
+
+ModelSell API 使用 Bearer Token 认证。
+
+```http
+Authorization: Bearer ms_live_your_key
+```
+
+## Key 管理
+
+- 生产环境 Key 应只保存在服务端环境变量中。
+- 开发和生产环境使用不同 Key。
+- 团队成员或部署环境变更后及时轮换 Key。
+
+## 认证失败
+
+如果 Token 缺失、格式错误、过期或已撤销，API 会返回 `401 Unauthorized`。
+
+```json
+{
+  "error": {
+    "code": "invalid_api_key",
+    "message": "The provided API key is not valid."
+  }
+}
+```

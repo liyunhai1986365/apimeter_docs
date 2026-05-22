@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { RootProvider } from 'fumadocs-ui/provider/next';
+import { LocalizedRootProvider } from '@/components/localized-root-provider';
+import { i18nUI } from '@/lib/layout.shared';
+import { defaultLocale } from '@/lib/i18n';
 import './global.css';
 
 export const metadata: Metadata = {
@@ -15,7 +17,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
-        <RootProvider>{children}</RootProvider>
+        <LocalizedRootProvider
+          i18n={{ ...i18nUI.provider(defaultLocale), locale: defaultLocale }}
+        >
+          {children}
+        </LocalizedRootProvider>
       </body>
     </html>
   );

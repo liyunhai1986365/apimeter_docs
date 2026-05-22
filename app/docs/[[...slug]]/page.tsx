@@ -4,12 +4,13 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page
 import { source } from '@/lib/source';
 import { CodeExampleTabs } from '@/components/code-example-tabs';
 import { ApiPlaygroundEmbed } from '@/components/api-playground-embed';
+import { defaultLocale } from '@/lib/i18n';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+  const page = source.getPage(params.slug, defaultLocale);
 
   if (!page) notFound();
 
@@ -33,14 +34,17 @@ export default async function Page(props: {
 }
 
 export function generateStaticParams() {
-  return source.generateParams();
+  return source
+    .generateParams('slug', 'lang')
+    .filter((param) => param.lang === defaultLocale)
+    .map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+  const page = source.getPage(params.slug, defaultLocale);
 
   if (!page) notFound();
 

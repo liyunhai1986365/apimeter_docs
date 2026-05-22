@@ -1,19 +1,35 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { defineI18nUI } from 'fumadocs-ui/i18n';
+import { i18n, type Locale } from '@/lib/i18n';
+import { getLocalizedHref } from '@/lib/i18n-path';
 
-export const baseOptions: BaseLayoutProps = {
-  nav: {
-    title: 'ModelSell Docs',
+export const i18nUI = defineI18nUI(i18n, {
+  en: {
+    displayName: 'English',
+    search: 'Search docs',
   },
-  links: [
-    {
-      text: 'Docs',
-      url: '/docs',
-      active: 'nested-url',
+  zh: {
+    displayName: '中文',
+    search: '搜索文档',
+  },
+});
+
+export function baseOptions(locale: Locale): BaseLayoutProps {
+  return {
+    nav: {
+      title: locale === 'zh' ? 'ModelSell 文档' : 'ModelSell Docs',
     },
-    {
-      text: 'API Reference',
-      url: '/api-reference',
-      active: 'nested-url',
-    },
-  ],
-};
+    links: [
+      {
+        text: locale === 'zh' ? '文档' : 'Docs',
+        url: getLocalizedHref('/docs', locale),
+        active: 'nested-url',
+      },
+      {
+        text: locale === 'zh' ? 'API 参考' : 'API Reference',
+        url: getLocalizedHref('/api-reference', locale),
+        active: 'nested-url',
+      },
+    ],
+  };
+}

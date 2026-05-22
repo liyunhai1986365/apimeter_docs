@@ -16,6 +16,12 @@ describe('getApiPlaygroundSlugs', () => {
     ).toEqual(['models', 'listModels']);
   });
 
+  it('extracts slugs from a localized API reference href', () => {
+    expect(
+      getApiPlaygroundSlugs('/zh/api-reference/chat/createChatCompletion'),
+    ).toEqual(['chat', 'createChatCompletion']);
+  });
+
   it('rejects non API reference links', () => {
     expect(getApiPlaygroundSlugs('/docs/models/chat-completions')).toBeNull();
   });
