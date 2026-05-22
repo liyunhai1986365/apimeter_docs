@@ -1,0 +1,28 @@
+{
+  "title": "Agent 工具",
+  "pages": [
+    "modelsell-cli",
+    "aionui",
+    "astrbot",
+    "cc-switch",
+    "cherry-studio",
+    "claude-code",
+    "codebuddy",
+    "codex-cli",
+    "gemini-cli",
+    "copilot-cli",
+    "crush",
+    "cursor",
+    "factory-droid-cli",
+    "fluent-read",
+    "hermes-agent",
+    "langbot",
+    "luna-translator",
+    "memoh",
+    "nanobot",
+    "oh-my-pi",
+    "openclaw",
+    "opencode",
+    "pi-mono"
+  ]
+}

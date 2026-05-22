@@ -1,0 +1,117 @@
+---
+title: 接入 Agent 工具
+description: 已支持对接 ModelSell 的 AI Agent 与客户端工具集成方案。
+icon: Sparkles
+---
+
+ModelSell 兼容多种流行的 AI 应用和工具。以下是已验证支持的应用列表及配置指南。
+
+## 支持的应用
+
+<Cards>
+  <Card title="一键配置主流 agent 平台，让你轻松使用各种 agent 工具" href="/zh/docs/apps/modelsell-cli">
+    使用 ModelSell CLI 自动配置 Claude Code、Codex、Gemini CLI 和 OpenClaw。
+  </Card>
+
+  <Card title="AionUi" href="/zh/docs/apps/aionui">
+    免费开源桌面办公 Agent，支持多模型、文件管理和实时预览。
+  </Card>
+
+  <Card title="AstrBot - Agent 聊天机器人" href="/zh/docs/apps/astrbot">
+    多平台聊天机器人与 Agent 框架，可接入 OpenAI 兼容模型服务。
+  </Card>
+
+  <Card title="CC Switch" href="/zh/docs/apps/cc-switch">
+    一键管理 Claude、Codex、Gemini CLI 的 Provider、MCP 与提示词配置。
+  </Card>
+
+  <Card title="Cherry Studio" href="/zh/docs/apps/cherry-studio">
+    桌面 AI 助手客户端，支持多模型对话与多角色管理。
+  </Card>
+
+  <Card title="Claude Code" href="/zh/docs/apps/claude-code">
+    Anthropic Claude 驱动的终端代码助手，支持多文件协同编辑。
+  </Card>
+
+  <Card title="CodeBuddy" href="/zh/docs/apps/codebuddy">
+    通过本地 JSON 模型配置接入 OpenAI 兼容接口的 AI 编程助手。
+  </Card>
+
+  <Card title="Codex CLI" href="/zh/docs/apps/codex-cli">
+    命令行界面的 AI 代码助手，支持沙箱与补丁式编辑。
+  </Card>
+
+  <Card title="Gemini CLI" href="/zh/docs/apps/gemini-cli">
+    Google Gemini CLI，可通过 ModelSell CLI 一键写入 API Key、默认模型和 base URL。
+  </Card>
+
+  <Card title="Copilot CLI" href="/zh/docs/apps/copilot-cli">
+    通过 BYOK 模式接入自定义 OpenAI 兼容模型网关。
+  </Card>
+
+  <Card title="Crush" href="/zh/docs/apps/crush">
+    Charm 开发的开源终端 AI 编码智能体，拥有响应式 TUI。
+  </Card>
+
+  <Card title="Cursor" href="/zh/docs/apps/cursor">
+    AI 原生代码编辑器，可通过自定义 Base URL 接入模型服务。
+  </Card>
+
+  <Card title="Factory Droid CLI" href="/zh/docs/apps/factory-droid-cli">
+    面向软件工程流程的 AI 助手，覆盖规划、开发与测试。
+  </Card>
+
+  <Card title="流畅阅读 (FluentRead) - 开源翻译插件" href="/zh/docs/apps/fluent-read">
+    开源浏览器翻译插件，可接入兼容 OpenAI 的翻译模型。
+  </Card>
+
+  <Card title="Hermes Agent" href="/zh/docs/apps/hermes-agent">
+    Nous Research 出品的开源终端 AI Agent，可通过 Custom Endpoint 接入。
+  </Card>
+
+  <Card title="LangBot - 即时通信机器人开发平台" href="/zh/docs/apps/langbot">
+    面向即时通信平台的开源机器人开发框架。
+  </Card>
+
+  <Card title="LunaTranslator - 开源 GalGame 翻译器" href="/zh/docs/apps/luna-translator">
+    开源 GalGame 翻译器，可配置兼容 OpenAI 的翻译服务。
+  </Card>
+
+  <Card title="Memoh - 容器化 AI 智能体平台" href="/zh/docs/apps/memoh">
+    容器化 AI 智能体平台，可接入自定义模型供应商。
+  </Card>
+
+  <Card title="nanobot" href="/zh/docs/apps/nanobot">
+    轻量级 AI 智能体，支持通过 config.json 快速接入模型服务。
+  </Card>
+
+  <Card title="Oh My Pi" href="/zh/docs/apps/oh-my-pi">
+    终端 AI 编程 Agent，支持思考模式与深度推理等级映射配置。
+  </Card>
+
+  <Card title="OpenClaw" href="/zh/docs/apps/openclaw">
+    自托管 AI 助手平台，支持多渠道 AI 代理管理。
+  </Card>
+
+  <Card title="OpenCode" href="/zh/docs/apps/opencode">
+    开源终端 AI 编程智能体，兼容多种模型服务供应商。
+  </Card>
+
+  <Card title="Pi" href="/zh/docs/apps/pi-mono">
+    极简且高度可扩展的终端编码框架，支持自定义技能与模板。
+  </Card>
+</Cards>
+
+## 集成指南
+
+大多数应用只需要配置以下信息即可连接 ModelSell：
+
+1. **API 地址**：ModelSell 服务地址，通常以 `/v1` 结尾。
+2. **API Key**：在 ModelSell 控制台生成的访问令牌。
+3. **模型名称**：选择需要调用的模型 ID。
+
+具体配置步骤请参考各应用的详细文档。
+
+<Callout title="兼容性提示">
+如果工具支持 OpenAI-compatible、Custom Endpoint 或 BYOK 模式，通常可以把 ModelSell 的 API 地址、API Key 和模型名称填入对应位置完成接入。
+</Callout>

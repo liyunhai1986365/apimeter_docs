@@ -1,0 +1,119 @@
+---
+title: "Crush"
+description: "Charm 开发的开源终端 AI 编码智能体，拥有响应式 TUI。"
+icon: Zap
+---
+
+**项目介绍**
+
+**Crush** 是由 [Charm](https://charm.sh) 开发的开源 AI 编程 Agent，运行在终端中。支持多模型切换、LSP 集成、MCP 服务器和代理式编码工作流，UI 精致且交互流畅。
+
+- GitHub：[https://github.com/charmbracelet/crush](https://github.com/charmbracelet/crush)
+
+## 📦 接入前准备
+
+**准备信息**
+
+- 已安装 [Node.js](https://nodejs.org/zh-cn/download/)
+- 一个可用的 ModelSell 地址（必须以 `/v1` 结尾）
+- 一个可用的 ModelSell API Key（在控制台生成）
+- 想使用的模型名称（如 `claude-sonnet-4-6`、`gemini-2.5-flash` 等，需与 ModelSell 控制台中的模型 ID 完全一致）
+
+## 🚀 第一步：安装 Crush
+
+```bash
+npm install -g @charmland/crush
+```
+
+macOS 用户也可通过 Homebrew 安装：
+
+```bash
+brew install charmbracelet/tap/crush
+```
+
+验证安装：
+
+```bash
+crush --version
+```
+
+## 🔧 第二步：编辑配置文件
+
+配置文件位置：
+
+- **Linux / macOS**：`~/.config/crush/crush.json`
+- **Windows**：`%USERPROFILE%\.config\crush\crush.json`
+
+如果文件不存在，自行创建即可。填入以下内容：
+
+```json
+{
+  "$schema": "https://charm.land/crush.json",
+  "providers": {
+    "modelsell": {
+      "type": "openai-compat",
+      "base_url": "https://modelsell.com/v1",
+      "api_key": "$MODELSELL_API_KEY",
+      "models": [
+        {
+          "id": "claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6",
+          "context_window": 200000,
+          "default_max_tokens": 32768,
+          "can_reason": true
+        },
+        {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash",
+          "context_window": 1000000,
+          "default_max_tokens": 32768,
+          "can_reason": false
+        }
+      ]
+    }
+  }
+}
+```
+
+**字段要点**
+
+- `type` 必须为 `openai-compat`
+- `base_url` 需以 `/v1` 结尾
+- `api_key` 使用 `$MODELSELL_API_KEY` 变量引用，避免把明文密钥写入配置文件
+- `models[].id` 必须与 ModelSell 控制台完全一致
+
+## 🔑 第三步：设置环境变量
+
+### Linux / macOS
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+### Windows（PowerShell）
+
+```powershell
+$env:MODELSELL_API_KEY="your-modelsell-api-key"
+```
+
+建议写入 shell 配置文件以便持久化。
+
+## ✅ 第四步：启动并选择模型
+
+进入你的项目目录：
+
+```bash
+cd /path/to/my-project
+crush
+```
+
+按 `Ctrl+L`（或输入 `/model`）打开模型切换器，选择 **modelsell** 供应商，然后选择目标模型。发送一条测试消息验证响应。
+
+## ❓ 常见问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| 模型切换器看不到 modelsell | 检查 `crush.json` 路径和 JSON 格式是否正确 |
+| 401 Unauthorized | 确认 `MODELSELL_API_KEY` 已导出到当前 shell |
+| 模型不存在 | 核对 `models[].id` 与 ModelSell 控制台完全一致 |
+| 修改配置后没生效 | 退出 Crush 重新启动 |

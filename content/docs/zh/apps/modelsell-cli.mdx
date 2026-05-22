@@ -1,0 +1,158 @@
+---
+title: 一键配置主流 agent 平台
+description: 使用 ModelSell CLI 自动配置 Claude Code、Codex、Gemini CLI 和 OpenClaw。
+icon: WandSparkles
+---
+
+ModelSell CLI 是一个本地命令行配置工具，可以把 ModelSell 的 API Key、API 地址和默认模型写入主流 Agent 工具的本地配置文件。置。
+
+## 适用场景
+
+- 已经有 ModelSell API Key，希望快速把常用 Agent 工具接入 ModelSell。
+- 同一台电脑上同时使用 Claude Code、Codex、Gemini CLI 或 OpenClaw，不想逐个编辑配置文件。
+- 需要在新电脑、服务器或团队环境里用脚本快速初始化 Agent 工具配置。
+- 希望写入配置前自动保留旧配置备份，降低误改本地文件的风险。
+
+![modelsell-cli](/assets/docs/apps/modelsell/modelsell-cli.png)
+
+## 一键安装
+
+macOS 和 Linux 使用以下命令安装：
+
+```bash
+curl -fsSL https://static.modelsell.com/modelsell-cli/install.sh | sh
+```
+
+Windows PowerShell 使用以下命令安装：
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://static.modelsell.com/modelsell-cli/install.ps1 | iex"
+```
+
+安装完成后，重新打开终端或 PowerShell，确认命令可用：
+
+```bash
+modelsell
+```
+
+<Callout title="安装位置">
+macOS 和 Linux 默认安装到 `~/.local/bin/modelsell`。Windows 默认安装到 `%USERPROFILE%\.local\bin\modelsell.exe`。如果提示找不到 `modelsell` 命令，请确认安装目录已经加入 `PATH`，或重新打开终端。
+</Callout>
+
+## 交互式配置
+
+直接运行：
+
+```bash
+modelsell
+```
+
+CLI 会显示交互式菜单，你可以选择配置全部工具，或只配置某一个目标。根据提示填入 ModelSell API Key、API 地址和模型名称后，工具会自动写入对应平台的配置文件。
+
+支持的目标包括：
+
+| 目标 | 说明 |
+| --- | --- |
+| `all` | 一次性配置 Claude Code、Codex、Gemini CLI 和 OpenClaw |
+| `claude` | 配置 Claude Code |
+| `codex` | 配置 Codex CLI |
+| `gemini` | 配置 Gemini CLI |
+| `openclaw` | 配置 OpenClaw |
+
+## 更多 Agent 工具配置入口
+
+以下卡片与 [接入 Agent 工具](/zh/docs/apps) 页面保持一致。你可以继续查看每个工具的详细配置方式。
+
+<Cards>
+  <Card title="一键配置主流 agent 平台，让你轻松使用各种 agent 工具" href="/zh/docs/apps/modelsell-cli">
+    使用 ModelSell CLI 自动配置 Claude Code、Codex、Gemini CLI 和 OpenClaw。
+  </Card>
+
+  <Card title="AionUi" href="/zh/docs/apps/aionui">
+    免费开源桌面办公 Agent，支持多模型、文件管理和实时预览。
+  </Card>
+
+  <Card title="AstrBot - Agent 聊天机器人" href="/zh/docs/apps/astrbot">
+    多平台聊天机器人与 Agent 框架，可接入 OpenAI 兼容模型服务。
+  </Card>
+
+  <Card title="CC Switch" href="/zh/docs/apps/cc-switch">
+    一键管理 Claude、Codex、Gemini CLI 的 Provider、MCP 与提示词配置。
+  </Card>
+
+  <Card title="Cherry Studio" href="/zh/docs/apps/cherry-studio">
+    桌面 AI 助手客户端，支持多模型对话与多角色管理。
+  </Card>
+
+  <Card title="Claude Code" href="/zh/docs/apps/claude-code">
+    Anthropic Claude 驱动的终端代码助手，支持多文件协同编辑。
+  </Card>
+
+  <Card title="CodeBuddy" href="/zh/docs/apps/codebuddy">
+    通过本地 JSON 模型配置接入 OpenAI 兼容接口的 AI 编程助手。
+  </Card>
+
+  <Card title="Codex CLI" href="/zh/docs/apps/codex-cli">
+    命令行界面的 AI 代码助手，支持沙箱与补丁式编辑。
+  </Card>
+
+  <Card title="Gemini CLI" href="/zh/docs/apps/gemini-cli">
+    Google Gemini CLI，可通过 ModelSell CLI 一键写入 API Key、默认模型和 base URL。
+  </Card>
+
+  <Card title="Copilot CLI" href="/zh/docs/apps/copilot-cli">
+    通过 BYOK 模式接入自定义 OpenAI 兼容模型网关。
+  </Card>
+
+  <Card title="Crush" href="/zh/docs/apps/crush">
+    Charm 开发的开源终端 AI 编码智能体，拥有响应式 TUI。
+  </Card>
+
+  <Card title="Cursor" href="/zh/docs/apps/cursor">
+    AI 原生代码编辑器，可通过自定义 Base URL 接入模型服务。
+  </Card>
+
+  <Card title="Factory Droid CLI" href="/zh/docs/apps/factory-droid-cli">
+    面向软件工程流程的 AI 助手，覆盖规划、开发与测试。
+  </Card>
+
+  <Card title="流畅阅读 (FluentRead) - 开源翻译插件" href="/zh/docs/apps/fluent-read">
+    开源浏览器翻译插件，可接入兼容 OpenAI 的翻译模型。
+  </Card>
+
+  <Card title="Hermes Agent" href="/zh/docs/apps/hermes-agent">
+    Nous Research 出品的开源终端 AI Agent，可通过 Custom Endpoint 接入。
+  </Card>
+
+  <Card title="LangBot - 即时通信机器人开发平台" href="/zh/docs/apps/langbot">
+    面向即时通信平台的开源机器人开发框架。
+  </Card>
+
+  <Card title="LunaTranslator - 开源 GalGame 翻译器" href="/zh/docs/apps/luna-translator">
+    开源 GalGame 翻译器，可配置兼容 OpenAI 的翻译服务。
+  </Card>
+
+  <Card title="Memoh - 容器化 AI 智能体平台" href="/zh/docs/apps/memoh">
+    容器化 AI 智能体平台，可接入自定义模型供应商。
+  </Card>
+
+  <Card title="nanobot" href="/zh/docs/apps/nanobot">
+    轻量级 AI 智能体，支持通过 config.json 快速接入模型服务。
+  </Card>
+
+  <Card title="Oh My Pi" href="/zh/docs/apps/oh-my-pi">
+    终端 AI 编程 Agent，支持思考模式与深度推理等级映射配置。
+  </Card>
+
+  <Card title="OpenClaw" href="/zh/docs/apps/openclaw">
+    自托管 AI 助手平台，支持多渠道 AI 代理管理。
+  </Card>
+
+  <Card title="OpenCode" href="/zh/docs/apps/opencode">
+    开源终端 AI 编程智能体，兼容多种模型服务供应商。
+  </Card>
+
+  <Card title="Pi" href="/zh/docs/apps/pi-mono">
+    极简且高度可扩展的终端编码框架，支持自定义技能与模板。
+  </Card>
+</Cards>

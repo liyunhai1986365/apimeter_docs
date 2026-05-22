@@ -11,7 +11,7 @@ Chat completions 接收模型名称和按顺序排列的消息列表。
     {
       label: 'curl',
       language: 'bash',
-      code: `curl https://api.modelsell.test/v1/chat/completions \\
+      code: `curl https://modelsell.com/v1/chat/completions \\
   -H "Authorization: Bearer $MODELSELL_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -26,7 +26,7 @@ Chat completions 接收模型名称和按顺序排列的消息列表。
     {
       label: 'JavaScript',
       language: 'ts',
-      code: `const res = await fetch('https://api.modelsell.test/v1/chat/completions', {
+      code: `const res = await fetch('https://modelsell.com/v1/chat/completions', {
   method: 'POST',
   headers: {
     Authorization: \`Bearer \${process.env.MODELSELL_API_KEY}\`,
@@ -61,7 +61,7 @@ payload = {
 }
 
 res = requests.post(
-    "https://api.modelsell.test/v1/chat/completions",
+    "https://modelsell.com/v1/chat/completions",
     headers={"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"},
     json=payload,
 )

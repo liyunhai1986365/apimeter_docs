@@ -1,0 +1,102 @@
+---
+title: "Copilot CLI"
+description: "通过 BYOK 模式接入自定义 OpenAI 兼容模型网关。"
+icon: Terminal
+---
+
+**项目介绍**
+
+GitHub Copilot CLI 是 GitHub 官方推出的终端 AI 编程助手，支持 **BYOK（自带密钥）** 模式接入自定义模型端点，可通过环境变量直接对接 ModelSell。支持 Agent 模式、工具调用和 MCP。
+
+- 官方文档：[https://docs.github.com/copilot/how-tos/copilot-cli/cli-getting-started](https://docs.github.com/en/copilot/how-tos/copilot-cli/cli-getting-started)
+- 包地址：[https://www.npmjs.com/package/@github/copilot](https://www.npmjs.com/package/@github/copilot)
+
+本教程介绍如何将 Copilot CLI 通过 BYOK 模式指向 ModelSell，使用 ModelSell 网关分发的模型完成日常编码任务。
+
+## 📦 接入前准备
+
+**准备信息**
+
+- **Node.js 22 或更高版本**
+- 一个可用的 ModelSell 地址（必须以 `/v1` 结尾）
+- 一个可用的 ModelSell API Key（在控制台生成）
+- 想使用的模型名称（如 `claude-sonnet-4-6`、`gemini-2.5-flash` 等，需与 ModelSell 控制台中的模型 ID 完全一致）
+
+## 🚀 第一步：安装 Copilot CLI
+
+```bash
+npm install -g @github/copilot
+```
+
+安装完成后，验证版本：
+
+```bash
+copilot --version
+```
+
+详细安装说明请参考 [官方入门指南](https://docs.github.com/en/copilot/how-tos/copilot-cli/cli-getting-started)。
+
+## 🔧 第二步：配置 ModelSell（核心步骤）
+
+Copilot CLI 通过环境变量读取自定义 Provider 配置，**推荐使用 `anthropic` 类型**以获得最佳兼容性。
+
+### Linux / macOS
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+### Windows（PowerShell）
+
+```powershell
+$env:COPILOT_PROVIDER_TYPE="anthropic"
+$env:COPILOT_PROVIDER_BASE_URL="https://modelsell.com/v1"
+$env:COPILOT_PROVIDER_API_KEY="your-modelsell-api-key"
+$env:COPILOT_MODEL="claude-sonnet-4-6"
+```
+
+**为什么推荐 anthropic 类型**
+
+部分模型（特别是带思考链的推理模型）要求将 `reasoning_content` 在下一轮请求中原样回传。Copilot CLI 的 OpenAI 集成不支持此机制，可能触发 `400` 错误。改用 **Anthropic Messages API** 兼容端点可以规避此问题。
+
+如果你只使用非推理模型（如 `gemini-2.5-flash`），也可以将 `COPILOT_PROVIDER_TYPE` 改为 `openai`。
+
+### 可选：调整上下文与输出限制
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+## ✅ 第三步：启动并验证
+
+```bash
+copilot
+```
+
+输入任意编程问题（例如 "帮我写一个读取 JSON 文件的 Python 函数"），模型正常响应即配置成功。
+
+```bash
+copilot help providers
+```
+
+可列出全部与 Provider 相关的环境变量说明。
+
+## 🔄 切换模型
+
+只需修改 `COPILOT_MODEL` 环境变量并重新启动 `copilot`：
+
+```bash
+copilot
+```
+
+模型名称必须与 ModelSell 控制台中暴露的模型 ID **完全一致**。
+
+## ❓ 常见问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| 提示 `400 Bad Request` | 将 `COPILOT_PROVIDER_TYPE` 切换为 `anthropic` |
+| 提示模型不存在 | 确认 `COPILOT_MODEL` 与 ModelSell 控制台的模型 ID 一致 |
+| API Key 无效 | 在 ModelSell 控制台重新生成 Key 并更新环境变量 |
+| 环境变量不生效 | 检查是否新开了 shell，或将变量写入 `~/.bashrc` / `~/.zshrc` / PowerShell Profile |
+| 输出被截断 | 增加 `COPILOT_PROVIDER_MAX_OUTPUT_TOKENS` 的值 |

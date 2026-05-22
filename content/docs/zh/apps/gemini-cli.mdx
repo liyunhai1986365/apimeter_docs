@@ -1,0 +1,99 @@
+---
+title: Gemini CLI
+description: 使用 ModelSell API Key 和模型配置 Gemini CLI。
+icon: Sparkles
+---
+
+Gemini CLI 可以通过 API Key 和环境变量接入 ModelSell。推荐优先使用 [ModelSell CLI](/zh/docs/apps/modelsell-cli) 一键配置；如果你需要手动检查或调整配置，可以参考本页。
+
+## 推荐方式：使用 ModelSell CLI
+
+安装 ModelSell CLI：
+
+```bash
+curl -fsSL https://static.modelsell.com/modelsell-cli/install.sh | sh
+```
+
+Windows PowerShell：
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://static.modelsell.com/modelsell-cli/install.ps1 | iex"
+```
+
+只配置 Gemini CLI：
+
+```bash
+modelsell configure --target gemini --api-key sk-xxx --yes
+```
+
+指定 Gemini CLI 默认模型：
+
+```bash
+modelsell configure --target gemini --api-key sk-xxx --gemini-model gemini-3.1-pro-preview --yes
+```
+
+## 写入的配置
+
+ModelSell CLI 会写入：
+
+- `~/.gemini/settings.json`
+- `~/.gemini/.env`
+
+其中 `settings.json` 会启用 API Key 认证，`.env` 会写入：
+
+```bash
+GEMINI_API_KEY=sk-xxx
+GEMINI_MODEL=gemini-3.1-pro-preview
+GOOGLE_GEMINI_BASE_URL=https://modelsell.com
+```
+
+## 手动配置
+
+如果你不使用 ModelSell CLI，也可以手动创建或编辑 `~/.gemini/settings.json`：
+
+```json
+{
+  "security": {
+    "auth": {
+      "selectedType": "gemini-api-key"
+    }
+  },
+  "model": {
+    "name": "gemini-3.1-pro-preview"
+  }
+}
+```
+
+然后创建或编辑 `~/.gemini/.env`：
+
+```bash
+GEMINI_API_KEY=sk-xxx
+GEMINI_MODEL=gemini-3.1-pro-preview
+GOOGLE_GEMINI_BASE_URL=https://modelsell.com
+```
+
+## 验证
+
+重新打开终端后运行：
+
+```bash
+gemini
+```
+
+进入 Gemini CLI 后发送一条测试消息。如果模型正常响应，说明已经成功接入 ModelSell。
+
+## 常见问题
+
+### 修改配置后没有生效
+
+重新打开终端，确认 Gemini CLI 读取的是当前用户目录下的 `~/.gemini/settings.json` 和 `~/.gemini/.env`。
+
+### 想切换模型
+
+可以重新运行：
+
+```bash
+modelsell configure --target gemini --api-key sk-xxx --gemini-model <model-id> --yes
+```
+
+也可以手动修改 `GEMINI_MODEL` 和 `settings.json` 中的 `model.name`。

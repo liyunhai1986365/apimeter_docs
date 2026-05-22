@@ -9,7 +9,7 @@ tags:
   - name: Models
     description: Discover model capabilities available to the current key.
 servers:
-  - url: https://api.modelsell.test
+  - url: https://modelsell.com
 security:
   - bearerAuth: []
 paths:

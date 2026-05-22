@@ -1,0 +1,98 @@
+---
+title: "CodeBuddy"
+description: "通过本地 JSON 模型配置接入 OpenAI 兼容接口的 AI 编程助手。"
+icon: Laptop
+---
+
+**项目介绍**
+
+WorkBuddy / CodeBuddy 是一款 AI Agent 与编程助手工具，通过本地 **JSON 模型配置文件** 管理可用模型。使用 OpenAI 兼容的 Chat Completions API，可无缝接入 ModelSell。
+
+## 📦 接入前准备
+
+**准备信息**
+
+- 已安装 WorkBuddy / CodeBuddy
+- 一个可用的 ModelSell 地址（必须以 `/v1` 结尾）
+- 一个可用的 ModelSell API Key（在控制台生成）
+- 想使用的模型名称（如 `claude-sonnet-4-6`、`gemini-2.5-flash` 等，需与 ModelSell 控制台中的模型 ID 完全一致）
+
+## 🚀 第一步：编辑模型配置文件
+
+找到 WorkBuddy / CodeBuddy 的本地模型配置 JSON 文件（通常位于用户目录下），添加 ModelSell 模型：
+
+```json
+{
+  "models": [
+    {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6 (ModelSell)",
+      "vendor": "ModelSell",
+      "url": "https://modelsell.com/v1/chat/completions",
+      "apiKey": "${MODELSELL_API_KEY}",
+      "maxInputTokens": 200000,
+      "maxOutputTokens": 8192,
+      "supportsToolCall": true,
+      "supportsImages": true
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash (ModelSell)",
+      "vendor": "ModelSell",
+      "url": "https://modelsell.com/v1/chat/completions",
+      "apiKey": "${MODELSELL_API_KEY}",
+      "maxInputTokens": 1000000,
+      "maxOutputTokens": 8192,
+      "supportsToolCall": true,
+      "supportsImages": false
+    }
+  ],
+  "availableModels": [
+    "claude-sonnet-4-6",
+    "gemini-2.5-flash"
+  ]
+}
+```
+
+**字段要点**
+
+- `url` 必须是 **完整的 Chat Completions 端点地址**（含 `/v1/chat/completions`）
+- `id` 填写 ModelSell 控制台实际暴露的模型名称
+- `maxInputTokens` / `maxOutputTokens` 根据实际模型能力调整
+- `availableModels` 控制 UI 中可选的模型列表
+
+## 🔑 第二步：设置 API Key 环境变量
+
+### Linux / macOS
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+### Windows（PowerShell）
+
+```powershell
+$env:MODELSELL_API_KEY="your-modelsell-api-key"
+```
+
+建议将环境变量写入 shell 配置文件（`~/.bashrc` / `~/.zshrc` / PowerShell Profile）以便持久化。
+
+## ✅ 第三步：验证接入
+
+启动 WorkBuddy / CodeBuddy，在模型选择器中选择刚刚添加的 ModelSell 模型（如 `claude-sonnet-4-6`），发送一条测试消息：
+
+```
+帮我写一个快速排序的 TypeScript 实现
+```
+
+若模型正常响应则接入成功。
+
+## ❓ 常见问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| 模型选择器看不到新加的模型 | 检查 `availableModels` 是否包含模型 ID，并重启应用 |
+| 401 / API Key 无效 | 确认环境变量已设置，且进程读取到了新值 |
+| `url must end with /chat/completions` | 确认 `url` 是完整端点，**不要只填到 `/v1`** |
+| 模型不存在 | 确认 `id` 与 ModelSell 控制台中的模型 ID 完全一致 |
+| 输出被截断 | 提高 `maxOutputTokens` 上限 |

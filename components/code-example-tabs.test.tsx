@@ -7,12 +7,12 @@ const examples = [
   {
     label: 'curl',
     language: 'bash',
-    code: 'curl https://api.modelsell.test/v1/models',
+    code: 'curl https://modelsell.com/v1/models',
   },
   {
     label: 'JavaScript',
     language: 'ts',
-    code: "await fetch('https://api.modelsell.test/v1/models')",
+    code: "await fetch('https://modelsell.com/v1/models')",
   },
   {
     label: 'Python',
@@ -30,7 +30,7 @@ describe('CodeExampleTabs', () => {
       'true',
     );
     expect(
-      screen.getByText('curl https://api.modelsell.test/v1/models'),
+      screen.getByText('curl https://modelsell.com/v1/models'),
     ).toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('CodeExampleTabs', () => {
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        "await fetch('https://api.modelsell.test/v1/models')",
+        "await fetch('https://modelsell.com/v1/models')",
       );
     });
     expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();

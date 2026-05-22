@@ -1,0 +1,115 @@
+---
+title: "Oh My Pi"
+description: "终端 AI 编程 Agent，支持思考模式与深度推理等级映射配置。"
+icon: Atom
+---
+
+**项目介绍**
+
+**Oh My Pi** 是一款终端 AI 编程 Agent，通过 `models.yml` 配置文件添加自定义模型供应商。支持思考模式（reasoning effort）、工具调用和完整的上下文管理。
+
+- GitHub：[https://github.com/can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)
+- 安装指南：[https://github.com/can1357/oh-my-pi#installation](https://github.com/can1357/oh-my-pi#installation)
+
+## 📦 接入前准备
+
+**准备信息**
+
+- 已安装 Oh My Pi（`omp` 命令可用）
+- 一个可用的 ModelSell 地址（本工具配置时 **不要加 `/v1`** 后缀，见下文说明）
+- 一个可用的 ModelSell API Key（在控制台生成）
+- 想使用的模型名称（如 `claude-sonnet-4-6`、`gemini-2.5-flash` 等，需与 ModelSell 控制台中的模型 ID 完全一致）
+
+## 🔑 第一步：设置环境变量
+
+```bash
+export MODELSELL_API_KEY="ms_live_your_key"
+```
+
+## 🔧 第二步：创建配置文件
+
+创建 `~/.omp/agent/models.yml`，添加 ModelSell 供应商：
+
+```yaml
+providers:
+  modelsell:
+    baseUrl: https://modelsell.com/v1
+    api: openai-completions
+    apiKey: MODELSELL_API_KEY
+    authHeader: true
+    models:
+      - id: claude-sonnet-4-6
+        name: Claude Sonnet 4.6
+        reasoning: true
+        thinking:
+          minLevel: high
+          maxLevel: xhigh
+          mode: effort
+        input: [text]
+        contextWindow: 200000
+        maxTokens: 128000
+        compat:
+          supportsDeveloperRole: false
+          supportsReasoningEffort: true
+          maxTokensField: max_tokens
+          reasoningEffortMap:
+            high: high
+            xhigh: max
+          supportsToolChoice: false
+          requiresReasoningContentForToolCalls: true
+          requiresAssistantContentForToolCalls: true
+        extraBody:
+          thinking:
+            type: enabled
+      - id: gemini-2.5-flash
+        name: Gemini 2.5 Flash
+        reasoning: false
+        input: [text]
+        contextWindow: 1000000
+        maxTokens: 65536
+        compat:
+          supportsDeveloperRole: false
+          maxTokensField: max_tokens
+```
+
+**关键配置说明**
+
+| 配置项 | 说明 |
+|--------|------|
+| `baseUrl` | ModelSell 地址，按 ModelSell 标准写 `/v1`（Oh My Pi 内部会处理路径拼接） |
+| `authHeader: true` | 发送 `Authorization: Bearer $MODELSELL_API_KEY` |
+| `supportsDeveloperRole: false` | 以 `system` 角色发系统提示词 |
+| `maxTokensField: max_tokens` | 输出限制字段使用 `max_tokens` |
+| `supportsToolChoice: false` | thinking mode 下不接受 `tool_choice` 参数 |
+| `requiresReasoningContentForToolCalls: true` | tool call 对话的历史消息中必须保留 `reasoning_content` |
+| `requiresAssistantContentForToolCalls: true` | 确保 tool call 消息的 `content` 字段不为空 |
+
+**重要**
+
+`models.yml` 中的 `compat` 字段是 **整块替换**，不会与内置条目合并。必须写全所有需要的字段，缺失的字段会被当作默认值处理。
+
+## ✅ 第三步：启动并验证
+
+进入你的项目目录，带参数启动：
+
+```bash
+cd /path/to/your-project
+omp --model modelsell/claude-sonnet-4-6
+```
+
+需要更快响应时，切换到非推理模型：
+
+```bash
+omp --model modelsell/gemini-2.5-flash
+```
+
+在 Oh My Pi 内随时按 `Ctrl+L` 或输入 `/model` 切换模型。
+
+## ❓ 常见问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| 启动后提示找不到 provider | 检查 `~/.omp/agent/models.yml` 路径是否正确 |
+| 401 Unauthorized | 确认 `MODELSELL_API_KEY` 已导出到当前 shell |
+| 推理模型 tool call 报错 | 确认 `requiresReasoningContentForToolCalls: true` 已启用 |
+| 切换模型后行为异常 | 非推理模型请关闭 `reasoning: true` 和 `extraBody.thinking` |

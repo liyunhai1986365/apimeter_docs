@@ -11,13 +11,13 @@ icon: ListTree
     {
       label: 'curl',
       language: 'bash',
-      code: `curl https://api.modelsell.test/v1/models \\
+      code: `curl https://modelsell.com/v1/models \\
   -H "Authorization: Bearer $MODELSELL_API_KEY"`,
     },
     {
       label: 'JavaScript',
       language: 'ts',
-      code: `const res = await fetch('https://api.modelsell.test/v1/models', {
+      code: `const res = await fetch('https://modelsell.com/v1/models', {
   headers: {
     Authorization: \`Bearer \${process.env.MODELSELL_API_KEY}\`,
   },
@@ -32,7 +32,7 @@ console.log(await res.json());`,
 import requests
 
 res = requests.get(
-    "https://api.modelsell.test/v1/models",
+    "https://modelsell.com/v1/models",
     headers={"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"},
 )
 

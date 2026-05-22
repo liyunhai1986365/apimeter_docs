@@ -1,0 +1,47 @@
+---
+title: "Cherry Studio"
+description: "桌面 AI 助手客户端，支持多模型对话与多角色管理。"
+icon: Cherry
+---
+
+**聊天设置选项**
+
+在 ModelSell
+控制台的系统设置->聊天设置中，可添加如下快捷选项，便于在令牌管理页一键填充到
+Cherry Studio：
+
+    ```json
+    { "Cherry Studio": "cherrystudio://providers/api-keys?v=1&data={cherryConfig}" }
+    ```
+
+🍒 Cherry Studio 是一款功能强大的桌面 AI 客户端，专为专业用户设计，集成了 30+
+行业智能助手，能够满足各种工作场景的需求，显著提升工作效率。
+
+- 官网地址：[https://cherry-ai.com](https://cherry-ai.com/)
+- 下载地址：[https://cherry-ai.com/download](https://cherry-ai.com/download)
+- 官方文档：[https://docs.cherry-ai.com](https://docs.cherry-ai.com)
+
+## ModelSell 接入方法
+
+### 参数填写
+
+提供商类型：ModelSell 支持的类型
+API 密钥：在 ModelSell 控制台生成
+API 地址：ModelSell 服务地址
+
+### 图文指引
+
+1. 在 ModelSell 中复制 API key
+   ![复制 API 密钥](/assets/docs/apps/cherry_studio/copy_api_key.png)
+
+2. 添加提供商
+   ![添加供应商](/assets/docs/apps/cherry_studio/add_provider.png)
+
+3. 添加模型
+   ![添加模型](/assets/docs/apps/cherry_studio/add_models.png)
+
+4. 返回聊天页面
+   ![切换聊天页面](/assets/docs/apps/cherry_studio/back_to_chat.png)
+
+5. 切换 ModelSell 模型
+   ![切换模型](/assets/docs/apps/cherry_studio/switch_model.png)
