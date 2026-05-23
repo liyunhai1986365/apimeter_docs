@@ -1,11 +1,6 @@
 {
-  "title": "ModelSell Docs",
+  "title": "Docs Home",
   "pages": [
-    "---Guide---",
-    "index",
-    "quickstart",
-    "authentication",
-    "---Operations---",
-    "errors"
+    "index"
   ]
 }

@@ -1,26 +1,36 @@
 ---
-title: ModelSell 文档
-description: 使用指南、代码示例和 API Playground 构建模型应用。
-icon: BookOpen
+title: 欢迎使用 ModelSell
+description: 从这里选择接入工具，或直接打开 API Reference / Playground。
+icon: Sparkles
 ---
 
-ModelSell 文档把产品指南、可复制的代码示例和 OpenAPI 驱动的 API Reference 放在同一个文档系统里。
+ModelSell 文档现在只保留两类入口：面向客户端和 Agent 的接入指南，以及由 OpenAPI 自动生成的 API Reference / Playground。
 
-## 包含内容
+## 常用入口
 
-- 基于 Fumadocs 和 MDX 的文档系统。
-- 支持 curl、JavaScript、Python 的交互式代码示例。
-- 由 `content/openapi/modelsell.yaml` 生成的 API 参考。
-- 可在 [/zh/docs/api-reference](/zh/docs/api-reference) 中尝试请求的 API Playground。
+<Cards>
+  <Card title="接入 Agent 工具" href="/zh/docs/apps">
+    Claude Code、Codex CLI、Gemini CLI、OpenClaw、Cursor、Cherry Studio 等客户端接入指南。
+  </Card>
 
-## 推荐路径
+  <Card title="一键配置主流 Agent 平台" href="/zh/docs/apps/modelsell-cli">
+    使用 ModelSell CLI 自动写入 API Key、Base URL 和默认模型，适合快速配置本地工具链。
+  </Card>
 
-1. 从 [快速开始](/zh/docs/quickstart) 开始。
-2. 在 [认证](/zh/docs/authentication) 中配置 API Key。
-3. 按需查看 [接入 Agent 工具](/zh/docs/apps)，把 ModelSell 配置到常用客户端。
-4. 通过 [Chat Completions](/zh/docs/models/chat-completions) 发送模型请求。
-5. 查看生成的 [API 参考](/zh/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion)。
+  <Card title="API Reference / Playground" href="/zh/docs/api-reference">
+    展开完整 OpenAPI 参数、响应结构和 Playground，按聊天、图片、视频、音频等分类直接调试接口请求。
+  </Card>
+</Cards>
 
-<Callout title="本地优先">
-示例使用 `https://modelsell.com` 作为占位 API 地址。后端上线后替换为真实 endpoint 即可。
+## 按目标选择
+
+| 目标 | 建议入口 |
+| --- | --- |
+| 把 ModelSell 接入某个 Agent 或客户端 | [接入 Agent 工具](/zh/docs/apps) |
+| 批量配置 Claude Code、Codex、Gemini CLI、OpenClaw | [ModelSell CLI](/zh/docs/apps/modelsell-cli) |
+| 查看聊天、图片、视频、音频、向量等能力接口 | [API Reference / Playground](/zh/docs/api-reference) |
+| 查看完整字段并在线调试 | [API Reference / Playground](/zh/docs/api-reference) |
+
+<Callout title="建议路径">
+如果你正在第一次接入，优先从 Agent 工具或 ModelSell CLI 开始；如果你在写服务端代码，直接进入 API Reference / Playground。
 </Callout>

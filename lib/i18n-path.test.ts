@@ -7,16 +7,20 @@ import {
 
 describe('i18n path helpers', () => {
   it('keeps default English links unprefixed', () => {
-    expect(getLocalizedHref('/docs/quickstart', 'en')).toBe('/docs/quickstart');
+    expect(getLocalizedHref('/docs/api-reference', 'en')).toBe(
+      '/docs/api-reference',
+    );
   });
 
   it('prefixes Chinese links with zh', () => {
-    expect(getLocalizedHref('/docs/quickstart', 'zh')).toBe('/zh/docs/quickstart');
+    expect(getLocalizedHref('/docs/api-reference', 'zh')).toBe(
+      '/zh/docs/api-reference',
+    );
   });
 
   it('does not duplicate an existing locale prefix', () => {
-    expect(getLocalizedHref('/zh/docs/quickstart', 'zh')).toBe(
-      '/zh/docs/quickstart',
+    expect(getLocalizedHref('/zh/docs/api-reference', 'zh')).toBe(
+      '/zh/docs/api-reference',
     );
   });
 
@@ -27,7 +31,11 @@ describe('i18n path helpers', () => {
   });
 
   it('switches localized paths without keeping the default locale prefix', () => {
-    expect(switchLocalePath('/zh/docs/quickstart', 'en')).toBe('/docs/quickstart');
-    expect(switchLocalePath('/docs/quickstart', 'zh')).toBe('/zh/docs/quickstart');
+    expect(switchLocalePath('/zh/docs/api-reference', 'en')).toBe(
+      '/docs/api-reference',
+    );
+    expect(switchLocalePath('/docs/api-reference', 'zh')).toBe(
+      '/zh/docs/api-reference',
+    );
   });
 });

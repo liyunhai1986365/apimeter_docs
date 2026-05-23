@@ -1,12 +1,7 @@
 {
-  "title": "ModelSell 文档",
+  "title": "文档入口",
   "pages": [
-    "---指南---",
     "index",
-    "quickstart",
-    "apps",
-    "authentication",
-    "---运维---",
-    "errors"
+    "apps"
   ]
 }

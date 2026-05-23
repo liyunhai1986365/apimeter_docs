@@ -13,7 +13,7 @@ describe('getApiPlaygroundSlugs', () => {
   it('extracts slugs from an absolute URL and ignores hash fragments', () => {
     expect(
       getApiPlaygroundSlugs(
-        'http://localhost:3000/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E6%A8%A1%E5%9E%8B%E5%88%97%E8%A1%A8/listModels#response-body',
+        'http://localhost:3030/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E6%A8%A1%E5%9E%8B%E5%88%97%E8%A1%A8/listModels#response-body',
       ),
     ).toEqual(['ai-模型---模型列表', 'listModels']);
   });
@@ -35,6 +35,6 @@ describe('getApiPlaygroundSlugs', () => {
   });
 
   it('rejects non API reference links', () => {
-    expect(getApiPlaygroundSlugs('/docs/models/chat-completions')).toBeNull();
+    expect(getApiPlaygroundSlugs('/docs/apps/modelsell-cli')).toBeNull();
   });
 });
