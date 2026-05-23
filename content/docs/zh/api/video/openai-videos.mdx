@@ -1,0 +1,25 @@
+---
+title: OpenAI 视频任务
+description: OpenAI/Sora 兼容视频创建与查询。
+icon: Clapperboard
+---
+
+OpenAI/Sora 兼容视频是异步任务模式：先创建任务，再通过任务 ID 查询状态。这两个接口通常成对使用。
+
+## 创建任务
+
+请求路径是 `POST /v1/videos`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%A7%86%E9%A2%91/createOpenAIVideo"
+  title="OpenAI 视频 - 创建任务"
+/>
+
+## 查询任务
+
+请求路径是 `GET /v1/videos/{task_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%A7%86%E9%A2%91/getOpenAIVideo"
+  title="OpenAI 视频 - 查询任务"
+/>

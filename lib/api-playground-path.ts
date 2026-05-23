@@ -1,4 +1,4 @@
-const API_REFERENCE_PREFIX = '/api-reference';
+const API_REFERENCE_PREFIXES = ['/docs/api-reference', '/api-reference'];
 const SUPPORTED_LOCALE_PREFIXES = new Set(['zh']);
 
 export function getApiPlaygroundSlugs(href: string): string[] | null {
@@ -11,14 +11,15 @@ export function getApiPlaygroundSlugs(href: string): string[] | null {
 
   const pathname = `/${parts.join('/')}`;
 
-  if (
-    pathname !== API_REFERENCE_PREFIX &&
-    !pathname.startsWith(`${API_REFERENCE_PREFIX}/`)
-  ) {
+  const prefix = API_REFERENCE_PREFIXES.find(
+    (item) => pathname === item || pathname.startsWith(`${item}/`),
+  );
+
+  if (!prefix) {
     return null;
   }
 
-  const slugPath = pathname.slice(API_REFERENCE_PREFIX.length).replace(/^\/+/, '');
+  const slugPath = pathname.slice(prefix.length).replace(/^\/+/, '');
 
   if (!slugPath) return [];
 

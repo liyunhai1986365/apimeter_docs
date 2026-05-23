@@ -25,11 +25,6 @@ export function baseOptions(locale: Locale): BaseLayoutProps {
         url: getLocalizedHref('/docs', locale),
         active: 'nested-url',
       },
-      {
-        text: locale === 'zh' ? 'API 参考' : 'API Reference',
-        url: getLocalizedHref('/api-reference', locale),
-        active: 'nested-url',
-      },
     ],
   };
 }

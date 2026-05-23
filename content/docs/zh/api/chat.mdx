@@ -1,0 +1,22 @@
+---
+title: 对话
+description: OpenAI、Gemini、Claude 对话接口与 Playground。
+icon: MessagesSquare
+---
+
+对话类接口覆盖普通聊天、多模态输入、Responses API、Claude Messages 和 Gemini generateContent。一般优先使用 OpenAI ChatCompletions；需要工具调用、结构化输出或新式 Responses 语义时使用 Responses；需要 Claude/Gemini 原生协议时使用对应兼容接口。
+
+## OpenAI
+
+- [ChatCompletions](/zh/docs/api/chat/chat-completions)：OpenAI Chat Completions 兼容对话接口。
+- [Responses](/zh/docs/api/chat/responses)：OpenAI Responses API 兼容接口。
+- [Responses Compact](/zh/docs/api/chat/responses-compact)：压缩长对话上下文。
+- [Playground Chat](/zh/docs/api/chat/playground-chat)：控制台 Playground 聊天调试接口。
+
+## Claude
+
+- [Claude Messages](/zh/docs/api/chat/claude-messages)：Anthropic Claude Messages API 兼容接口。
+
+## Gemini
+
+- [Gemini generateContent](/zh/docs/api/chat/gemini-generate-content)：Gemini 原生内容生成接口。

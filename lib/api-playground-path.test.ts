@@ -5,7 +5,7 @@ describe('getApiPlaygroundSlugs', () => {
   it('extracts slugs from an API reference href', () => {
     expect(
       getApiPlaygroundSlugs(
-        '/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
+        '/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
       ),
     ).toEqual(['ai-模型---聊天', 'createChatCompletion']);
   });
@@ -13,7 +13,7 @@ describe('getApiPlaygroundSlugs', () => {
   it('extracts slugs from an absolute URL and ignores hash fragments', () => {
     expect(
       getApiPlaygroundSlugs(
-        'http://localhost:3000/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E6%A8%A1%E5%9E%8B%E5%88%97%E8%A1%A8/listModels#response-body',
+        'http://localhost:3000/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E6%A8%A1%E5%9E%8B%E5%88%97%E8%A1%A8/listModels#response-body',
       ),
     ).toEqual(['ai-模型---模型列表', 'listModels']);
   });
@@ -21,7 +21,15 @@ describe('getApiPlaygroundSlugs', () => {
   it('extracts slugs from a localized API reference href', () => {
     expect(
       getApiPlaygroundSlugs(
-        '/zh/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
+        '/zh/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
+      ),
+    ).toEqual(['ai-模型---聊天', 'createChatCompletion']);
+  });
+
+  it('keeps accepting legacy API reference hrefs', () => {
+    expect(
+      getApiPlaygroundSlugs(
+        '/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
       ),
     ).toEqual(['ai-模型---聊天', 'createChatCompletion']);
   });

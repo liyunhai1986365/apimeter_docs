@@ -1,0 +1,76 @@
+---
+title: 真人认证
+description: BytePlus 真人认证会话、人像素材和素材组接口。
+icon: ShieldCheck
+---
+
+真人认证接口用于创建认证会话、查询认证结果、上传和管理人像素材。接口返回统一管理响应结构，具体业务数据在 `data` 字段中。
+
+## 认证会话
+
+### 创建会话
+
+创建 BytePlus 真人认证会话，并返回可分发给终端用户的 H5 链接。请求路径是 `POST /api/resource-channel/byteplus/visual-validate/sessions`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/createVisualValidateSession"
+  title="真人认证 - 创建会话"
+/>
+
+### 查询会话
+
+获取真人认证结果，并查询关联的 GroupId。请求路径是 `GET /api/resource-channel/byteplus/visual-validate/sessions/{session_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/getVisualValidateSession"
+  title="真人认证 - 查询会话"
+/>
+
+## 人像素材
+
+### 上传素材
+
+上传用于真人认证的人像素材。请求路径是 `POST /api/resource-channel/byteplus/visual-validate/assets`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/uploadVisualValidateAsset"
+  title="真人认证 - 上传人像素材"
+/>
+
+### 查询素材列表
+
+请求路径是 `POST /api/resource-channel/byteplus/visual-validate/assets/list`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/listVisualValidateAssets"
+  title="真人认证 - 查询素材列表"
+/>
+
+### 查询素材详情
+
+请求路径是 `GET /api/resource-channel/byteplus/visual-validate/assets/{asset_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/getVisualValidateAsset"
+  title="真人认证 - 查询素材详情"
+/>
+
+### 删除素材
+
+请求路径是 `DELETE /api/resource-channel/byteplus/visual-validate/assets/{asset_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/deleteVisualValidateAsset"
+  title="真人认证 - 删除素材"
+/>
+
+## 素材组
+
+### 删除素材组
+
+请求路径是 `DELETE /api/resource-channel/byteplus/visual-validate/asset-groups/{group_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E7%9C%9F%E4%BA%BA%E8%AE%A4%E8%AF%81/deleteVisualValidateAssetGroup"
+  title="真人认证 - 删除素材组"
+/>

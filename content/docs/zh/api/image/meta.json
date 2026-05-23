@@ -1,0 +1,4 @@
+{
+  "title": "图片",
+  "pages": ["openai-generations", "openai-edits", "gemini-image"]
+}

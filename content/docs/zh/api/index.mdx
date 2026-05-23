@@ -1,0 +1,30 @@
+---
+title: API 文档
+description: 按能力、模型生态和接口动作整理 ModelSell API。
+icon: Braces
+---
+
+ModelSell 的接口可以按使用场景理解：对话、图片、音频、视频、向量与重排序、模型列表，以及管理侧的日志、令牌和真人认证。
+
+每个文档页都按“能力大类 - 模型生态 - 接口动作”组织，并嵌入可直接调试的 API Playground。需要完整字段时，可以展开页面中的 Playground 查看请求体、响应结构和错误返回。
+
+## 能力分类
+
+- [对话](/zh/docs/api/chat)：OpenAI ChatCompletions、OpenAI Responses、Claude Messages、Gemini generateContent。
+- [图片](/zh/docs/api/image)：OpenAI Images 生成/编辑、Gemini 原生图像能力。
+- [音频](/zh/docs/api/audio)：音频转录、音频翻译、文本转语音。
+- [视频](/zh/docs/api/video)：OpenAI/Sora 兼容视频、通用视频任务、可灵、即梦。
+- [嵌入与重排序](/zh/docs/api/embeddings-rerank)：OpenAI Embeddings、Gemini Embeddings、Rerank、Moderations。
+- [模型列表](/zh/docs/api/models)：OpenAI、Gemini、OpenAI 兼容 Gemini 路径，以及单模型详情。
+- [日志与令牌](/zh/docs/api/logs-tokens)：请求日志查询、统计、Token 管理和 Token 使用情况。
+- [真人认证](/zh/docs/api/visual-validate)：BytePlus 真人认证会话、人像素材和素材组。
+
+## 鉴权
+
+大多数模型接口使用 Bearer API Key：
+
+```bash
+Authorization: Bearer $MODELSELL_API_KEY
+```
+
+部分兼容生态还支持对应原生请求头，例如 Claude 的 `x-api-key`、Gemini 的 `x-goog-api-key` 或 `key` 查询参数。管理接口可使用 `New-Api-User` 指定管理用户上下文。

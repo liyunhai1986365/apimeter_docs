@@ -15,7 +15,7 @@ const links = [
     icon: TerminalSquare,
   },
   {
-    href: '/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
+    href: '/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%81%8A%E5%A4%A9/createChatCompletion',
     title: 'Open API playground',
     description: 'Inspect parameters and try API requests from the reference.',
     icon: Play,
@@ -46,7 +46,7 @@ export default function HomePage() {
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href="/api-reference"
+              href="/docs/api-reference"
               className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition hover:bg-fd-accent"
             >
               API playground

@@ -1,0 +1,173 @@
+---
+title: 日志与令牌
+description: 请求日志、统计和 API 令牌管理接口。
+icon: KeyRound
+---
+
+日志和令牌接口用于管理 API Key、查看请求记录和统计用量。管理员可查看全部日志，普通用户可查看个人日志；Token 相关接口通常要求用户登录或管理上下文。
+
+## 日志
+
+### 全部日志
+
+请求路径是 `GET /api/log/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/listLogs"
+  title="日志 - 获取所有日志"
+/>
+
+### 搜索日志
+
+请求路径是 `GET /api/log/search`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/searchLogs"
+  title="日志 - 搜索日志"
+/>
+
+### 个人日志
+
+请求路径是 `GET /api/log/self`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/listSelfLogs"
+  title="日志 - 获取个人日志"
+/>
+
+### 搜索个人日志
+
+请求路径是 `GET /api/log/self/search`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/searchSelfLogs"
+  title="日志 - 搜索个人日志"
+/>
+
+### 日志统计
+
+请求路径是 `GET /api/log/stat`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/getLogStat"
+  title="日志 - 获取日志统计"
+/>
+
+### 个人日志统计
+
+请求路径是 `GET /api/log/self/stat`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/getSelfLogStat"
+  title="日志 - 获取个人日志统计"
+/>
+
+### 按令牌获取日志
+
+请求路径是 `GET /api/log/token`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/getTokenLogs"
+  title="日志 - 通过令牌获取日志"
+/>
+
+### 删除历史日志
+
+请求路径是 `DELETE /api/log/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E6%97%A5%E5%BF%97/deleteLogs"
+  title="日志 - 删除历史日志"
+/>
+
+## 令牌
+
+### 令牌列表
+
+请求路径是 `GET /api/token/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/listTokens"
+  title="令牌 - 获取所有令牌"
+/>
+
+### 创建令牌
+
+请求路径是 `POST /api/token/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/createToken"
+  title="令牌 - 创建令牌"
+/>
+
+### 更新令牌
+
+请求路径是 `PUT /api/token/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/updateToken"
+  title="令牌 - 更新令牌"
+/>
+
+### 搜索令牌
+
+请求路径是 `GET /api/token/search`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/searchTokens"
+  title="令牌 - 搜索令牌"
+/>
+
+### 获取指定令牌
+
+请求路径是 `GET /api/token/{id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/getToken"
+  title="令牌 - 获取指定令牌"
+/>
+
+### 删除指定令牌
+
+请求路径是 `DELETE /api/token/{id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/deleteToken"
+  title="令牌 - 删除指定令牌"
+/>
+
+### 批量删除令牌
+
+请求路径是 `POST /api/token/batch`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/batchDeleteTokens"
+  title="令牌 - 批量删除令牌"
+/>
+
+### 查看令牌密钥
+
+请求路径是 `POST /api/token/{id}/key`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/post_api_token_id_key"
+  title="令牌 - 查看指定令牌密钥"
+/>
+
+### 批量查看令牌密钥
+
+请求路径是 `POST /api/token/batch/keys`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/post_api_token_batch_keys"
+  title="令牌 - 批量查看令牌密钥"
+/>
+
+### 令牌使用情况
+
+请求路径是 `GET /api/usage/token/`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/%E7%AE%A1%E7%90%86%E6%8E%A5%E5%8F%A3---%E4%BB%A4%E7%89%8C%E7%AE%A1%E7%90%86/getTokenUsage"
+  title="令牌 - 获取使用情况"
+/>

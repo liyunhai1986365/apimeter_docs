@@ -1,0 +1,25 @@
+---
+title: 通用视频任务
+description: 通用视频创建与查询接口。
+icon: Film
+---
+
+通用视频接口适合 HappyHorse、Seedance、Veo、万相等任务式模型。创建和查询接口通常成对使用。
+
+## 创建任务
+
+请求路径是 `POST /v1/video/generations`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%A7%86%E9%A2%91/createVideoGeneration"
+  title="通用视频 - 创建任务"
+/>
+
+## 查询任务
+
+请求路径是 `GET /v1/video/generations/{task_id}`。
+
+<ApiPlaygroundEmbed
+  href="/docs/api-reference/ai-%E6%A8%A1%E5%9E%8B---%E8%A7%86%E9%A2%91/getVideoGeneration"
+  title="通用视频 - 查询任务"
+/>

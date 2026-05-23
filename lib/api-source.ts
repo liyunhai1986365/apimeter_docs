@@ -10,7 +10,7 @@ export const apiSourceData = await openapi.staticSource({
 });
 
 export const apiSource = loader({
-  baseUrl: '/api-reference',
+  baseUrl: '/docs/api-reference',
   source: apiSourceData,
   plugins: [openapiPlugin()],
 });

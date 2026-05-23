@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+const proxyRoutePath = resolve(process.cwd(), 'app/api/proxy/route.ts');
 const openApiText = readFileSync(
   resolve(process.cwd(), 'content/openapi/modelsell.yaml'),
   'utf8',
@@ -41,6 +42,10 @@ describe('modelsell OpenAPI sync', () => {
     expect(openApiText).toContain('url: https://modelsell.com');
     expect(openApiText).not.toContain('https://easyrouter.io');
     expect(openApiText).not.toContain('https://api.modelsell.test');
+  });
+
+  it('keeps the API playground proxy route available', () => {
+    expect(existsSync(proxyRoutePath)).toBe(true);
   });
 
   it('uses the Chinese API document categories for generated reference groups', () => {

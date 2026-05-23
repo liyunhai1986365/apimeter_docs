@@ -6,7 +6,7 @@ export function getApiReferencePage(slug?: string[] | string) {
 
   if (!decoded || decoded.length === 0) return undefined;
 
-  const targetUrl = `/api-reference/${decoded
+  const targetUrl = `/docs/api-reference/${decoded
     .map((segment) => encodeURIComponent(segment))
     .join('/')}`;
 

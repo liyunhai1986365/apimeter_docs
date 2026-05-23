@@ -1,61 +1,18 @@
-import { notFound, redirect } from 'next/navigation';
-import { openapi } from '@/lib/openapi';
-import { apiSource } from '@/lib/api-source';
-import { getApiReferencePage } from '@/lib/api-reference-page';
-import { createAPIPage } from 'fumadocs-openapi/ui';
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/page';
+import { redirect } from 'next/navigation';
 
 export const revalidate = false;
-
-const APIPage = createAPIPage(openapi, {
-  playground: {
-    enabled: true,
-  },
-});
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] | string }>;
 }) {
   const params = await props.params;
-  if (!params.slug || params.slug.length === 0) {
-    const firstPage = apiSource.getPages()[0];
-    if (firstPage) redirect(firstPage.url);
-  }
+  const slug = Array.isArray(params.slug)
+    ? params.slug.join('/')
+    : params.slug;
 
-  const page = getApiReferencePage(params.slug);
-
-  if (!page) notFound();
-
-  return (
-    <DocsPage toc={page.data.toc} full>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
-      <DocsBody>
-        <APIPage {...page.data.getAPIPageProps()} />
-      </DocsBody>
-    </DocsPage>
-  );
+  redirect(slug ? `/docs/api-reference/${slug}` : '/docs/api-reference');
 }
 
 export function generateStaticParams() {
-  return apiSource.generateParams();
-}
-
-export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] | string }>;
-}) {
-  const params = await props.params;
-  const page = getApiReferencePage(params.slug);
-
-  if (!page) notFound();
-
-  return {
-    title: page.data.title,
-    description: page.data.description,
-  };
+  return [];
 }

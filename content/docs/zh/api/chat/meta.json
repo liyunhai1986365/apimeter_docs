@@ -1,0 +1,11 @@
+{
+  "title": "对话",
+  "pages": [
+    "chat-completions",
+    "responses",
+    "responses-compact",
+    "claude-messages",
+    "gemini-generate-content",
+    "playground-chat"
+  ]
+}

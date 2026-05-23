@@ -1,14 +1,7 @@
 import { notFound } from 'next/navigation';
-import { createAPIPage } from 'fumadocs-openapi/ui';
-import { openapi } from '@/lib/openapi';
-import { apiSource } from '@/lib/api-source';
+import { APIPage } from '@/lib/api-page';
+import { getApiReferencePage } from '@/lib/api-reference-page';
 import { getApiPlaygroundSlugs } from '@/lib/api-playground-path';
-
-const EmbeddedAPIPage = createAPIPage(openapi, {
-  playground: {
-    enabled: true,
-  },
-});
 
 type ApiPlaygroundEmbedProps = {
   href: string;
@@ -19,7 +12,7 @@ export function ApiPlaygroundEmbed({ href, title }: ApiPlaygroundEmbedProps) {
   const slugs = getApiPlaygroundSlugs(href);
   if (!slugs) notFound();
 
-  const page = apiSource.getPage(slugs);
+  const page = getApiReferencePage(slugs);
   if (!page) notFound();
 
   return (
@@ -35,7 +28,7 @@ export function ApiPlaygroundEmbed({ href, title }: ApiPlaygroundEmbedProps) {
         ) : null}
       </div>
       <div className="p-3 md:p-4">
-        <EmbeddedAPIPage {...page.data.getAPIPageProps()} />
+        <APIPage {...page.data.getAPIPageProps()} />
       </div>
     </section>
   );
