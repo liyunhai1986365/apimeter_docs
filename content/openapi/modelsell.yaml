@@ -2,32 +2,37 @@ openapi: 3.1.0
 info:
   title: ModelSell API
   version: 1.0.0
-  description: >
-    ModelSell API 参考文档，按远端中文 API 文档目录同步分类。包含 AI 模型接口和管理接口，
-    每个接口都可在生成的 API Reference 中使用 Playground 调试。
+  description: |
+    ModelSell API 参考文档，按远端中文 API 文档目录同步分类。包含 AI 模型接口和管理接口， 每个接口都可在生成的 API Reference 中使用 Playground 调试。
 servers:
   - url: https://modelsell.com
 tags:
   - name: AI 模型 - 聊天
-    description: Claude、OpenAI ChatCompletions、OpenAI Responses 与 Gemini 文本/媒体聊天接口。
+    description: Claude、OpenAI ChatCompletions、OpenAI Responses、Responses Compact 与 Gemini 文本/媒体聊天接口。
   - name: AI 模型 - 补全
     description: OpenAI Completions 兼容的文本补全接口。
   - name: AI 模型 - 嵌入
-    description: OpenAI Embeddings 兼容的文本向量化接口。
+    description: OpenAI 与 Gemini 兼容的文本向量化接口。
   - name: AI 模型 - 图像
-    description: OpenAI Images 与 Gemini 图像生成/编辑接口。
+    description: OpenAI Images、Qwen 图像生成/编辑与 Gemini 图像接口。
   - name: AI 模型 - 模型列表
-    description: OpenAI 与 Gemini 兼容的模型列表查询接口。
+    description: OpenAI、Claude 与 Gemini 兼容的模型列表和模型详情查询接口。
   - name: AI 模型 - 视频
-    description: HappyHorse、PixVerse、Seedance、Veo、万相等视频生成、任务查询和内容下载接口。
+    description: OpenAI/Sora、Kling、即梦、HappyHorse、PixVerse、Seedance、Veo、万相等视频生成、任务查询和内容下载接口。
+  - name: AI 模型 - 音频
+    description: OpenAI Audio 兼容的音频转录、音频翻译和文本转语音接口。
+  - name: AI 模型 - 重排序
+    description: Rerank 文档重排序接口。
+  - name: AI 模型 - 内容审核
+    description: Moderations 内容安全审核接口。
+  - name: AI 模型 - 实时
+    description: OpenAI Realtime 兼容 WebSocket 接口。
   - name: 管理接口 - 鉴权
     description: 管理接口使用 Bearer Token，也可通过 New-Api-User 请求头指定管理用户上下文。
+  - name: 管理接口 - 令牌管理
+    description: API 令牌创建、更新、查询、搜索、删除、批量删除和密钥查看接口。
   - name: 管理接口 - 日志
     description: 请求日志查询、搜索、统计、按令牌查询和历史日志删除接口。
-  - name: 管理接口 - 令牌管理
-    description: API 令牌创建、更新、查询、搜索、删除和批量删除接口。
-  - name: 管理接口 - 用户管理
-    description: 当前用户信息查询接口。
   - name: 管理接口 - 真人认证
     description: BytePlus 真人认证会话、人像素材和素材组管理接口。
 security:
@@ -37,7 +42,7 @@ paths:
     post:
       operationId: createMessage
       summary: Claude 格式
-      description: >
+      description: |
         Anthropic Claude Messages API 兼容请求。需要在请求头中包含 `anthropic-version`。
       tags:
         - AI 模型 - 聊天
@@ -81,12 +86,11 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-
   /v1/chat/completions:
     post:
       operationId: createChatCompletion
       summary: ChatCompletions 格式
-      description: >
+      description: |
         OpenAI Chat Completions 兼容接口。支持标准聊天请求，也可用于通过 OpenAI 聊天格式调用具备图像能力的 Gemini 模型。
       tags:
         - AI 模型 - 聊天
@@ -127,12 +131,11 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-
   /v1/responses:
     post:
       operationId: createResponse
       summary: Responses 格式
-      description: >
+      description: |
         OpenAI Responses API 兼容接口，支持单轮/多轮输入、工具调用和推理参数。
       tags:
         - AI 模型 - 聊天
@@ -158,7 +161,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-
   /v1/completions:
     post:
       operationId: createCompletion
@@ -189,13 +191,13 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-
   /v1/embeddings:
     post:
       operationId: createEmbedding
       summary: 嵌入（Embeddings）
       description: >
-        OpenAI Embeddings API 兼容接口，用于将文本转换为向量。支持 `gemini-embedding-001`、`text-embedding-004`、`amazon.titan-embed-text-v2:0` 等模型。
+        OpenAI Embeddings API 兼容接口，用于将文本转换为向量。支持
+        `gemini-embedding-001`、`text-embedding-004`、`amazon.titan-embed-text-v2:0` 等模型。
       tags:
         - AI 模型 - 嵌入
       requestBody:
@@ -227,12 +229,11 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/RateLimited'
-
   /v1beta/models/{model}:generateContent:
     post:
       operationId: generateGeminiContent
       summary: Gemini 文本聊天 / 媒体识别
-      description: >
+      description: |
         Gemini `generateContent` 兼容接口，用于文本聊天和媒体识别请求。
       tags:
         - AI 模型 - 聊天
@@ -269,7 +270,6 @@ paths:
                 $ref: '#/components/schemas/GeminiGenerateContentResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1beta/models/{model}:generateContent/:
     post:
       operationId: generateGeminiImageContent
@@ -301,7 +301,6 @@ paths:
                 $ref: '#/components/schemas/GeminiGenerateContentResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/images/generations:
     post:
       operationId: createImageGeneration
@@ -330,7 +329,6 @@ paths:
                 $ref: '#/components/schemas/ImageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/images/edits:
     post:
       operationId: editImage
@@ -353,7 +351,6 @@ paths:
                 $ref: '#/components/schemas/ImageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/models:
     get:
       operationId: listModels
@@ -370,7 +367,6 @@ paths:
                 $ref: '#/components/schemas/ListModelsResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1beta/models:
     get:
       operationId: listGeminiModels
@@ -387,12 +383,11 @@ paths:
                 $ref: '#/components/schemas/GeminiModelsResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/video/generations:
     post:
       operationId: createVideoGeneration
       summary: 创建视频生成任务
-      description: >
+      description: |
         创建视频生成任务。该通用接口覆盖 HappyHorse、Seedance、Veo、万相等 `/v1/video/generations` 提供商。
       tags:
         - AI 模型 - 视频
@@ -408,7 +403,7 @@ paths:
                   model: veo-3.1-generate-preview
                   prompt: 一只机械手臂在现代工厂中组装芯片
                   duration: 8
-                  size: 16:9
+                  size: '16:9'
               imageToVideo:
                 value:
                   model: seedance-1-0-lite-i2v
@@ -423,7 +418,6 @@ paths:
                 $ref: '#/components/schemas/VideoTask'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/video/generations/{task_id}:
     get:
       operationId: getVideoGeneration
@@ -444,12 +438,11 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /v1/videos:
     post:
       operationId: createOpenAIVideo
       summary: OpenAI 兼容视频生成
-      description: >
+      description: |
         通过 OpenAI 兼容的 `/v1/videos` 接口创建视频生成任务，适用于 PixVerse、Veo、Seedance 等兼容提供商。
       tags:
         - AI 模型 - 视频
@@ -465,7 +458,7 @@ paths:
                   model: pixverse-v4.5
                   prompt: 城市夜景中的霓虹招牌缓慢亮起
                   duration: 5
-                  aspect_ratio: 16:9
+                  aspect_ratio: '16:9'
       responses:
         '200':
           description: OpenAI 兼容视频任务响应。
@@ -475,7 +468,6 @@ paths:
                 $ref: '#/components/schemas/VideoTask'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
   /v1/videos/{task_id}:
     get:
       operationId: getOpenAIVideo
@@ -496,7 +488,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /v1/videos/{task_id}/content:
     get:
       operationId: downloadVideoContent
@@ -518,7 +509,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /api/log/:
     get:
       operationId: listLogs
@@ -563,7 +553,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementResponse'
-
   /api/log/search:
     get:
       operationId: searchLogs
@@ -585,7 +574,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogListResponse'
-
   /api/log/self:
     get:
       operationId: listSelfLogs
@@ -606,7 +594,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogListResponse'
-
   /api/log/self/search:
     get:
       operationId: searchSelfLogs
@@ -628,7 +615,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogListResponse'
-
   /api/log/self/stat:
     get:
       operationId: getSelfLogStat
@@ -649,7 +635,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementResponse'
-
   /api/log/stat:
     get:
       operationId: getLogStat
@@ -670,7 +655,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementResponse'
-
   /api/log/token:
     get:
       operationId: getTokenLogs
@@ -703,7 +687,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LogListResponse'
-
   /api/token/:
     get:
       operationId: listTokens
@@ -774,7 +757,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenResponse'
-
   /api/token/batch:
     post:
       operationId: batchDeleteTokens
@@ -798,7 +780,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementResponse'
-
   /api/token/search:
     get:
       operationId: searchTokens
@@ -820,7 +801,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenListResponse'
-
   /api/token/{id}:
     get:
       operationId: getToken
@@ -862,7 +842,6 @@ paths:
                 $ref: '#/components/schemas/ManagementResponse'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /api/usage/token/:
     get:
       operationId: getTokenUsage
@@ -893,27 +872,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementResponse'
-
-  /api/user/self:
-    get:
-      operationId: getCurrentUser
-      summary: 获取当前用户信息
-      description: 获取当前已认证用户的信息。
-      tags:
-        - 管理接口 - 用户管理
-      security:
-        - bearerAuth: []
-        - newApiUser: []
-      responses:
-        '200':
-          description: 当前用户信息响应。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   /api/resource-channel/byteplus/visual-validate/sessions:
     post:
       operationId: createVisualValidateSession
@@ -938,7 +896,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VisualValidateSessionResponse'
-
   /api/resource-channel/byteplus/visual-validate/sessions/{session_id}:
     get:
       operationId: getVisualValidateSession
@@ -963,7 +920,6 @@ paths:
                 $ref: '#/components/schemas/VisualValidateSessionResponse'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /api/resource-channel/byteplus/visual-validate/assets:
     post:
       operationId: uploadVisualValidateAsset
@@ -984,7 +940,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VisualValidateAssetResponse'
-
   /api/resource-channel/byteplus/visual-validate/assets/list:
     post:
       operationId: listVisualValidateAssets
@@ -1005,7 +960,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VisualValidateAssetListResponse'
-
   /api/resource-channel/byteplus/visual-validate/assets/{asset_id}:
     get:
       operationId: getVisualValidateAsset
@@ -1041,7 +995,6 @@ paths:
                 $ref: '#/components/schemas/ManagementResponse'
         '404':
           $ref: '#/components/responses/NotFound'
-
   /api/resource-channel/byteplus/visual-validate/asset-groups/{group_id}:
     delete:
       operationId: deleteVisualValidateAssetGroup
@@ -1065,7 +1018,638 @@ paths:
                 $ref: '#/components/schemas/ManagementResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/responses/compact:
+    post:
+      summary: 压缩对话 (OpenAI Responses API)
+      description: OpenAI Responses API，用于对长对话进行 compaction。
+      operationId: compactResponse
+      tags:
+        - AI 模型 - 聊天
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponsesCompactionRequest'
+        required: true
+      responses:
+        '200':
+          description: 成功压缩对话
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponsesCompactionResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /kling/v1/videos/text2video:
+    post:
+      summary: Kling 文生视频
+      description: |
+        使用 Kling 模型从文本描述生成视频。
 
+        支持的模型：kling-v1, kling-v1-5 等
+      operationId: createKlingText2Video
+      tags:
+        - AI 模型 - 视频
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRequest'
+            example:
+              model: kling-v1
+              prompt: 宇航员站起身走了
+              duration: 5
+              width: 1280
+              height: 720
+              fps: 30
+      responses:
+        '200':
+          description: 成功创建视频生成任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResponse'
+          headers: {}
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /kling/v1/videos/text2video/{task_id}:
+    get:
+      summary: 获取 Kling 文生视频任务状态
+      description: 查询 Kling 文生视频任务的状态和结果。
+      operationId: getKlingText2Video
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - name: task_id
+          in: path
+          description: 任务 ID
+          required: true
+          example: task-abc123
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功获取任务状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTaskResponse'
+          headers: {}
+        '404':
+          description: 任务不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /kling/v1/videos/image2video:
+    post:
+      summary: Kling 图生视频
+      description: |
+        使用 Kling 模型从图片生成视频。
+
+        支持通过 image 参数传入图片 URL 或 Base64 编码的图片数据。
+      operationId: createKlingImage2Video
+      tags:
+        - AI 模型 - 视频
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRequest'
+            example:
+              model: kling-v1
+              prompt: 人物转身走开
+              image: https://example.com/image.jpg
+              duration: 5
+              width: 1280
+              height: 720
+      responses:
+        '200':
+          description: 成功创建视频生成任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoResponse'
+          headers: {}
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /kling/v1/videos/image2video/{task_id}:
+    get:
+      summary: 获取 Kling 图生视频任务状态
+      description: 查询 Kling 图生视频任务的状态和结果。
+      operationId: getKlingImage2Video
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - name: task_id
+          in: path
+          description: 任务 ID
+          required: true
+          example: task-abc123
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功获取任务状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoTaskResponse'
+          headers: {}
+        '404':
+          description: 任务不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /jimeng/:
+    post:
+      summary: 即梦视频生成
+      description: |
+        即梦官方 API 格式的视频生成接口。
+
+        支持通过 Action 参数指定操作类型：
+        - `CVSync2AsyncSubmitTask`: 提交视频生成任务
+        - `CVSync2AsyncGetResult`: 获取任务结果
+
+        需要在查询参数中指定 Action 和 Version。
+      operationId: createJimengVideo
+      tags:
+        - AI 模型 - 视频
+      parameters:
+        - name: Action
+          in: query
+          description: API 操作类型
+          required: true
+          schema:
+            type: string
+            enum:
+              - CVSync2AsyncSubmitTask
+              - CVSync2AsyncGetResult
+        - name: Version
+          in: query
+          description: API 版本
+          required: true
+          example: '2022-08-31'
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: 即梦官方 API 请求格式
+              properties:
+                req_key:
+                  type: string
+                  description: 请求类型标识
+                prompt:
+                  type: string
+                  description: 文本描述
+                binary_data_base64:
+                  type: array
+                  items:
+                    type: string
+                  description: Base64 编码的图片数据
+            example:
+              req_key: jimeng_video_generation
+              prompt: 一只猫在弹钢琴
+      responses:
+        '200':
+          description: 成功处理请求
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 响应码
+                  message:
+                    type: string
+                    description: 响应消息
+                  data:
+                    type: object
+                    description: 响应数据
+                    properties: {}
+          headers: {}
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/engines/{model}/embeddings:
+    post:
+      summary: Gemini 嵌入(Embeddings)
+      description: 使用指定引擎/模型创建嵌入
+      operationId: createEngineEmbedding
+      tags:
+        - AI 模型 - 嵌入
+      parameters:
+        - name: model
+          in: path
+          description: 模型/引擎 ID
+          required: true
+          example: ''
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingRequest'
+            examples: {}
+      responses:
+        '200':
+          description: 成功创建嵌入
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/audio/transcriptions:
+    post:
+      summary: 音频转录
+      description: 将音频转换为文本
+      operationId: createTranscription
+      tags:
+        - AI 模型 - 音频
+      parameters: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 音频文件
+                  example: ''
+                model:
+                  type: string
+                  example: whisper-1
+                  description: 模型 ID。
+                language:
+                  type: string
+                  description: ISO-639-1 语言代码
+                  example: ''
+                prompt:
+                  type: string
+                  example: ''
+                  description: 提示词。
+                response_format:
+                  type: string
+                  enum:
+                    - json
+                    - text
+                    - srt
+                    - verbose_json
+                    - vtt
+                  default: json
+                  example: json
+                  description: 响应格式。
+                temperature:
+                  type: number
+                  example: 0
+                  description: 采样温度。
+                timestamp_granularities:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - word
+                      - segment
+                  example: ''
+                  description: timestamp_granularities 字段。
+              required:
+                - file
+                - model
+        required: true
+      responses:
+        '200':
+          description: 成功转录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioTranscriptionResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/audio/translations:
+    post:
+      summary: 音频翻译
+      description: 将音频翻译为英文文本
+      operationId: createTranslation
+      tags:
+        - AI 模型 - 音频
+      parameters: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  example: ''
+                  description: 上传文件。
+                model:
+                  type: string
+                  example: ''
+                  description: 模型 ID。
+                prompt:
+                  type: string
+                  example: ''
+                  description: 提示词。
+                response_format:
+                  type: string
+                  example: ''
+                  description: 响应格式。
+                temperature:
+                  type: number
+                  example: 0
+                  description: 采样温度。
+              required:
+                - file
+                - model
+        required: true
+      responses:
+        '200':
+          description: 成功翻译
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioTranscriptionResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/audio/speech:
+    post:
+      summary: 文本转语音
+      description: 将文本转换为音频
+      operationId: createSpeech
+      tags:
+        - AI 模型 - 音频
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeechRequest'
+        required: true
+      responses:
+        '200':
+          description: 成功生成音频
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/rerank:
+    post:
+      summary: 文档重排序
+      description: 根据查询对文档列表进行相关性重排序
+      operationId: createRerank
+      tags:
+        - AI 模型 - 重排序
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RerankRequest'
+        required: true
+      responses:
+        '200':
+          description: 成功重排序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RerankResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/moderations:
+    post:
+      summary: 内容审核
+      description: 检查文本内容是否违反使用政策
+      operationId: createModeration
+      tags:
+        - AI 模型 - 内容审核
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationRequest'
+        required: true
+      responses:
+        '200':
+          description: 成功审核
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /v1/realtime:
+    get:
+      summary: 实时 WebSocket 连接
+      description: |
+        建立 WebSocket 连接用于实时对话。
+
+        **注意**: 这是一个 WebSocket 端点，需要使用 WebSocket 协议连接。
+
+        连接 URL 示例: `wss://api.example.com/v1/realtime?model=gpt-4o-realtime`
+      operationId: createRealtimeSession
+      tags:
+        - AI 模型 - 实时
+      parameters:
+        - name: model
+          in: query
+          description: 要使用的模型
+          required: false
+          schema:
+            type: string
+            example: gpt-4o-realtime-preview
+      responses:
+        '101':
+          description: WebSocket 协议切换
+          headers: {}
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+        '400':
+          description: 请求错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          headers: {}
+      security:
+        - bearerAuth: []
+  /api/token/{id}/key:
+    post:
+      operationId: post_api_token_id_key
+      summary: 查看指定令牌密钥
+      description: 查看指定令牌密钥。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - 管理接口 - 令牌管理
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 资源唯一 ID。
+          schema:
+            type: integer
+  /api/token/batch/keys:
+    post:
+      operationId: post_api_token_batch_keys
+      summary: 批量查看令牌密钥
+      description: 批量查看令牌密钥。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - 管理接口 - 令牌管理
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchIdsRequest'
+  /v1/models/{model}:
+    get:
+      operationId: get_v1_models_model
+      summary: 获取指定模型详情
+      description: 获取指定模型详情。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - AI 模型 - 模型列表
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+      parameters:
+        - name: model
+          in: path
+          required: true
+          description: 模型 ID。
+          schema:
+            type: string
+  /v1beta/openai/models:
+    get:
+      operationId: get_v1beta_openai_models
+      summary: 以 Gemini OpenAI 兼容路径获取模型列表
+      description: 以 Gemini OpenAI 兼容路径获取模型列表。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - AI 模型 - 模型列表
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+  /v1/videos/{video_id}/remix:
+    post:
+      operationId: post_v1_videos_video_id_remix
+      summary: 基于已有视频创建 remix 任务
+      description: 基于已有视频创建 remix 任务。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - AI 模型 - 视频
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVideoGenerationRequest'
+      parameters:
+        - name: video_id
+          in: path
+          required: true
+          description: video_id 字段。
+          schema:
+            type: integer
+  /pg/chat/completions:
+    post:
+      operationId: post_pg_chat_completions
+      summary: Playground 聊天调试接口
+      description: Playground 聊天调试接口。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
+      tags:
+        - AI 模型 - 聊天
+      responses:
+        '200':
+          description: 成功。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementResponse'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatCompletionRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -1692,7 +2276,7 @@ components:
         prompt:
           type: string
           description: 生成或编辑图像时使用的文本提示词。
-        n:
+        'n':
           type: integer
           description: 需要生成的图片数量。
           minimum: 1
@@ -1736,7 +2320,7 @@ components:
         prompt:
           type: string
           description: 生成或编辑图像时使用的文本提示词。
-        n:
+        'n':
           type: integer
           description: 需要生成的图片数量。
         size:
@@ -1846,11 +2430,11 @@ components:
         size:
           type: string
           description: 视频比例或尺寸，例如 `16:9`。
-          example: 16:9
+          example: '16:9'
         aspect_ratio:
           type: string
           description: 视频画面比例。
-          example: 16:9
+          example: '16:9'
         resolution:
           type: string
           description: 输出视频分辨率。
@@ -2277,3 +2861,1710 @@ components:
             request_id:
               type: string
               description: 请求 ID，用于排查问题。
+          description: 错误信息。
+    ModelsResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          example: list
+          description: object 字段。
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+          description: 接口返回的业务数据。
+    Message:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - system
+            - user
+            - assistant
+            - tool
+            - developer
+          description: 消息角色
+        content:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/MessageContent'
+          description: 消息内容
+        name:
+          type: string
+          description: 发送者名称
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+          description: tool_calls 字段。
+        tool_call_id:
+          type: string
+          description: 工具调用 ID（用于 tool 角色消息）
+        reasoning_content:
+          type: string
+          description: 推理内容
+    MessageContent:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - text
+            - image_url
+            - input_audio
+            - file
+            - video_url
+          description: 类型。
+        text:
+          type: string
+          description: 文本内容。
+        image_url:
+          type: object
+          properties:
+            url:
+              type: string
+              description: 图片 URL 或 base64
+            detail:
+              type: string
+              enum:
+                - low
+                - high
+                - auto
+              description: detail 字段。
+          description: image_url 字段。
+        input_audio:
+          type: object
+          properties:
+            data:
+              type: string
+              description: Base64 编码的音频数据
+            format:
+              type: string
+              enum:
+                - wav
+                - mp3
+              description: format 字段。
+          description: input_audio 字段。
+        file:
+          type: object
+          properties:
+            filename:
+              type: string
+              description: filename 字段。
+            file_data:
+              type: string
+              description: file_data 字段。
+            file_id:
+              type: string
+              description: file_id 字段。
+          description: 上传文件。
+        video_url:
+          type: object
+          properties:
+            url:
+              type: string
+              description: url 字段。
+          description: video_url 字段。
+    ToolCall:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        type:
+          type: string
+          example: function
+          description: 类型。
+        function:
+          type: object
+          properties:
+            name:
+              type: string
+              description: 名称。
+            arguments:
+              type: string
+              description: arguments 字段。
+          description: function 字段。
+    Tool:
+      type: object
+      properties:
+        type:
+          type: string
+          example: function
+          description: 类型。
+        function:
+          type: object
+          properties:
+            name:
+              type: string
+              description: 名称。
+            description:
+              type: string
+              description: description 字段。
+            parameters:
+              type: object
+              description: JSON Schema 格式的参数定义
+              properties: {}
+          description: function 字段。
+    ResponseFormat:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - text
+            - json_object
+            - json_schema
+          description: 类型。
+        json_schema:
+          type: object
+          description: JSON Schema 定义
+          properties: {}
+    ChatCompletionRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: 模型 ID
+          example: gpt-4
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: 对话消息列表
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 1
+          description: 采样温度
+        top_p:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 1
+          description: 核采样参数
+        'n':
+          type: integer
+          minimum: 1
+          default: 1
+          description: 生成数量
+        stream:
+          type: boolean
+          default: false
+          description: 是否流式响应
+        stream_options:
+          type: object
+          properties:
+            include_usage:
+              type: boolean
+              description: include_usage 字段。
+          description: stream_options 字段。
+        stop:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: 停止序列
+        max_tokens:
+          type: integer
+          description: 最大生成 Token 数
+        max_completion_tokens:
+          type: integer
+          description: 最大补全 Token 数
+        presence_penalty:
+          type: number
+          minimum: -2
+          maximum: 2
+          default: 0
+          description: presence_penalty 字段。
+        frequency_penalty:
+          type: number
+          minimum: -2
+          maximum: 2
+          default: 0
+          description: frequency_penalty 字段。
+        logit_bias:
+          type: object
+          additionalProperties:
+            type: number
+          properties: {}
+          description: logit_bias 字段。
+        user:
+          type: string
+          description: user 字段。
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tool'
+          description: tools 字段。
+        tool_choice:
+          oneOf:
+            - type: string
+              enum:
+                - none
+                - auto
+                - required
+            - type: object
+              properties:
+                type:
+                  type: string
+                  description: 类型。
+                function:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: 名称。
+                  description: function 字段。
+          description: tool_choice 字段。
+        response_format:
+          $ref: '#/components/schemas/ResponseFormat'
+        seed:
+          type: integer
+          description: seed 字段。
+        reasoning_effort:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+          description: 推理强度 (用于支持推理的模型)
+        modalities:
+          type: array
+          items:
+            type: string
+            enum:
+              - text
+              - audio
+          description: modalities 字段。
+        audio:
+          type: object
+          properties:
+            voice:
+              type: string
+              description: 语音音色。
+            format:
+              type: string
+              description: format 字段。
+          description: audio 字段。
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        object:
+          type: string
+          example: chat.completion
+          description: object 字段。
+        created:
+          type: integer
+          description: created 字段。
+        model:
+          type: string
+          description: 模型 ID。
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: index 字段。
+              message:
+                $ref: '#/components/schemas/Message'
+              finish_reason:
+                type: string
+                enum:
+                  - stop
+                  - length
+                  - tool_calls
+                  - content_filter
+                description: finish_reason 字段。
+          description: choices 字段。
+        usage:
+          $ref: '#/components/schemas/Usage'
+        system_fingerprint:
+          type: string
+          description: system_fingerprint 字段。
+    ChatCompletionStreamResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        object:
+          type: string
+          example: chat.completion.chunk
+          description: object 字段。
+        created:
+          type: integer
+          description: created 字段。
+        model:
+          type: string
+          description: 模型 ID。
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: index 字段。
+              delta:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    description: 用户角色。
+                  content:
+                    type: string
+                    description: content 字段。
+                  reasoning_content:
+                    type: string
+                    description: reasoning_content 字段。
+                  tool_calls:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolCall'
+                    description: tool_calls 字段。
+                description: delta 字段。
+              finish_reason:
+                type: string
+                nullable: true
+                description: finish_reason 字段。
+          description: choices 字段。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    CompletionRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          description: 模型 ID。
+        prompt:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: 提示词。
+        max_tokens:
+          type: integer
+          description: max_tokens 字段。
+        temperature:
+          type: number
+          description: 采样温度。
+        top_p:
+          type: number
+          description: top_p 字段。
+        'n':
+          type: integer
+          description: n 字段。
+        stream:
+          type: boolean
+          description: stream 字段。
+        stop:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: stop 字段。
+        suffix:
+          type: string
+          description: suffix 字段。
+        echo:
+          type: boolean
+          description: echo 字段。
+    CompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        object:
+          type: string
+          example: text_completion
+          description: object 字段。
+        created:
+          type: integer
+          description: created 字段。
+        model:
+          type: string
+          description: 模型 ID。
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                description: 文本内容。
+              index:
+                type: integer
+                description: index 字段。
+              finish_reason:
+                type: string
+                description: finish_reason 字段。
+          description: choices 字段。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    ResponsesRequest:
+      type: object
+      required:
+        - model
+      properties:
+        model:
+          type: string
+          description: 模型 ID。
+        input:
+          description: 输入内容，可以是字符串或消息数组
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                properties: {}
+        instructions:
+          type: string
+          description: instructions 字段。
+        max_output_tokens:
+          type: integer
+          description: max_output_tokens 字段。
+        temperature:
+          type: number
+          description: 采样温度。
+        top_p:
+          type: number
+          description: top_p 字段。
+        stream:
+          type: boolean
+          description: stream 字段。
+        tools:
+          type: array
+          items:
+            type: object
+            properties: {}
+          description: tools 字段。
+        tool_choice:
+          oneOf:
+            - type: string
+            - type: object
+              properties: {}
+          description: tool_choice 字段。
+        reasoning:
+          type: object
+          properties:
+            effort:
+              type: string
+              enum:
+                - low
+                - medium
+                - high
+              description: effort 字段。
+            summary:
+              type: string
+              description: summary 字段。
+          description: reasoning 字段。
+        previous_response_id:
+          type: string
+          description: previous_response_id 字段。
+        truncation:
+          type: string
+          enum:
+            - auto
+            - disabled
+          description: truncation 字段。
+    ResponsesResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        object:
+          type: string
+          example: response
+          description: object 字段。
+        created_at:
+          type: integer
+          description: 创建时间。
+        status:
+          type: string
+          enum:
+            - completed
+            - failed
+            - in_progress
+            - incomplete
+          description: 状态值。
+        model:
+          type: string
+          description: 模型 ID。
+        output:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: 类型。
+              id:
+                type: string
+                description: 资源唯一 ID。
+              status:
+                type: string
+                description: 状态值。
+              role:
+                type: string
+                description: 用户角色。
+              content:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: 类型。
+                    text:
+                      type: string
+                      description: 文本内容。
+                description: content 字段。
+          description: 输出内容。
+        usage:
+          $ref: '#/components/schemas/Usage'
+    ResponsesCompactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        object:
+          type: string
+          example: response.compaction
+          description: object 字段。
+        created_at:
+          type: integer
+          description: 创建时间。
+        output:
+          type: array
+          items:
+            type: object
+            properties: {}
+          description: 输出内容。
+        usage:
+          $ref: '#/components/schemas/Usage'
+        error:
+          type: object
+          properties: {}
+          description: 错误信息。
+    ResponsesCompactionRequest:
+      type: object
+      required:
+        - model
+      properties:
+        model:
+          type: string
+          description: 模型 ID。
+        input:
+          description: 输入内容，可以是字符串或消息数组
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                properties: {}
+        instructions:
+          type: string
+          description: instructions 字段。
+        previous_response_id:
+          type: string
+          description: previous_response_id 字段。
+    ResponsesStreamResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: 类型。
+        response:
+          $ref: '#/components/schemas/ResponsesResponse'
+        delta:
+          type: string
+          description: delta 字段。
+        item:
+          type: object
+          properties: {}
+          description: item 字段。
+    ClaudeRequest:
+      type: object
+      required:
+        - model
+        - messages
+        - max_tokens
+      properties:
+        model:
+          type: string
+          example: claude-3-opus-20240229
+          description: 模型 ID。
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaudeMessage'
+          description: messages 字段。
+        system:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                properties: {}
+          description: system 字段。
+        cache_control:
+          type: object
+          properties: {}
+          description: cache_control 字段。
+        inference_geo:
+          type: string
+          description: inference_geo 字段。
+        max_tokens:
+          type: integer
+          minimum: 1
+          description: max_tokens 字段。
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: 采样温度。
+        top_p:
+          type: number
+          description: top_p 字段。
+        top_k:
+          type: integer
+          description: top_k 字段。
+        stream:
+          type: boolean
+          description: stream 字段。
+        stop_sequences:
+          type: array
+          items:
+            type: string
+          description: stop_sequences 字段。
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: 名称。
+              description:
+                type: string
+                description: description 字段。
+              input_schema:
+                type: object
+                properties: {}
+                description: input_schema 字段。
+          description: tools 字段。
+        tool_choice:
+          oneOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - auto
+                    - any
+                    - tool
+                    - none
+                  description: 类型。
+                name:
+                  type: string
+                  description: 名称。
+          description: tool_choice 字段。
+        thinking:
+          type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - enabled
+                - disabled
+              description: 类型。
+            budget_tokens:
+              type: integer
+              description: budget_tokens 字段。
+          description: thinking 字段。
+        context_management:
+          type: object
+          properties: {}
+          description: context_management 字段。
+        output_config:
+          type: object
+          properties: {}
+          description: output_config 字段。
+        output_format:
+          type: object
+          properties: {}
+          description: output_format 字段。
+        container:
+          oneOf:
+            - type: string
+            - type: object
+              properties: {}
+          description: container 字段。
+        mcp_servers:
+          type: array
+          items:
+            type: object
+            properties: {}
+          description: mcp_servers 字段。
+        metadata:
+          type: object
+          properties:
+            user_id:
+              type: string
+              description: 用户 ID。
+          description: metadata 字段。
+        speed:
+          type: string
+          enum:
+            - standard
+            - fast
+          description: 语音速度。
+        service_tier:
+          type: string
+          enum:
+            - auto
+            - standard_only
+          description: service_tier 字段。
+    ClaudeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        type:
+          type: string
+          example: message
+          description: 类型。
+        role:
+          type: string
+          example: assistant
+          description: 用户角色。
+        content:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: 类型。
+              text:
+                type: string
+                description: 文本内容。
+          description: content 字段。
+        model:
+          type: string
+          description: 模型 ID。
+        stop_reason:
+          type: string
+          enum:
+            - end_turn
+            - max_tokens
+            - stop_sequence
+            - tool_use
+          description: stop_reason 字段。
+        usage:
+          type: object
+          properties:
+            input_tokens:
+              type: integer
+              description: input_tokens 字段。
+            output_tokens:
+              type: integer
+              description: output_tokens 字段。
+            cache_creation_input_tokens:
+              type: integer
+              description: cache_creation_input_tokens 字段。
+            cache_read_input_tokens:
+              type: integer
+              description: cache_read_input_tokens 字段。
+          description: usage 字段。
+    EmbeddingRequest:
+      type: object
+      required:
+        - model
+        - input
+      properties:
+        model:
+          type: string
+          example: text-embedding-ada-002
+          description: 模型 ID。
+        input:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: 要嵌入的文本
+        encoding_format:
+          type: string
+          enum:
+            - float
+            - base64
+          default: float
+          description: encoding_format 字段。
+        dimensions:
+          type: integer
+          description: 输出向量维度
+    ImageGenerationRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        model:
+          type: string
+          example: dall-e-3
+          description: 模型 ID。
+        prompt:
+          type: string
+          description: 图像描述
+        'n':
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 1
+          description: n 字段。
+        size:
+          type: string
+          enum:
+            - 256x256
+            - 512x512
+            - 1024x1024
+            - 1792x1024
+            - 1024x1792
+          default: 1024x1024
+          description: size 字段。
+        quality:
+          type: string
+          enum:
+            - standard
+            - hd
+          default: standard
+          description: quality 字段。
+        style:
+          type: string
+          enum:
+            - vivid
+            - natural
+          default: vivid
+          description: style 字段。
+        response_format:
+          type: string
+          enum:
+            - url
+            - b64_json
+          default: url
+          description: 响应格式。
+        user:
+          type: string
+          description: user 字段。
+    ImageEditRequest:
+      type: object
+      required:
+        - image
+        - prompt
+      properties:
+        image:
+          type: string
+          format: binary
+          description: image 字段。
+        mask:
+          type: string
+          format: binary
+          description: mask 字段。
+        prompt:
+          type: string
+          description: 提示词。
+        model:
+          type: string
+          description: 模型 ID。
+        'n':
+          type: integer
+          description: n 字段。
+        size:
+          type: string
+          description: size 字段。
+        response_format:
+          type: string
+          description: 响应格式。
+    AudioTranscriptionRequest:
+      type: object
+      required:
+        - file
+        - model
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 音频文件
+        model:
+          type: string
+          example: whisper-1
+          description: 模型 ID。
+        language:
+          type: string
+          description: ISO-639-1 语言代码
+        prompt:
+          type: string
+          description: 提示词。
+        response_format:
+          type: string
+          enum:
+            - json
+            - text
+            - srt
+            - verbose_json
+            - vtt
+          default: json
+          description: 响应格式。
+        temperature:
+          type: number
+          description: 采样温度。
+        timestamp_granularities:
+          type: array
+          items:
+            type: string
+            enum:
+              - word
+              - segment
+          description: timestamp_granularities 字段。
+    AudioTranslationRequest:
+      type: object
+      required:
+        - file
+        - model
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 上传文件。
+        model:
+          type: string
+          description: 模型 ID。
+        prompt:
+          type: string
+          description: 提示词。
+        response_format:
+          type: string
+          description: 响应格式。
+        temperature:
+          type: number
+          description: 采样温度。
+    AudioTranscriptionResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: 文本内容。
+    SpeechRequest:
+      type: object
+      required:
+        - model
+        - input
+        - voice
+      properties:
+        model:
+          type: string
+          example: tts-1
+          description: 模型 ID。
+        input:
+          type: string
+          description: 要转换的文本
+          maxLength: 4096
+        voice:
+          type: string
+          enum:
+            - alloy
+            - echo
+            - fable
+            - onyx
+            - nova
+            - shimmer
+          description: 语音音色。
+        response_format:
+          type: string
+          enum:
+            - mp3
+            - opus
+            - aac
+            - flac
+            - wav
+            - pcm
+          default: mp3
+          description: 响应格式。
+        speed:
+          type: number
+          minimum: 0.25
+          maximum: 4
+          default: 1
+          description: 语音速度。
+    RerankRequest:
+      type: object
+      required:
+        - model
+        - query
+        - documents
+      properties:
+        model:
+          type: string
+          example: rerank-english-v2.0
+          description: 模型 ID。
+        query:
+          type: string
+          description: 查询文本
+        documents:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: object
+                properties: {}
+          description: 要重排序的文档列表
+        top_n:
+          type: integer
+          description: 返回前 N 个结果
+        return_documents:
+          type: boolean
+          default: false
+          description: 是否返回原始文档。
+    RerankResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+                description: index 字段。
+              relevance_score:
+                type: number
+                description: 相关性分数。
+              document:
+                type: object
+                properties: {}
+                description: 文档内容。
+          description: results 字段。
+        meta:
+          type: object
+          properties: {}
+          description: meta 字段。
+    ModerationRequest:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: 输入内容。
+        model:
+          type: string
+          example: text-moderation-latest
+          description: 模型 ID。
+    ModerationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 资源唯一 ID。
+        model:
+          type: string
+          description: 模型 ID。
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              flagged:
+                type: boolean
+                description: 是否命中审核规则。
+              categories:
+                type: object
+                properties: {}
+                description: 命中的审核类别。
+              category_scores:
+                type: object
+                properties: {}
+                description: 各审核类别分数。
+          description: results 字段。
+    GeminiRequest:
+      type: object
+      properties:
+        contents:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum:
+                  - user
+                  - model
+                description: 用户角色。
+              parts:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    text:
+                      type: string
+                      description: 文本内容。
+                    inlineData:
+                      type: object
+                      properties:
+                        mimeType:
+                          type: string
+                          description: mimeType 字段。
+                        data:
+                          type: string
+                          description: 接口返回的业务数据。
+                      description: inlineData 字段。
+                description: parts 字段。
+          description: contents 字段。
+        generationConfig:
+          type: object
+          properties:
+            temperature:
+              type: number
+              description: 采样温度。
+            topP:
+              type: number
+              description: topP 字段。
+            topK:
+              type: integer
+              description: topK 字段。
+            maxOutputTokens:
+              type: integer
+              description: maxOutputTokens 字段。
+            stopSequences:
+              type: array
+              items:
+                type: string
+              description: stopSequences 字段。
+          description: generationConfig 字段。
+        safetySettings:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+                description: category 字段。
+              threshold:
+                type: string
+                description: threshold 字段。
+          description: safetySettings 字段。
+        tools:
+          type: array
+          items:
+            type: object
+            properties: {}
+          description: tools 字段。
+        systemInstruction:
+          type: object
+          properties:
+            parts:
+              type: array
+              items:
+                type: object
+                properties: {}
+              description: parts 字段。
+          description: systemInstruction 字段。
+    GeminiResponse:
+      type: object
+      properties:
+        candidates:
+          type: array
+          items:
+            type: object
+            properties:
+              content:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    description: 用户角色。
+                  parts:
+                    type: array
+                    items:
+                      type: object
+                      properties: {}
+                    description: parts 字段。
+                description: content 字段。
+              finishReason:
+                type: string
+                description: finishReason 字段。
+              safetyRatings:
+                type: array
+                items:
+                  type: object
+                  properties: {}
+                description: safetyRatings 字段。
+          description: candidates 字段。
+        usageMetadata:
+          type: object
+          properties:
+            promptTokenCount:
+              type: integer
+              description: promptTokenCount 字段。
+            candidatesTokenCount:
+              type: integer
+              description: candidatesTokenCount 字段。
+            totalTokenCount:
+              type: integer
+              description: totalTokenCount 字段。
+          description: usageMetadata 字段。
+    VideoRequest:
+      type: object
+      description: 视频生成请求
+      properties:
+        model:
+          type: string
+          description: 模型/风格 ID
+          example: kling-v1
+        prompt:
+          type: string
+          description: 文本描述提示词
+          example: 宇航员站起身走了
+        image:
+          type: string
+          description: 图片输入 (URL 或 Base64)
+          example: https://example.com/image.jpg
+        duration:
+          type: number
+          description: 视频时长（秒）
+          example: 5
+        width:
+          type: integer
+          description: 视频宽度
+          example: 1280
+        height:
+          type: integer
+          description: 视频高度
+          example: 720
+        fps:
+          type: integer
+          description: 视频帧率
+          example: 30
+        seed:
+          type: integer
+          description: 随机种子
+          example: 20231234
+        'n':
+          type: integer
+          description: 生成视频数量
+          example: 1
+        response_format:
+          type: string
+          description: 响应格式
+          example: url
+        user:
+          type: string
+          description: 用户标识
+          example: user-1234
+        metadata:
+          type: object
+          description: 扩展参数 (如 negative_prompt, style, quality_level 等)
+          additionalProperties: true
+          properties: {}
+    VideoResponse:
+      type: object
+      description: 视频生成任务提交响应
+      properties:
+        task_id:
+          type: string
+          description: 任务 ID
+          example: abcd1234efgh
+        status:
+          type: string
+          description: 任务状态
+          example: queued
+    VideoTaskResponse:
+      type: object
+      description: 视频任务状态查询响应
+      properties:
+        task_id:
+          type: string
+          description: 任务 ID
+          example: abcd1234efgh
+        status:
+          type: string
+          description: 任务状态
+          enum:
+            - queued
+            - in_progress
+            - completed
+            - failed
+          example: completed
+        url:
+          type: string
+          description: 视频资源 URL（成功时）
+          example: https://example.com/video.mp4
+        format:
+          type: string
+          description: 视频格式
+          example: mp4
+        metadata:
+          $ref: '#/components/schemas/VideoTaskMetadata'
+        error:
+          $ref: '#/components/schemas/VideoTaskError'
+    VideoTaskMetadata:
+      type: object
+      description: 视频任务元数据
+      properties:
+        duration:
+          type: number
+          description: 实际生成的视频时长
+          example: 5
+        fps:
+          type: integer
+          description: 实际帧率
+          example: 30
+        width:
+          type: integer
+          description: 实际宽度
+          example: 1280
+        height:
+          type: integer
+          description: 实际高度
+          example: 720
+        seed:
+          type: integer
+          description: 使用的随机种子
+          example: 20231234
+    VideoTaskError:
+      type: object
+      description: 视频任务错误信息
+      properties:
+        code:
+          type: integer
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息
+    OpenAIVideo:
+      type: object
+      description: OpenAI 兼容的视频对象
+      properties:
+        id:
+          type: string
+          description: 视频 ID
+          example: video-abc123
+        task_id:
+          type: string
+          description: 任务 ID (兼容旧接口)
+          deprecated: true
+        object:
+          type: string
+          description: 对象类型
+          example: video
+        model:
+          type: string
+          description: 使用的模型
+          example: sora
+        status:
+          type: string
+          description: 任务状态
+          enum:
+            - queued
+            - in_progress
+            - completed
+            - failed
+          example: completed
+        progress:
+          type: integer
+          description: 进度百分比
+          example: 100
+        created_at:
+          type: integer
+          description: 创建时间戳
+        completed_at:
+          type: integer
+          description: 完成时间戳
+        expires_at:
+          type: integer
+          description: 过期时间戳
+        seconds:
+          type: string
+          description: 视频时长
+        size:
+          type: string
+          description: 视频尺寸
+        remixed_from_video_id:
+          type: string
+          description: 源视频 ID（如果是基于其他视频生成）
+        error:
+          $ref: '#/components/schemas/OpenAIVideoError'
+        metadata:
+          type: object
+          description: 额外元数据
+          additionalProperties: true
+          properties: {}
+    OpenAIVideoError:
+      type: object
+      description: OpenAI 视频错误信息
+      properties:
+        message:
+          type: string
+          description: 错误信息
+        code:
+          type: string
+          description: 错误码
+    PageInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 页码，从 1 开始。
+        page_size:
+          type: integer
+          description: 每页返回数量。
+        total:
+          type: integer
+          description: 符合条件的总数量。
+        items:
+          type: array
+          items: {}
+          description: 当前页数据列表。
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 资源唯一 ID。
+        username:
+          type: string
+          description: 用户名。
+        display_name:
+          type: string
+          description: 用户展示名称。
+        role:
+          type: integer
+          description: 用户角色。
+        status:
+          type: integer
+          description: 状态值。
+        email:
+          type: string
+          description: 邮箱地址。
+        group:
+          type: string
+          description: 用户分组。
+        quota:
+          type: integer
+          description: 额度数量。
+        used_quota:
+          type: integer
+          description: 已使用额度。
+        request_count:
+          type: integer
+          description: request_count 字段。
+    Channel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 资源唯一 ID。
+        name:
+          type: string
+          description: 名称。
+        type:
+          type: integer
+          description: 类型。
+        status:
+          type: integer
+          description: 状态值。
+        models:
+          type: string
+          description: 模型列表。
+        groups:
+          type: string
+          description: 可用分组列表。
+        priority:
+          type: integer
+          description: 渠道优先级。
+        weight:
+          type: integer
+          description: 渠道权重。
+        base_url:
+          type: string
+          description: 上游服务基础地址。
+        tag:
+          type: string
+          description: tag 字段。
+    Redemption:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 资源唯一 ID。
+        name:
+          type: string
+          description: 名称。
+        key:
+          type: string
+          description: 密钥内容。
+        status:
+          type: integer
+          description: 状态值。
+        quota:
+          type: integer
+          description: 额度数量。
+        created_time:
+          type: integer
+          description: 创建时间，Unix 秒级时间戳。
+        redeemed_time:
+          type: integer
+          description: 兑换时间，Unix 秒级时间戳。
+    Log:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 资源唯一 ID。
+        user_id:
+          type: integer
+          description: 用户 ID。
+        type:
+          type: integer
+          description: 类型。
+        content:
+          type: string
+          description: content 字段。
+        created_at:
+          type: integer
+          description: 创建时间。
+    GenericObjectRequest:
+      type: object
+      description: 通用 JSON 请求体，字段以对应业务接口实现为准。
+      additionalProperties: true
+    ChannelCodexOAuthRequest:
+      type: object
+      properties:
+        authorization_url:
+          type: string
+          description: Codex OAuth 授权回跳 URL。
+        code:
+          type: string
+          description: OAuth 授权码。
+        state:
+          type: string
+          description: OAuth state 参数。
+      additionalProperties: true
+    OllamaModelRequest:
+      type: object
+      required:
+        - channel_id
+        - model
+      properties:
+        channel_id:
+          type: integer
+          description: Ollama 渠道 ID。
+        model:
+          type: string
+          description: 要拉取或删除的 Ollama 模型名称。
+      additionalProperties: true
+    SubscriptionPlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 订阅套餐名称。
+        group:
+          type: string
+          description: 订阅绑定的用户分组。
+        price:
+          type: number
+          description: 订阅价格。
+        quota:
+          type: integer
+          description: 套餐额度。
+        enabled:
+          type: boolean
+          description: 是否启用套餐。
+      additionalProperties: true
+    AgentRequest:
+      type: object
+      properties:
+        owner_user_id:
+          type: integer
+          description: Agent 所属用户 ID。
+        name:
+          type: string
+          description: Agent 名称。
+        status:
+          type: integer
+          description: Agent 状态。
+        branding:
+          type: object
+          description: Agent 品牌配置。
+          additionalProperties: true
+      additionalProperties: true
+    DeploymentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 部署名称。
+        model:
+          type: string
+          description: 部署模型。
+        hardware_type:
+          type: string
+          description: 硬件规格。
+        location:
+          type: string
+          description: 部署区域。
+        replicas:
+          type: integer
+          description: 副本数量。
+      additionalProperties: true
+    NewAPISupplierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 供应商名称。
+        base_url:
+          type: string
+          description: 供应商 API 基础地址。
+        key:
+          type: string
+          description: 供应商 API Key。
+        status:
+          type: integer
+          description: 供应商状态。
+      additionalProperties: true
