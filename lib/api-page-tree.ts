@@ -1,16 +1,257 @@
-import type { ReactNode } from 'react';
-import type { Root } from 'fumadocs-core/page-tree';
+import type { Folder, Item, Root } from 'fumadocs-core/page-tree';
 import type { Locale } from '@/lib/i18n';
 
-export function getApiGroupDisplayName(name: ReactNode) {
-  if (typeof name !== 'string') return name;
+type ApiMenuItem = {
+  title: {
+    zh: string;
+    en: string;
+  };
+  operationIds: string[];
+  pageTitles?: Record<string, LocalizedTitle>;
+};
 
-  const displayName = name.replace(/^(?:AI|A\s+I)\s*模型\s*(?:[-－]\s*)?/, '');
+type LocalizedTitle = {
+  zh: string;
+  en: string;
+};
 
-  if (displayName === '图像') return '图片';
+type ApiMenuSection = {
+  title: LocalizedTitle;
+  items: ApiMenuItem[];
+};
 
-  return displayName;
-}
+type ApiMenuGroup = {
+  title: {
+    zh: string;
+    en: string;
+  };
+  sections: ApiMenuSection[];
+};
+
+const apiMenuGroups: ApiMenuGroup[] = [
+  {
+    title: { zh: '聊天系列', en: 'Chat' },
+    sections: [
+      {
+        title: { zh: 'OpenAI 兼容', en: 'OpenAI Compatible' },
+        items: [
+          { title: { zh: 'Chat Completions', en: 'Chat Completions' }, operationIds: ['createChatCompletion'] },
+          { title: { zh: 'Completions', en: 'Completions' }, operationIds: ['createCompletion'] },
+          { title: { zh: 'Responses', en: 'Responses' }, operationIds: ['createResponse'] },
+          { title: { zh: 'Responses Compact', en: 'Responses Compact' }, operationIds: ['compactResponse'] },
+        ],
+      },
+      {
+        title: { zh: 'Claude', en: 'Claude' },
+        items: [
+          { title: { zh: 'Messages', en: 'Messages' }, operationIds: ['createMessage'] },
+        ],
+      },
+      {
+        title: { zh: 'Gemini', en: 'Gemini' },
+        items: [
+          { title: { zh: '原生格式', en: 'Native Format' }, operationIds: ['generateGeminiContent'] },
+        ],
+      },
+      {
+        title: { zh: '调试', en: 'Debugging' },
+        items: [
+          { title: { zh: 'Playground 聊天调试', en: 'Playground Chat' }, operationIds: ['post_pg_chat_completions'] },
+        ],
+      },
+    ],
+  },
+  {
+    title: { zh: '图片系列', en: 'Images' },
+    sections: [
+      {
+        title: { zh: 'OpenAI Images', en: 'OpenAI Images' },
+        items: [
+          { title: { zh: '图像生成', en: 'Image Generation' }, operationIds: ['createImageGeneration'] },
+          { title: { zh: '图像编辑', en: 'Image Editing' }, operationIds: ['editImage'] },
+          { title: { zh: '异步任务查询', en: 'Async Task Status' }, operationIds: ['getImageAsyncTask'] },
+        ],
+      },
+      {
+        title: { zh: 'Gemini', en: 'Gemini' },
+        items: [
+          { title: { zh: '原生图像', en: 'Native Images' }, operationIds: ['generateGeminiImageContent'] },
+        ],
+      },
+    ],
+  },
+  {
+    title: { zh: '视频系列', en: 'Videos' },
+    sections: [
+      {
+        title: { zh: 'OpenAI 兼容', en: 'OpenAI Compatible' },
+        items: [
+          { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createOpenAIVideo'] },
+          { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getOpenAIVideo'] },
+          { title: { zh: '下载视频内容', en: 'Download Video Content' }, operationIds: ['downloadVideoContent'] },
+          { title: { zh: 'Remix 视频', en: 'Video Remix' }, operationIds: ['post_v1_videos_video_id_remix'] },
+        ],
+      },
+      {
+        title: { zh: '通用视频', en: 'Generic Video' },
+        items: [
+          { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createVideoGeneration'] },
+          { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getVideoGeneration'] },
+        ],
+      },
+      {
+        title: { zh: 'Kling', en: 'Kling' },
+        items: [
+          { title: { zh: '文生视频', en: 'Text to Video' }, operationIds: ['createKlingText2Video'] },
+          { title: { zh: '查询文生视频任务', en: 'Text to Video Status' }, operationIds: ['getKlingText2Video'] },
+          { title: { zh: '图生视频', en: 'Image to Video' }, operationIds: ['createKlingImage2Video'] },
+          { title: { zh: '查询图生视频任务', en: 'Image to Video Status' }, operationIds: ['getKlingImage2Video'] },
+        ],
+      },
+      {
+        title: { zh: '即梦', en: 'Jimeng' },
+        items: [
+          { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createJimengVideo'] },
+        ],
+      },
+    ],
+  },
+  {
+    title: { zh: '音频与其他', en: 'Audio & More' },
+    sections: [
+      {
+        title: { zh: '音频', en: 'Audio' },
+        items: [
+          { title: { zh: '音频转录', en: 'Audio Transcription' }, operationIds: ['createTranscription'] },
+          { title: { zh: '音频翻译', en: 'Audio Translation' }, operationIds: ['createTranslation'] },
+          { title: { zh: '文本转语音', en: 'Text to Speech' }, operationIds: ['createSpeech'] },
+        ],
+      },
+      {
+        title: { zh: '其他能力', en: 'Other Capabilities' },
+        items: [
+          {
+            title: { zh: 'Embeddings', en: 'Embeddings' },
+            operationIds: ['createEmbedding', 'createEngineEmbedding'],
+            pageTitles: {
+              createEmbedding: { zh: 'Embeddings - OpenAI', en: 'Embeddings - OpenAI' },
+              createEngineEmbedding: { zh: 'Embeddings - Gemini Engine', en: 'Embeddings - Gemini Engine' },
+            },
+          },
+          { title: { zh: 'Rerank', en: 'Rerank' }, operationIds: ['createRerank'] },
+          { title: { zh: '内容审核', en: 'Moderation' }, operationIds: ['createModeration'] },
+          { title: { zh: 'Realtime', en: 'Realtime' }, operationIds: ['createRealtimeSession'] },
+        ],
+      },
+    ],
+  },
+  {
+    title: { zh: '管理接口', en: 'Management' },
+    sections: [
+      {
+        title: { zh: '模型', en: 'Models' },
+        items: [
+          {
+            title: { zh: '模型列表', en: 'Model List' },
+            operationIds: ['listModels', 'get_v1beta_openai_models', 'listGeminiModels'],
+            pageTitles: {
+              listModels: { zh: '模型列表 - OpenAI', en: 'Model List - OpenAI' },
+              get_v1beta_openai_models: { zh: '模型列表 - Gemini OpenAI', en: 'Model List - Gemini OpenAI' },
+              listGeminiModels: { zh: '模型列表 - Gemini', en: 'Model List - Gemini' },
+            },
+          },
+          { title: { zh: '模型详情', en: 'Model Details' }, operationIds: ['get_v1_models_model'] },
+        ],
+      },
+      {
+        title: { zh: '令牌管理', en: 'Token Management' },
+        items: [
+          {
+            title: { zh: '令牌管理', en: 'Token Management' },
+            operationIds: [
+              'listTokens',
+              'createToken',
+              'updateToken',
+              'batchDeleteTokens',
+              'searchTokens',
+              'getToken',
+              'deleteToken',
+              'getTokenUsage',
+              'post_api_token_id_key',
+              'post_api_token_batch_keys',
+            ],
+            pageTitles: {
+              listTokens: { zh: '获取所有令牌', en: 'List Tokens' },
+              createToken: { zh: '创建令牌', en: 'Create Token' },
+              updateToken: { zh: '更新令牌', en: 'Update Token' },
+              batchDeleteTokens: { zh: '批量删除令牌', en: 'Batch Delete Tokens' },
+              searchTokens: { zh: '搜索令牌', en: 'Search Tokens' },
+              getToken: { zh: '获取指定令牌', en: 'Get Token' },
+              deleteToken: { zh: '删除令牌', en: 'Delete Token' },
+              getTokenUsage: { zh: '获取令牌使用情况', en: 'Get Token Usage' },
+              post_api_token_id_key: { zh: '查看指定令牌密钥', en: 'View Token Key' },
+              post_api_token_batch_keys: { zh: '批量查看令牌密钥', en: 'Batch View Token Keys' },
+            },
+          },
+        ],
+      },
+      {
+        title: { zh: '日志', en: 'Logs' },
+        items: [
+          {
+            title: { zh: '日志查询', en: 'Log Queries' },
+            operationIds: [
+              'listLogs',
+              'deleteLogs',
+              'searchLogs',
+              'listSelfLogs',
+              'searchSelfLogs',
+              'getSelfLogStat',
+              'getLogStat',
+              'getTokenLogs',
+            ],
+            pageTitles: {
+              listLogs: { zh: '获取所有日志', en: 'List Logs' },
+              deleteLogs: { zh: '删除历史日志', en: 'Delete Logs' },
+              searchLogs: { zh: '搜索日志', en: 'Search Logs' },
+              listSelfLogs: { zh: '获取个人日志', en: 'List My Logs' },
+              searchSelfLogs: { zh: '搜索个人日志', en: 'Search My Logs' },
+              getSelfLogStat: { zh: '获取个人日志统计', en: 'My Log Stats' },
+              getLogStat: { zh: '获取日志统计', en: 'Log Stats' },
+              getTokenLogs: { zh: '通过令牌获取日志', en: 'Token Logs' },
+            },
+          },
+        ],
+      },
+      {
+        title: { zh: '真人认证', en: 'Visual Verification' },
+        items: [
+          {
+            title: { zh: '真人认证', en: 'Visual Verification' },
+            operationIds: [
+              'createVisualValidateSession',
+              'getVisualValidateSession',
+              'uploadVisualValidateAsset',
+              'listVisualValidateAssets',
+              'getVisualValidateAsset',
+              'deleteVisualValidateAsset',
+              'deleteVisualValidateAssetGroup',
+            ],
+            pageTitles: {
+              createVisualValidateSession: { zh: '创建真人认证会话', en: 'Create Verification Session' },
+              getVisualValidateSession: { zh: '获取真人认证结果', en: 'Get Verification Result' },
+              uploadVisualValidateAsset: { zh: '上传人像素材', en: 'Upload Face Asset' },
+              listVisualValidateAssets: { zh: '查询人像素材列表', en: 'List Face Assets' },
+              getVisualValidateAsset: { zh: '查询单个人像素材详情', en: 'Get Face Asset' },
+              deleteVisualValidateAsset: { zh: '删除人像素材', en: 'Delete Face Asset' },
+              deleteVisualValidateAssetGroup: { zh: '删除人像素材组', en: 'Delete Face Asset Group' },
+            },
+          },
+        ],
+      },
+    ],
+  },
+];
 
 function localizeApiUrl(url: string, locale: Locale) {
   if (locale === 'en') return url;
@@ -18,46 +259,159 @@ function localizeApiUrl(url: string, locale: Locale) {
   return `/${locale}${url}`;
 }
 
+function titleFor(locale: Locale, title: LocalizedTitle) {
+  return locale === 'zh' ? title.zh : title.en;
+}
+
+function operationIdFromUrl(url: string) {
+  const lastSegment = url.split('/').filter(Boolean).at(-1);
+
+  return lastSegment ? decodeURIComponent(lastSegment) : '';
+}
+
+function clonePage(page: Item, name: string, locale: Locale): Item {
+  return {
+    ...page,
+    name,
+    url: localizeApiUrl(page.url, locale),
+  };
+}
+
+function itemPageTitle(item: ApiMenuItem, operationId: string, index: number, locale: Locale) {
+  const configured = item.pageTitles?.[operationId];
+  if (configured) return titleFor(locale, configured);
+
+  const baseTitle = titleFor(locale, item.title);
+  return `${baseTitle} ${index + 1}`;
+}
+
+function sourceGroupDisplayName(name: string, locale: Locale) {
+  const displayName = name.replace(/^(?:AI|A\s+I)\s*模型\s*(?:[-－]\s*)?/, '');
+  const normalized = displayName === '图像' ? '图片' : displayName;
+
+  if (locale === 'zh') return normalized;
+
+  const translations: Record<string, string> = {
+    账户管理: 'Account',
+    聊天系列: 'Chat',
+    图片系列: 'Images',
+    视频系列: 'Videos',
+    补全: 'Completions',
+    嵌入: 'Embeddings',
+    音频: 'Audio',
+    重排序: 'Rerank',
+    内容审核: 'Moderation',
+    实时: 'Realtime',
+    '管理接口 - 鉴权': 'Management - Auth',
+    '管理接口 - 令牌管理': 'Management - Tokens',
+    '管理接口 - 日志': 'Management - Logs',
+    '管理接口 - 真人认证': 'Management - Visual Verification',
+  };
+
+  return translations[normalized] ?? normalized;
+}
+
+function collectSourceGroups(tree: Root) {
+  const groups: Array<{ name: string; pages: Item[] }> = [];
+  let current: { name: string; pages: Item[] } | undefined;
+
+  for (const node of tree.children) {
+    if (node.type === 'separator') {
+      current = { name: String(node.name), pages: [] };
+      groups.push(current);
+      continue;
+    }
+
+    if (node.type === 'page') {
+      if (!current) {
+        current = { name: '', pages: [] };
+        groups.push(current);
+      }
+      current.pages.push(node);
+      continue;
+    }
+
+    if (node.type === 'folder') {
+      const pages = node.children.filter((child): child is Item => child.type === 'page');
+      groups.push({ name: String(node.name), pages });
+    }
+  }
+
+  return groups;
+}
+
 export function getLocalizedApiPageTree(tree: Root, locale: Locale): Root {
+  const groups = collectSourceGroups(tree);
+  const pageByOperationId = new Map<string, Item>();
+
+  for (const group of groups) {
+    for (const page of group.pages) {
+      pageByOperationId.set(operationIdFromUrl(page.url), page);
+    }
+  }
+
+  const usedPages = new Set<Item>();
+  const children: Folder[] = [];
+
+  for (const group of apiMenuGroups) {
+    const sectionFolders: Folder[] = [];
+
+    for (const section of group.sections) {
+      const sectionChildren: Item[] = [];
+
+      for (const item of section.items) {
+        const itemPages = item.operationIds
+          .map((operationId) => {
+            const page = pageByOperationId.get(operationId);
+            return page ? { operationId, page } : undefined;
+          })
+          .filter((entry): entry is { operationId: string; page: Item } => Boolean(entry));
+
+        itemPages.forEach(({ page }) => usedPages.add(page));
+
+        if (itemPages.length === 1) {
+          sectionChildren.push(clonePage(itemPages[0].page, titleFor(locale, item.title), locale));
+        } else if (itemPages.length > 1) {
+          for (const [index, { operationId, page }] of itemPages.entries()) {
+            sectionChildren.push(clonePage(page, itemPageTitle(item, operationId, index, locale), locale));
+          }
+        }
+      }
+
+      if (sectionChildren.length > 0) {
+        sectionFolders.push({
+          type: 'folder',
+          name: titleFor(locale, section.title),
+          children: sectionChildren,
+        });
+      }
+    }
+
+    if (sectionFolders.length > 0) {
+      children.push({
+        type: 'folder',
+        name: titleFor(locale, group.title),
+        children: sectionFolders,
+      });
+    }
+  }
+
+  for (const group of groups) {
+    const remainingPages = group.pages.filter((page) => !usedPages.has(page));
+    if (remainingPages.length === 0) continue;
+
+    children.push({
+      type: 'folder',
+      name: sourceGroupDisplayName(group.name, locale),
+      children: remainingPages.map((page) => ({
+        ...page,
+        url: localizeApiUrl(page.url, locale),
+      })),
+    });
+  }
+
   return {
     ...tree,
-    children: tree.children.map((node) => {
-      if (node.type === 'page') {
-        return {
-          ...node,
-          url: localizeApiUrl(node.url, locale),
-        };
-      }
-
-      if (node.type === 'separator') {
-        return {
-          ...node,
-          name: getApiGroupDisplayName(node.name),
-        };
-      }
-
-      if (node.type === 'folder') {
-        return {
-          ...node,
-          name: getApiGroupDisplayName(node.name),
-          index: node.index
-            ? {
-                ...node.index,
-                url: localizeApiUrl(node.index.url, locale),
-              }
-            : undefined,
-          children: getLocalizedApiPageTree(
-            {
-              type: 'root',
-              name: '',
-              children: node.children,
-            },
-            locale,
-          ).children,
-        };
-      }
-
-      return node;
-    }),
+    children,
   };
 }

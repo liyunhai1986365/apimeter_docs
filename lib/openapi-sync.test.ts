@@ -18,6 +18,7 @@ describe('modelsell OpenAPI sync', () => {
       'operationId: createCompletion',
       'operationId: createEmbedding',
       '/v1/images/generations:',
+      '/v1/tasks/{id}:',
       '/v1/images/edits:',
       '/v1/video/generations:',
       '/v1/video/generations/{task_id}:',
@@ -50,23 +51,45 @@ describe('modelsell OpenAPI sync', () => {
 
   it('uses the Chinese API document categories for generated reference groups', () => {
     const requiredCategories = [
-      'name: AI 模型 - 聊天',
-      'name: AI 模型 - 补全',
+      'name: 账户管理',
+      'name: 聊天系列',
       'name: AI 模型 - 嵌入',
-      'name: AI 模型 - 图像',
-      'name: AI 模型 - 模型列表',
-      'name: AI 模型 - 视频',
+      'name: 图片系列',
+      'name: 视频系列',
       'name: 管理接口 - 鉴权',
       'name: 管理接口 - 日志',
       'name: 管理接口 - 令牌管理',
       'name: 管理接口 - 真人认证',
       'summary: Claude 格式',
       'summary: ChatCompletions 格式',
+      'summary: 查询图片异步任务',
+      'summary: 查询视频任务',
       'summary: 创建真人认证会话',
     ];
 
     for (const category of requiredCategories) {
       expect(openApiText).toContain(category);
+    }
+
+    expect(openApiText).not.toContain('AI 模型 - 图像');
+    expect(openApiText).not.toContain('AI 模型 - 视频');
+    expect(openApiText).not.toContain('AI 模型 - 模型列表');
+    expect(openApiText).not.toContain('AI 模型 - 补全');
+  });
+
+  it('keeps public docs focused on API usage instead of internal conversion plumbing', () => {
+    const forbiddenSnippets = [
+      '协议互转',
+      '互转说明',
+      '兼容边界',
+      '配置化图片模型',
+      '配置化三方视频',
+      '通用格式和三方 native 格式互转',
+      'Images 请求如何映射到第三方格式',
+    ];
+
+    for (const snippet of forbiddenSnippets) {
+      expect(openApiText).not.toContain(snippet);
     }
   });
 

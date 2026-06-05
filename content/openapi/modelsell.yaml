@@ -3,22 +3,20 @@ info:
   title: ModelSell API
   version: 1.0.0
   description: |
-    ModelSell API 参考文档，按远端中文 API 文档目录同步分类。包含 AI 模型接口和管理接口， 每个接口都可在生成的 API Reference 中使用 Playground 调试。
+    ModelSell API 参考文档，按账户、聊天、图片、视频等公开能力分类。包含 AI 模型接口和管理接口，每个接口都可在生成的 API Reference 中使用 Playground 调试。
 servers:
   - url: https://modelsell.com
 tags:
-  - name: AI 模型 - 聊天
-    description: Claude、OpenAI ChatCompletions、OpenAI Responses、Responses Compact 与 Gemini 文本/媒体聊天接口。
-  - name: AI 模型 - 补全
-    description: OpenAI Completions 兼容的文本补全接口。
+  - name: 账户管理
+    description: API Key 认证、模型列表和账户侧查询接口。
+  - name: 聊天系列
+    description: OpenAI Chat Completions、OpenAI Responses、Responses Compact、Claude Messages 与 Gemini 原生文本/媒体聊天接口。
   - name: AI 模型 - 嵌入
     description: OpenAI 与 Gemini 兼容的文本向量化接口。
-  - name: AI 模型 - 图像
-    description: OpenAI Images、Qwen 图像生成/编辑与 Gemini 图像接口。
-  - name: AI 模型 - 模型列表
-    description: OpenAI、Claude 与 Gemini 兼容的模型列表和模型详情查询接口。
-  - name: AI 模型 - 视频
-    description: OpenAI/Sora、Kling、即梦、HappyHorse、PixVerse、Seedance、Veo、万相等视频生成、任务查询和内容下载接口。
+  - name: 图片系列
+    description: OpenAI Images 兼容生成/编辑、Gemini 原生图像和图片异步任务查询接口。
+  - name: 视频系列
+    description: OpenAI 兼容视频、通用视频、Kling、即梦等视频生成、任务查询和内容下载接口。
   - name: AI 模型 - 音频
     description: OpenAI Audio 兼容的音频转录、音频翻译和文本转语音接口。
   - name: AI 模型 - 重排序
@@ -45,7 +43,7 @@ paths:
       description: |
         Anthropic Claude Messages API 兼容请求。需要在请求头中包含 `anthropic-version`。
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       parameters:
         - name: anthropic-version
           in: header
@@ -91,9 +89,9 @@ paths:
       operationId: createChatCompletion
       summary: ChatCompletions 格式
       description: |
-        OpenAI Chat Completions 兼容接口。支持标准聊天请求，也可用于通过 OpenAI 聊天格式调用具备图像能力的 Gemini 模型。
+        OpenAI Chat Completions 兼容接口。支持文本、多模态输入、工具调用和流式响应。
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       requestBody:
         required: true
         content:
@@ -138,7 +136,7 @@ paths:
       description: |
         OpenAI Responses API 兼容接口，支持单轮/多轮输入、工具调用和推理参数。
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       requestBody:
         required: true
         content:
@@ -167,7 +165,7 @@ paths:
       summary: 原生 OpenAI 格式
       description: OpenAI Completions 兼容的文本补全接口。
       tags:
-        - AI 模型 - 补全
+        - 聊天系列
       requestBody:
         required: true
         content:
@@ -236,7 +234,7 @@ paths:
       description: |
         Gemini `generateContent` 兼容接口，用于文本聊天和媒体识别请求。
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       parameters:
         - $ref: '#/components/parameters/GeminiModel'
       requestBody:
@@ -276,7 +274,7 @@ paths:
       summary: Gemini 原生格式
       description: Gemini 兼容的图像生成接口，路径带尾部斜杠。
       tags:
-        - AI 模型 - 图像
+        - 图片系列
       parameters:
         - $ref: '#/components/parameters/GeminiModel'
       requestBody:
@@ -307,7 +305,7 @@ paths:
       summary: 生成图像
       description: OpenAI Images API 兼容的图像生成接口。
       tags:
-        - AI 模型 - 图像
+        - 图片系列
       requestBody:
         required: true
         content:
@@ -335,7 +333,7 @@ paths:
       summary: 编辑图像
       description: OpenAI Images API 兼容的图像编辑接口。
       tags:
-        - AI 模型 - 图像
+        - 图片系列
       requestBody:
         required: true
         content:
@@ -351,13 +349,40 @@ paths:
                 $ref: '#/components/schemas/ImageResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/tasks/{id}:
+    get:
+      operationId: getImageAsyncTask
+      summary: 查询图片异步任务
+      description: |
+        查询图片异步生成或编辑任务的状态与结果。提交图片请求后，如果接口返回任务 ID，可通过该接口轮询任务进度并读取生成图片。
+      tags:
+        - 图片系列
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 图片异步任务 ID。
+          schema:
+            type: string
+            example: task_abc123
+      responses:
+        '200':
+          description: 图片异步任务状态与结果。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageTaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/models:
     get:
       operationId: listModels
       summary: OpenAI 格式
       description: 查询当前 API Key 可用的 OpenAI 兼容模型列表。
       tags:
-        - AI 模型 - 模型列表
+        - 账户管理
       responses:
         '200':
           description: 可用模型列表。
@@ -373,7 +398,7 @@ paths:
       summary: Gemini 格式
       description: 查询当前 API Key 可用的 Gemini 兼容模型列表。
       tags:
-        - AI 模型 - 模型列表
+        - 账户管理
       responses:
         '200':
           description: 可用 Gemini 模型列表。
@@ -390,7 +415,7 @@ paths:
       description: |
         创建视频生成任务。该通用接口覆盖 HappyHorse、Seedance、Veo、万相等 `/v1/video/generations` 提供商。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       requestBody:
         required: true
         content:
@@ -424,7 +449,7 @@ paths:
       summary: 查询视频生成任务
       description: 查询 `/v1/video/generations` 视频任务状态与结果。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -445,7 +470,7 @@ paths:
       description: |
         通过 OpenAI 兼容的 `/v1/videos` 接口创建视频生成任务，适用于 PixVerse、Veo、Seedance 等兼容提供商。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       requestBody:
         required: true
         content:
@@ -471,10 +496,10 @@ paths:
   /v1/videos/{task_id}:
     get:
       operationId: getOpenAIVideo
-      summary: 查询 OpenAI 兼容视频任务
+      summary: 查询视频任务
       description: 查询 OpenAI 兼容 `/v1/videos` 任务状态与结果。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -494,7 +519,7 @@ paths:
       summary: 下载视频内容
       description: 下载已生成的视频内容，适用于提供 content 端点的视频模型。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -1024,7 +1049,7 @@ paths:
       description: OpenAI Responses API，用于对长对话进行 compaction。
       operationId: compactResponse
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       parameters: []
       requestBody:
         content:
@@ -1051,7 +1076,7 @@ paths:
         支持的模型：kling-v1, kling-v1-5 等
       operationId: createKlingText2Video
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters: []
       requestBody:
         content:
@@ -1088,7 +1113,7 @@ paths:
       description: 查询 Kling 文生视频任务的状态和结果。
       operationId: getKlingText2Video
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - name: task_id
           in: path
@@ -1123,7 +1148,7 @@ paths:
         支持通过 image 参数传入图片 URL 或 Base64 编码的图片数据。
       operationId: createKlingImage2Video
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters: []
       requestBody:
         content:
@@ -1160,7 +1185,7 @@ paths:
       description: 查询 Kling 图生视频任务的状态和结果。
       operationId: getKlingImage2Video
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - name: task_id
           in: path
@@ -1199,7 +1224,7 @@ paths:
         需要在查询参数中指定 Action 和 Version。
       operationId: createJimengVideo
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       parameters:
         - name: Action
           in: query
@@ -1574,7 +1599,7 @@ paths:
       summary: 获取指定模型详情
       description: 获取指定模型详情。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
       tags:
-        - AI 模型 - 模型列表
+        - 账户管理
       responses:
         '200':
           description: 成功。
@@ -1595,7 +1620,7 @@ paths:
       summary: 以 Gemini OpenAI 兼容路径获取模型列表
       description: 以 Gemini OpenAI 兼容路径获取模型列表。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
       tags:
-        - AI 模型 - 模型列表
+        - 账户管理
       responses:
         '200':
           description: 成功。
@@ -1609,7 +1634,7 @@ paths:
       summary: 基于已有视频创建 remix 任务
       description: 基于已有视频创建 remix 任务。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
       tags:
-        - AI 模型 - 视频
+        - 视频系列
       responses:
         '200':
           description: 成功。
@@ -1636,7 +1661,7 @@ paths:
       summary: Playground 聊天调试接口
       description: Playground 聊天调试接口。该接口来自 new-api 当前 router 代码，返回统一管理接口响应；具体 data 结构随业务对象变化。
       tags:
-        - AI 模型 - 聊天
+        - 聊天系列
       responses:
         '200':
           description: 成功。
@@ -2351,6 +2376,56 @@ components:
               revised_prompt:
                 type: string
                 description: 模型改写后的提示词。
+    ImageTaskResponse:
+      type: object
+      description: 图片异步任务状态查询响应。
+      properties:
+        id:
+          type: string
+          description: 图片异步任务 ID。
+          example: task_abc123
+        state:
+          type: string
+          description: 图片任务状态。
+          example: succeeded
+        progress:
+          type: integer
+          description: 任务进度百分比。
+          example: 100
+        create_time:
+          type: integer
+          description: 任务创建时间，Unix 秒级时间戳。
+        update_time:
+          type: integer
+          description: 任务更新时间，Unix 秒级时间戳。
+        action:
+          type: string
+          description: 图片任务动作，例如 generate 或 edit。
+          example: generate
+        data:
+          type: object
+          description: 图片任务结果数据。
+          properties:
+            images:
+              type: array
+              description: 任务生成的图片列表。
+              items:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: 图片访问 URL。
+                  file_name:
+                    type: string
+                    description: 图片文件名。
+                  b64_json:
+                    type: string
+                    description: Base64 编码图片内容。
+        error:
+          type: object
+          description: 任务失败时的错误信息。
+          additionalProperties: true
     ListModelsResponse:
       type: object
       required:
