@@ -39,8 +39,8 @@ describe('modelsell OpenAPI sync', () => {
     }
   });
 
-  it('keeps ModelSell host names in examples and server configuration', () => {
-    expect(openApiText).toContain('url: https://modelsell.com');
+  it('keeps API server configuration proxy-domain friendly', () => {
+    expect(openApiText).toContain('url: /');
     expect(openApiText).not.toContain('https://easyrouter.io');
     expect(openApiText).not.toContain('https://api.modelsell.test');
   });

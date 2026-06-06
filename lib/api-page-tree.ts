@@ -53,12 +53,6 @@ const apiMenuGroups: ApiMenuGroup[] = [
           { title: { zh: '原生格式', en: 'Native Format' }, operationIds: ['generateGeminiContent'] },
         ],
       },
-      {
-        title: { zh: '调试', en: 'Debugging' },
-        items: [
-          { title: { zh: 'Playground 聊天调试', en: 'Playground Chat' }, operationIds: ['post_pg_chat_completions'] },
-        ],
-      },
     ],
   },
   {
@@ -253,6 +247,8 @@ const apiMenuGroups: ApiMenuGroup[] = [
   },
 ];
 
+const hiddenOperationIds = new Set(['post_pg_chat_completions']);
+
 function localizeApiUrl(url: string, locale: Locale) {
   if (locale === 'en') return url;
 
@@ -267,6 +263,10 @@ function operationIdFromUrl(url: string) {
   const lastSegment = url.split('/').filter(Boolean).at(-1);
 
   return lastSegment ? decodeURIComponent(lastSegment) : '';
+}
+
+function isHiddenPage(page: Item) {
+  return hiddenOperationIds.has(operationIdFromUrl(page.url));
 }
 
 function clonePage(page: Item, name: string, locale: Locale): Item {
@@ -391,18 +391,20 @@ export function getLocalizedApiPageTree(tree: Root, locale: Locale): Root {
       children.push({
         type: 'folder',
         name: titleFor(locale, group.title),
+        defaultOpen: true,
         children: sectionFolders,
       });
     }
   }
 
   for (const group of groups) {
-    const remainingPages = group.pages.filter((page) => !usedPages.has(page));
+    const remainingPages = group.pages.filter((page) => !usedPages.has(page) && !isHiddenPage(page));
     if (remainingPages.length === 0) continue;
 
     children.push({
       type: 'folder',
       name: sourceGroupDisplayName(group.name, locale),
+      defaultOpen: true,
       children: remainingPages.map((page) => ({
         ...page,
         url: localizeApiUrl(page.url, locale),

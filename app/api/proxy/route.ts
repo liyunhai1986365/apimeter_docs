@@ -1,7 +1,11 @@
 export const runtime = 'nodejs';
 export const revalidate = false;
 
-const allowedOrigins = new Set(['https://modelsell.com']);
+import {
+  getConfiguredPublicOrigin,
+  getPublicOriginFromHeaders,
+} from '@/lib/public-origin';
+
 const hopByHopHeaders = new Set([
   'accept-encoding',
   'connection',
@@ -39,6 +43,19 @@ export function formatJsonBody(contentType: string | null, body: string) {
   }
 }
 
+export function isAllowedProxyTarget(
+  targetUrl: URL,
+  headers: Headers,
+  requestUrl: string,
+) {
+  const allowedOrigins = new Set([
+    getConfiguredPublicOrigin(),
+    getPublicOriginFromHeaders(headers, requestUrl),
+  ]);
+
+  return allowedOrigins.has(targetUrl.origin);
+}
+
 async function handle(request: Request) {
   const requestUrl = new URL(request.url);
   const rawTarget = requestUrl.searchParams.get('url');
@@ -58,7 +75,7 @@ async function handle(request: Request) {
     });
   }
 
-  if (!allowedOrigins.has(targetUrl.origin)) {
+  if (!isAllowedProxyTarget(targetUrl, request.headers, request.url)) {
     return Response.json(
       `[Proxy] The origin "${targetUrl.origin}" is not allowed.`,
       { status: 400 },

@@ -5,7 +5,7 @@ info:
   description: |
     ModelSell API 参考文档，按账户、聊天、图片、视频等公开能力分类。包含 AI 模型接口和管理接口，每个接口都可在生成的 API Reference 中使用 Playground 调试。
 servers:
-  - url: https://modelsell.com
+  - url: /
 tags:
   - name: 账户管理
     description: API Key 认证、模型列表和账户侧查询接口。

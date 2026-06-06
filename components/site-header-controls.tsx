@@ -15,8 +15,12 @@ const localeLabels: Record<Locale, string> = {
 export function SiteHeaderControls() {
   const pathname = usePathname() ?? '/';
   const currentLocale = getLocaleFromParams(pathname.split('/').filter(Boolean)[0]);
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const { setTheme } = useTheme();
+
+  function toggleTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    setTheme(isDark ? 'light' : 'dark');
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -44,11 +48,12 @@ export function SiteHeaderControls() {
 
       <button
         type="button"
-        aria-label={isDark ? '切换到亮色模式' : '切换到暗色模式'}
+        aria-label="切换主题"
         className="inline-flex size-8 items-center justify-center rounded-md border bg-fd-background text-fd-muted-foreground transition hover:bg-fd-accent hover:text-fd-foreground"
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        onClick={toggleTheme}
       >
-        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        <Sun className="hidden size-4 dark:block" />
+        <Moon className="size-4 dark:hidden" />
       </button>
     </div>
   );

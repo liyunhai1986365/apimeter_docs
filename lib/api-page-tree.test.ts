@@ -21,6 +21,7 @@ describe('getLocalizedApiPageTree', () => {
         page('原生 OpenAI 格式', 'createCompletion'),
         page('Responses 格式', 'createResponse'),
         page('Claude 格式', 'createMessage'),
+        page('Playground 聊天调试', 'post_pg_chat_completions'),
         { type: 'separator', name: '图片系列' },
         page('生成图像', 'createImageGeneration'),
         page('查询图片异步任务', 'getImageAsyncTask'),
@@ -196,6 +197,22 @@ describe('getLocalizedApiPageTree', () => {
         (node) => node.type === 'folder' && node.name === '补全',
       ),
     ).toBe(false);
+    const chatFolder = getLocalizedApiPageTree(tree, 'zh').children.find(
+      (node) => node.type === 'folder' && node.name === '聊天系列',
+    );
+    expect(chatFolder).toMatchObject({
+      type: 'folder',
+      children: expect.not.arrayContaining([
+        expect.objectContaining({
+          type: 'folder',
+          name: '调试',
+        }),
+      ]),
+    });
+    expect(JSON.stringify(getLocalizedApiPageTree(tree, 'zh').children)).not.toContain(
+      'post_pg_chat_completions',
+    );
+    expect(JSON.stringify(getLocalizedApiPageTree(tree, 'zh').children)).not.toContain('Playground 聊天调试');
   });
 
   it('keeps unmapped API pages in their localized source group', () => {
@@ -262,5 +279,46 @@ describe('getLocalizedApiPageTree', () => {
         },
       ],
     });
+  });
+
+  it('keeps top-level API folders open while nested folders start collapsed', () => {
+    const tree: Root = {
+      type: 'root',
+      name: '',
+      children: [
+        { type: 'separator', name: '图片系列' },
+        page('生成图像', 'createImageGeneration'),
+      ],
+    };
+
+    expect(getLocalizedApiPageTree(tree, 'zh')).toMatchObject({
+      children: [
+        {
+          type: 'folder',
+          name: '图片系列',
+          defaultOpen: true,
+          children: [
+            {
+              type: 'folder',
+              name: 'OpenAI Images',
+              children: [
+                {
+                  type: 'page',
+                  name: '图像生成',
+                  url: '/zh/docs/api-reference/createImageGeneration',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const imageFolder = getLocalizedApiPageTree(tree, 'zh').children[0];
+    expect(imageFolder).not.toHaveProperty('collapsible', false);
+    if (imageFolder.type === 'folder') {
+      expect(imageFolder.children[0]).not.toHaveProperty('collapsible', false);
+      expect(imageFolder.children[0]).not.toHaveProperty('defaultOpen', true);
+    }
   });
 });
