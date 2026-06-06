@@ -6,11 +6,8 @@ import { defaultLocale } from '@/lib/i18n';
 import './global.css';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'ModelSell Docs',
-    template: '%s | ModelSell Docs',
-  },
-  description: 'Developer documentation and API playground for ModelSell.',
+  title: 'Developer Docs',
+  description: 'Developer documentation and API playground.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

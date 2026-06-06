@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { openapi } from '@/lib/openapi';
 
 const proxyRoutePath = resolve(process.cwd(), 'app/api/proxy/route.ts');
+const docsProxyRoutePath = resolve(process.cwd(), 'app/docs/api/proxy/route.ts');
 const openApiText = readFileSync(
   resolve(process.cwd(), 'content/openapi/modelsell.yaml'),
   'utf8',
@@ -47,6 +49,11 @@ describe('modelsell OpenAPI sync', () => {
 
   it('keeps the API playground proxy route available', () => {
     expect(existsSync(proxyRoutePath)).toBe(true);
+  });
+
+  it('uses a docs-scoped API playground proxy path', () => {
+    expect(existsSync(docsProxyRoutePath)).toBe(true);
+    expect(openapi.options.proxyUrl).toBe('/docs/api/proxy');
   });
 
   it('uses the Chinese API document categories for generated reference groups', () => {

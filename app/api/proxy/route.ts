@@ -56,7 +56,7 @@ export function isAllowedProxyTarget(
   return allowedOrigins.has(targetUrl.origin);
 }
 
-async function handle(request: Request) {
+export async function handle(request: Request) {
   const requestUrl = new URL(request.url);
   const rawTarget = requestUrl.searchParams.get('url');
 

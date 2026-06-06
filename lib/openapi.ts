@@ -3,5 +3,5 @@ import path from 'node:path';
 
 export const openapi = createOpenAPI({
   input: [path.resolve('./content/openapi/modelsell.yaml')],
-  proxyUrl: '/api/proxy',
+  proxyUrl: '/docs/api/proxy',
 });

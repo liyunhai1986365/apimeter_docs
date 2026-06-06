@@ -5,21 +5,22 @@ import { SiteHeader } from '@/components/site-header';
 import { getCombinedPageTree } from '@/lib/combined-page-tree';
 import { baseOptions } from '@/lib/layout.shared';
 import { defaultLocale } from '@/lib/i18n';
-import { getPublicOriginFromHeaders } from '@/lib/public-origin';
+import { getDocsBrandFromHeaders } from '@/lib/docs-brand';
+import { brandPageTree } from '@/lib/page-tree-brand';
 
 export default async function Layout({ children }: { children: ReactNode }) {
   const requestHeaders = await headers();
-  const publicOrigin = getPublicOriginFromHeaders(
+  const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
     `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
   );
 
   return (
     <>
-      <SiteHeader publicOrigin={publicOrigin} />
+      <SiteHeader publicOrigin={brand.publicOrigin} />
       <DocsLayout
-        {...baseOptions(defaultLocale)}
-        tree={getCombinedPageTree(defaultLocale)}
+        {...baseOptions(defaultLocale, brand)}
+        tree={brandPageTree(getCombinedPageTree(defaultLocale), brand)}
       >
         {children}
       </DocsLayout>
