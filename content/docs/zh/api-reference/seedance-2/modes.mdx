@@ -1,0 +1,211 @@
+---
+title: 生成模式示例
+description: Seedance 2.0 七种官方 content 组合模式示例。
+---
+
+Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和音频输入。图片素材的 `role` 使用 `reference_image`，视频素材使用 `reference_video`，音频素材使用 `reference_audio`。
+
+## 文生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "一只金色柴犬在樱花树下奔跑，镜头缓缓上升"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+## 图生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "让画面中的人物缓缓转身微笑"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/photo.jpg"
+      },
+      "role": "reference_image"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+## 视频生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "让视频中的人物变成卡通风格"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 音画协同
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "让人物根据音频内容说话"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+## 多重引用
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "按照图片的风格，修改这个视频"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+## 动态音效
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "根据音频内容为视频添加匹配的音效"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+## 全模态生成
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```

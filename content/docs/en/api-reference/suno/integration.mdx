@@ -1,0 +1,148 @@
+---
+title: Integration Guide
+description: "Suno submits music or lyric tasks first, then uses polling or webhooks to retrieve songs, lyrics, WAV files, and timing data."
+---
+
+Suno uses an asynchronous task model. The music generation endpoint only submits a task; it does not return the final audio synchronously. Store the returned task ID, then call `/suno/fetch/{task_id}` or receive completion through `callback_url`.
+
+| Scenario | Endpoint | Notes |
+| --- | --- | --- |
+| Generate music | `POST /suno/submit/music` | Supports inspiration mode, custom lyrics, instrumental generation, continuation, and stem separation |
+| Generate lyrics | `POST /suno/submit/lyrics` | Creates a lyric-generation task from a prompt |
+| Fetch one task | `GET /suno/fetch/{task_id}` | Reads status, progress, songs, lyrics, and metadata |
+| Batch fetch tasks | `POST /suno/fetch` | Refreshes multiple task IDs |
+| Fetch song feed | `GET /suno/feed/{clip_id}` | Fetches song details by clip ID |
+| Get WAV | `GET /suno/act/wav/{clip_id}` | Returns a WAV file URL |
+| Get timing | `GET /suno/act/timing/{clip_id}` | Returns lyric and audio timing data |
+
+## Base Paths
+
+Default Suno-style endpoints:
+
+```text
+https://{BASE_URL}/suno/submit/music
+https://{BASE_URL}/suno/fetch
+```
+
+Compatible prefixes:
+
+| Format | Prefix |
+| --- | --- |
+| GoAmz | `{{BaseURL}}/suno/v1` |
+| GoAmz v3.5 | `{{BaseURL}}/suno/v1/mv-3.5` |
+| SunoAPI | `{{BaseURL}}/suno` |
+
+## Generate Music
+
+`custom_mode` selects the generation mode. The default `0` is inspiration mode; `1` is custom lyrics mode. In inspiration mode `prompt` can be up to 200 characters; in custom mode it can be up to 3000 characters and is suitable for full lyrics.
+
+```bash
+curl --location 'https://api.modelsell.com/suno/submit/music' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "callback_url": "https://example.com/webhooks/suno",
+    "custom_mode": 1,
+    "make_instrumental": 0,
+    "prompt": "[Verse]\nWind moves without a sound\nShadows drift like a dream\n\n[Chorus]\nThe long season keeps its memory",
+    "mv": "chirp-v4",
+    "title": "Long Season",
+    "tags": "Trance, bass drop, female vocal",
+    "negative_tags": "dance pop"
+  }'
+```
+
+The response can contain either one task ID or an array of task objects. Persist all returned task IDs and keep polling:
+
+```json
+{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {
+      "task_id": "f9761a3e-b396-4060-a35b-a26bbce7ba9b",
+      "status": 1,
+      "title": "",
+      "prompt": "美女"
+    }
+  ],
+  "exec_time": 0.659346
+}
+```
+
+## Models And Key Fields
+
+| Field | Notes |
+| --- | --- |
+| `mv` | Model version. Supported values include `chirp-v4`, `chirp-v3-5`, `chirp-bluejay`, `chirp-auk`, and `chirp-fenix`; `chirp-fenix` maps to Suno 5.5 / latest |
+| `custom_mode` | `0` for inspiration mode, `1` for custom lyrics mode |
+| `make_instrumental` | Pass `1` to generate instrumental music |
+| `prompt` | Up to 200 characters in inspiration mode, up to 3000 in custom mode; famous artist names may fail to generate |
+| `tags` | Style tags, up to 120 characters |
+| `negative_tags` | Styles or elements to exclude |
+| `callback_url` | Webhook URL. Completed results are sent with POST |
+| `continue_clip_id` | Previous official clip_id for continuation or stem separation; an existing task_id may also be accepted |
+| `continue_at` | Continuation timestamp in seconds |
+| `metadata.control_sliders` | Advanced controls such as `style_weight`, `weirdness_constraint`, and `audio_weight` |
+
+## Poll Tasks And Read Results
+
+The task response contains status and result data. On success, read `data[].audio_url` for MP3, `data[].image_url` for cover art, and `data[].metadata` for style and prompt information.
+
+```bash
+curl --location 'https://api.modelsell.com/suno/fetch/f9761a3e-b396-4060-a35b-a26bbce7ba9b' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```python
+import os
+import time
+import requests
+
+base_url = "https://api.modelsell.com"
+headers = {"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"}
+task_id = "f9761a3e-b396-4060-a35b-a26bbce7ba9b"
+
+while True:
+    resp = requests.get(f"{base_url}/suno/fetch/{task_id}", headers=headers, timeout=30)
+    resp.raise_for_status()
+    payload = resp.json()
+    task = payload.get("data", payload)
+
+    if task.get("status") == "SUCCESS":
+        for song in task.get("data", []):
+            print(song.get("title"), song.get("audio_url"))
+        break
+
+    if task.get("status") == "FAILURE":
+        raise RuntimeError(task.get("fail_reason") or "Suno task failed")
+
+    time.sleep(5)
+```
+
+## Lyrics, WAV, And Timing
+
+Generate lyrics first when you want to review or edit lyrics before sending them to music generation:
+
+```bash
+curl --location 'https://api.modelsell.com/suno/submit/lyrics' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"prompt":"dance"}'
+```
+
+After a music task succeeds, use the song clip ID to request WAV or timing data:
+
+```bash
+curl --location 'https://api.modelsell.com/suno/act/wav/90f72668-ba0d-4fa7-95e6-f71bebda88b7' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```bash
+curl --location 'https://api.modelsell.com/suno/act/timing/90f72668-ba0d-4fa7-95e6-f71bebda88b7' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+## Integration Tips
+
+Persist `task_id`, song `clip_id`, submit payload, status, audio URL, cover URL, and failure reason on your backend. Treat submitted, generating, succeeded, and failed as separate frontend states. For reliable delivery, poll or receive webhooks on the backend first, save results, then push updates to the frontend.

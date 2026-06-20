@@ -1,0 +1,181 @@
+---
+title: 通用视频格式调用
+description: 使用 /v1/video/generations 调用 Seedance 2.0，并由 ModelSell 转换为官方 content 格式。
+---
+
+`/v1/video/generations` 是 ModelSell 的通用视频任务接口。使用 Seedance 2.0 模型时，可以用 `prompt`、`image`、`images`、`metadata.video_url` 和 `metadata.audio_url` 表达官方 `content[]` 中的文本、图片、视频和音频素材；系统会转为 Seedance 2.0 官方 `/api/v3/contents/generations/tasks` 格式提交。
+
+## 接口
+
+| 操作 | Endpoint |
+| --- | --- |
+| 创建任务 | `POST /v1/video/generations` |
+| 查询任务 | `GET /v1/video/generations/{task_id}` |
+| 上传素材 | `POST /api/assets/upload` |
+
+## 字段映射
+
+| 通用字段 | Seedance 2.0 官方字段 |
+| --- | --- |
+| `prompt` | `content[]` 中 `type: "text"` |
+| `image` 或 `images[]` | `content[]` 中 `type: "image_url"`，`role: "reference_image"` |
+| `metadata.video_url` | `content[]` 中 `type: "video_url"`，`role: "reference_video"` |
+| `metadata.audio_url` | `content[]` 中 `type: "audio_url"`，`role: "reference_audio"` |
+| `size` | `resolution`，例如 `480p`、`720p`、`1080p` |
+| `duration` 或 `seconds` | `duration`，单位秒，支持 4 到 15 秒 |
+| `metadata.ratio` | `ratio`，例如 `16:9`、`9:16`、`3:4`、`1:1`、`4:3` |
+| `metadata.generate_audio` | `generate_audio` |
+| `metadata.watermark` | `watermark` |
+
+## 七种通用调用模式
+
+### 文生视频
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "一只金色柴犬在樱花树下奔跑，镜头缓缓上升",
+    "duration": 5,
+    "size": "480p",
+    "metadata": {
+      "ratio": "16:9",
+      "generate_audio": true,
+      "watermark": false
+    }
+  }'
+```
+
+### 图生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "prompt": "让画面中的人物缓缓转身微笑",
+  "image": "https://example.com/photo.jpg",
+  "duration": 5,
+  "size": "720p",
+  "metadata": {
+    "ratio": "16:9",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+### 视频生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "让视频中的人物变成卡通风格",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+### 音画协同
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "让人物根据音频内容说话",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "watermark": false
+  }
+}
+```
+
+### 多重引用
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "按照图片的风格，修改这个视频",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "watermark": false
+  }
+}
+```
+
+### 动态音效
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "根据音频内容为视频添加匹配的音效",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "watermark": false
+  }
+}
+```
+
+### 全模态生成
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "prompt": "使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "720p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+## 查询任务
+
+创建任务成功后保存返回的 `id` 或 `task_id`，按固定间隔轮询：
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/video/generations/task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+生成成功时，通用响应会返回任务状态和视频 URL：
+
+```json
+{
+  "id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
+  "task_id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
+  "object": "video.generation",
+  "status": "succeeded",
+  "model": "doubao-seedance-2-0-260128",
+  "metadata": {
+    "url": "https://example.com/doubao-seedance-2-0/result.mp4"
+  }
+}
+```
+
+视频生成是异步任务，建议每 10 秒轮询一次。参考视频必须是公网可访问 URL，不支持 Base64；图片支持公网 URL，较小图片也可使用 Base64 Data URL。
+
+如果参考图片、视频或音频需要重复使用，先通过 `/api/assets/upload` 上传素材，再把返回的 `asset://<asset_id>` 放入 `image`、`metadata.video_url` 或 `metadata.audio_url`。

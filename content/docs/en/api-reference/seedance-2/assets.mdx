@@ -1,0 +1,135 @@
+---
+title: Asset Upload and Management
+description: Upload image, video, and audio assets with /api/assets/upload, then reference them in Seedance 2.0 tasks with asset:// URLs.
+---
+
+Seedance 2.0 image, video, and audio references can be uploaded to the asset library first, then reused in video generation requests with `asset://<asset_id>`. Asset APIs use the same user API key authentication as the rest of the API.
+
+## Endpoints
+
+| Operation | Endpoint |
+| --- | --- |
+| Upload asset | `POST /api/assets/upload` |
+| List assets | `GET /api/assets` |
+| Get asset | `GET /api/assets/{id}` |
+| Delete asset | `DELETE /api/assets/{id}` |
+
+## Upload Rules
+
+Asset upload accepts URLs only. Base64 input is not supported for this endpoint.
+
+| Type | Formats | Limits |
+| --- | --- | --- |
+| `Image` | jpeg, png, webp, bmp, tiff, gif, heic, heif | Aspect ratio 0.4 to 2.5; width or height 300 to 6000 px; under 30MB |
+| `Video` | mp4, mov | 480p or 720p; 2 to 15 seconds; aspect ratio 0.4 to 2.5; width or height 300 to 6000 px; up to 50MB; 24 to 60 FPS |
+| `Audio` | wav, mp3 | 2 to 15 seconds; up to 15MB |
+
+## Upload an Asset
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/api/assets/upload" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/image.png",
+    "asset_type": "Image",
+    "name": "Example image"
+  }'
+```
+
+Save `data.Id` from the response:
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "Id": "asset-20260325152211-vcchd"
+  }
+}
+```
+
+## List Assets
+
+```bash
+curl "$MODELSELL_BASE_URL/api/assets?page=1&page_size=20&statuses=Active&statuses=Processing" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+Common query parameters:
+
+| Parameter | Description |
+| --- | --- |
+| `page` | Page number, default `1` |
+| `page_size` | Page size, default `10` |
+| `name` | Fuzzy search by asset name |
+| `statuses` | Asset status. Repeat the parameter for multiple values, for example `statuses=Active&statuses=Processing` |
+| `sort_by` | Sort field, default `UpdateTime` |
+| `sort_order` | Sort direction: `Asc` or `Desc`, default `Desc` |
+
+Status values:
+
+| Status | Description |
+| --- | --- |
+| `Active` | Asset uploaded successfully and can be used |
+| `Processing` | Asset is still being processed |
+| `Failed` | Asset upload failed |
+
+## Get and Delete
+
+```bash
+curl "$MODELSELL_BASE_URL/api/assets/asset-20260325152211-vcchd" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+```bash
+curl -X DELETE "$MODELSELL_BASE_URL/api/assets/asset-20260325152211-vcchd" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+When the detail response has `Status: "Active"`, the asset can be used in generation requests.
+
+## Use Assets in Video Generation
+
+Official Seedance 2.0 `content[]` format:
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Make the character dance"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "asset://asset-20260325152211-vcchd"
+      },
+      "role": "reference_image"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+Generic `/v1/video/generations` format:
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "Make the character dance",
+  "image": "asset://asset-20260325152211-vcchd",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "watermark": false
+  }
+}
+```
+
+Video and audio assets use the same `asset://<asset_id>` format in `metadata.video_url` and `metadata.audio_url`.

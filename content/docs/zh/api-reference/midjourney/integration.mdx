@@ -1,0 +1,125 @@
+---
+title: 对接说明
+description: Midjourney 通过提交任务、轮询任务、再提交动作的方式完成绘图、编辑、放大、变体和局部重绘。
+---
+
+Midjourney 接口是异步任务模型：先提交任务，拿到 `result` 里的任务 ID，再用查询接口读取进度、图片结果和可用按钮。需要回调时传 `notifyHook`，不需要回调时客户端按固定间隔轮询即可。
+
+| 步骤 | 接口 | 说明 |
+| --- | --- | --- |
+| 提交绘图 | `POST /mj/submit/imagine` | 文生图入口，`prompt` 可携带 `--v`、`--ar`、`--fast` 等 Midjourney 参数 |
+| 快速/休闲绘图 | `mj-fast/mj/submit/imagine`、`mj-relax/mj/submit/imagine` | 兼容快速和休闲专用前缀 |
+| 查询任务 | `GET /mj/task/{task_id}/fetch` | 读取状态、进度、图片 URL、视频 URL、按钮和失败原因 |
+| 批量查询 | `POST /mj/task/list-by-condition` | 一次刷新多个任务状态 |
+| 提交动作 | `POST /mj/submit/action` | 使用查询结果中的 `customId` 提交 U/V/Reroll、Zoom、Inpaint 等动作 |
+| 局部重绘 | `POST /mj/submit/modal` | 通常先用 Inpaint 动作拿到可重绘任务，再提交 `maskBase64` |
+
+## 提交绘图
+
+最小请求只需要 `prompt`。建议同时保留 `state`，用于把业务订单 ID、用户 ID 或前端会话 ID 透传到回调和任务记录中。
+
+```bash
+curl --location 'https://api.modelsell.com/mj/submit/imagine' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "state": "order_10086",
+    "notifyHook": "https://example.com/webhooks/mj",
+    "botType": "MID_JOURNEY",
+    "prompt": "a cinematic city skyline at sunrise --v 6.1 --ar 16:9",
+    "base64Array": [],
+    "accountFilter": {}
+  }'
+```
+
+成功响应中的 `result` 是后续查询和动作提交使用的任务 ID：
+
+```json
+{
+  "code": 1,
+  "description": "提交成功",
+  "result": "1754413313273733",
+  "properties": {
+    "discordInstanceId": "44d5a7937f2a4144",
+    "discordChannelId": "44d5a7937f2a4144"
+  }
+}
+```
+
+## 查询结果
+
+任务不是同步完成的。推荐每 3 到 5 秒查询一次，直到 `status` 进入 `SUCCESS` 或 `FAILURE`。成功后读取 `imageUrl`；如果返回 `buttons`，按钮里的 `customId` 可以继续用于放大、变体或重绘。
+
+```bash
+curl --location 'https://api.modelsell.com/mj/task/1754413313273733/fetch' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```python
+import os
+import time
+import requests
+
+base_url = "https://api.modelsell.com"
+headers = {"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"}
+task_id = "1754413313273733"
+
+while True:
+    resp = requests.get(f"{base_url}/mj/task/{task_id}/fetch", headers=headers, timeout=30)
+    resp.raise_for_status()
+    task = resp.json()
+
+    if task.get("status") == "SUCCESS":
+        print("image:", task.get("imageUrl"))
+        break
+
+    if task.get("status") == "FAILURE":
+        raise RuntimeError(task.get("failReason") or task.get("description") or "Midjourney task failed")
+
+    time.sleep(4)
+```
+
+## 放大、变体和重绘
+
+查询任务返回的按钮数据里会包含动作 `customId`。常见动作包括 U 放大、V 变体、Reroll 重新生成、Zoom 和 Inpaint。提交动作时同时传入 `taskId` 和按钮的 `customId`：
+
+```bash
+curl --location 'https://api.modelsell.com/mj/submit/action' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "state": "order_10086_upscale_1",
+    "notifyHook": "https://example.com/webhooks/mj",
+    "taskId": "1754413313273733",
+    "customId": "MJ::JOB::upsample::1::68923902a083468cc96dd7eb"
+  }'
+```
+
+局部重绘通常分两步：先提交 Inpaint 按钮动作，再把新的提示词和 `maskBase64` 发送到 `/mj/submit/modal`。
+
+```json
+{
+  "state": "order_10086_inpaint",
+  "notifyHook": "https://example.com/webhooks/mj",
+  "taskId": "1754413925342220",
+  "prompt": "replace the sky with dramatic golden clouds",
+  "maskBase64": "data:image/png;base64,BASE64_MASK_IMAGE"
+}
+```
+
+## 参数速查
+
+| 字段 | 用途 |
+| --- | --- |
+| `prompt` | Midjourney 提示词，可附带 `--v 6.1`、`--ar 1:1`、`--fast`、`--relax` 等参数 |
+| `base64Array` | 垫图或参考图的 Base64 Data URL 数组 |
+| `botType` | 机器人类型，常用 `MID_JOURNEY` |
+| `state` | 自定义状态，会随任务和回调透传 |
+| `notifyHook` | 任务完成后的 Webhook 回调地址 |
+| `accountFilter` | 上游账号过滤条件，通常留空 |
+| `customId` | 查询结果里按钮返回的动作 ID，用于 U/V/Reroll 等后续动作 |
+| `maskBase64` | 局部重绘遮罩图的 Base64 Data URL |
+
+## 对接建议
+
+服务端应保存 `task_id`、业务订单 ID、提交参数和当前状态。前端不要依赖提交接口立即返回图片，应展示排队/生成中状态，并通过轮询或 Webhook 更新结果。对于失败任务，优先展示 `failReason` 或 `description`，并允许用户调整提示词后重新提交。

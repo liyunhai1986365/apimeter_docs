@@ -1,14 +1,16 @@
 import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { apiSource } from '@/lib/api-source';
-import { getApiReferencePage } from '@/lib/api-reference-page';
+import { getApiReferenceMdxPage, getApiReferencePage } from '@/lib/api-reference-page';
 import { APIPage } from '@/lib/api-page';
 import { openapi } from '@/lib/openapi';
 import { getDocsBrandFromHeaders, brandText } from '@/lib/docs-brand';
 import { brandOpenAPIDocument } from '@/lib/openapi-brand';
+import { defaultLocale } from '@/lib/i18n';
+import { ApiReferenceMdxPage } from '@/lib/api-reference-mdx-page';
+import { apiReferenceMdxSlugs } from '@/lib/api-reference-mdx-pages';
 import {
   DocsBody,
-  DocsDescription,
   DocsPage,
   DocsTitle,
 } from 'fumadocs-ui/page';
@@ -30,6 +32,13 @@ export default async function Page(props: {
   }
 
   const page = getApiReferencePage(params.slug);
+  const mdxPage = getApiReferenceMdxPage(params.slug, defaultLocale);
+
+  if (!page && !mdxPage) notFound();
+
+  if (mdxPage) {
+    return <ApiReferenceMdxPage page={mdxPage} brand={brand} />;
+  }
 
   if (!page) notFound();
   const schema = await openapi.getSchema(page.data.getAPIPageProps().document);
@@ -45,7 +54,6 @@ export default async function Page(props: {
   return (
     <DocsPage toc={page.data.toc} full>
       <DocsTitle>{brandText(page.data.title ?? '', brand)}</DocsTitle>
-      <DocsDescription>{brandText(page.data.description ?? '', brand)}</DocsDescription>
       <DocsBody>
         <APIPage {...apiPageProps} />
       </DocsBody>
@@ -54,7 +62,15 @@ export default async function Page(props: {
 }
 
 export function generateStaticParams() {
-  return apiSource.generateParams();
+  const apiParams = apiSource.generateParams().map((param) => ({
+    slug: param.slug,
+  }));
+
+  return apiParams.concat(
+    apiReferenceMdxSlugs.map((slug) => ({
+      slug: [...slug],
+    })),
+  );
 }
 
 export async function generateMetadata(props: {
@@ -62,14 +78,23 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const page = getApiReferencePage(params.slug);
+  const mdxPage = getApiReferenceMdxPage(params.slug, defaultLocale);
 
-  if (!page) notFound();
+  if (!page && !mdxPage) notFound();
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
     `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs/api-reference`,
   );
 
+  if (mdxPage) {
+    return {
+      title: brandText(mdxPage.data.title, brand),
+      description: brandText(mdxPage.data.description ?? '', brand),
+    };
+  }
+
+  if (!page) notFound();
   return {
     title: brandText(page.data.title ?? '', brand),
     description: brandText(page.data.description ?? '', brand),

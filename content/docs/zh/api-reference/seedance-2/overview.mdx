@@ -1,0 +1,68 @@
+---
+title: 接口概览与格式选择
+description: Seedance 2.0 支持官方 content 格式，也支持 ModelSell 通用视频格式。
+---
+
+Seedance 2.0 通过异步任务生成视频：先创建任务，再按任务 ID 轮询状态，成功后从 `content.video_url` 获取结果视频。
+
+| 项目 | 说明 |
+| --- | --- |
+| 官方格式创建任务 | `POST /api/v3/contents/generations/tasks` |
+| 官方格式查询任务 | `GET /api/v3/contents/generations/tasks/{task_id}` |
+| 通用视频创建任务 | `POST /v1/video/generations` 或 `POST /v1/videos` |
+| 通用视频查询任务 | `GET /v1/video/generations/{task_id}` 或 `GET /v1/videos/{task_id}` |
+| 素材上传 | `POST /api/assets/upload` |
+| 素材查询 | `GET /api/assets`、`GET /api/assets/{id}` |
+| 支持模型 | `doubao-seedance-2-0-260128`、`doubao-seedance-2-0-fast-260128` |
+
+## 两种请求格式
+
+官方格式适合需要精确控制 `content[]` 中图片、视频、音频素材角色的场景：
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "一只金色柴犬在樱花树下奔跑，镜头缓缓上升"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+通用视频格式适合已经接入 `/v1/video/generations` 或 `/v1/videos` 的业务，使用 `prompt`、`image`、`metadata.video_url`、`metadata.audio_url` 表达同样的输入：
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "prompt": "让画面中的人物缓缓转身微笑",
+  "image": "https://example.com/photo.jpg",
+  "duration": 5,
+  "size": "720p",
+  "metadata": {
+    "ratio": "16:9",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+## 参数速查
+
+| 字段 | 说明 |
+| --- | --- |
+| `resolution` / `size` | `480p`、`720p`、`1080p` |
+| `ratio` | `16:9`、`9:16`、`3:4`、`1:1`、`4:3` |
+| `duration` | 4 到 15 秒，默认 5 秒 |
+| `generate_audio` | 是否生成与画面同步的声音，默认 `true` |
+| `watermark` | 是否添加水印，默认 `false` |
+
+图片可以使用公网 URL；小于 2MB 的图片可使用 Base64 Data URL。视频素材必须使用公网可访问 URL，不支持 Base64。
+
+需要复用图片、视频或音频素材时，可以先调用 `/api/assets/upload` 上传 URL 素材，等素材状态为 `Active` 后，在官方格式或通用视频格式中使用 `asset://<asset_id>` 引用。

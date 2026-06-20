@@ -6,7 +6,12 @@ type ApiMenuItem = {
     zh: string;
     en: string;
   };
-  operationIds: string[];
+  operationIds?: string[];
+  visibleWhenOperationIds?: string[];
+  pages?: Array<{
+    title: LocalizedTitle;
+    href: string;
+  }>;
   pageTitles?: Record<string, LocalizedTitle>;
 };
 
@@ -36,9 +41,7 @@ const apiMenuGroups: ApiMenuGroup[] = [
         title: { zh: 'OpenAI 兼容', en: 'OpenAI Compatible' },
         items: [
           { title: { zh: 'Chat Completions', en: 'Chat Completions' }, operationIds: ['createChatCompletion'] },
-          { title: { zh: 'Completions', en: 'Completions' }, operationIds: ['createCompletion'] },
           { title: { zh: 'Responses', en: 'Responses' }, operationIds: ['createResponse'] },
-          { title: { zh: 'Responses Compact', en: 'Responses Compact' }, operationIds: ['compactResponse'] },
         ],
       },
       {
@@ -72,6 +75,32 @@ const apiMenuGroups: ApiMenuGroup[] = [
           { title: { zh: '原生图像', en: 'Native Images' }, operationIds: ['generateGeminiImageContent'] },
         ],
       },
+      {
+        title: { zh: 'Midjourney', en: 'Midjourney' },
+        items: [
+          {
+            title: { zh: '对接说明', en: 'Integration Guide' },
+            visibleWhenOperationIds: ['createMidjourneyImagine'],
+            pages: [
+              {
+                title: { zh: '对接说明', en: 'Integration Guide' },
+                href: '/docs/api-reference/midjourney/integration',
+              },
+            ],
+          },
+          { title: { zh: '提交绘图', en: 'Submit Imagine' }, operationIds: ['createMidjourneyImagine'] },
+          { title: { zh: '图片编辑', en: 'Image Editing' }, operationIds: ['editMidjourneyImage'] },
+          { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createMidjourneyVideo'] },
+          { title: { zh: '查询任务', en: 'Task Status' }, operationIds: ['getMidjourneyTask'] },
+          {
+            title: { zh: '批量查询任务', en: 'Batch Task Status' },
+            operationIds: ['listMidjourneyTasksByCondition'],
+          },
+          { title: { zh: '换脸任务', en: 'Face Swap' }, operationIds: ['createMidjourneyFaceSwap'] },
+          { title: { zh: '提交动作', en: 'Submit Action' }, operationIds: ['submitMidjourneyAction'] },
+          { title: { zh: '局部重绘', en: 'Inpainting Modal' }, operationIds: ['submitMidjourneyModal'] },
+        ],
+      },
     ],
   },
   {
@@ -89,8 +118,100 @@ const apiMenuGroups: ApiMenuGroup[] = [
       {
         title: { zh: '通用视频', en: 'Generic Video' },
         items: [
+          {
+            title: { zh: 'Seedance 2.0 通用调用', en: 'Seedance 2.0 Generic Format' },
+            visibleWhenOperationIds: ['createVideoGeneration'],
+            pages: [
+              {
+                title: { zh: 'Seedance 2.0 通用调用', en: 'Seedance 2.0 Generic Format' },
+                href: '/docs/api-reference/seedance-2/generic-video',
+              },
+            ],
+          },
+          {
+            title: { zh: 'Seedance 2.0 素材上传', en: 'Seedance 2.0 Assets' },
+            visibleWhenOperationIds: ['uploadSeedanceAsset'],
+            pages: [
+              {
+                title: { zh: 'Seedance 2.0 素材上传', en: 'Seedance 2.0 Assets' },
+                href: '/docs/api-reference/seedance-2/assets',
+              },
+            ],
+          },
           { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createVideoGeneration'] },
           { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getVideoGeneration'] },
+        ],
+      },
+      {
+        title: { zh: 'Seedance 2.0', en: 'Seedance 2.0' },
+        items: [
+          {
+            title: { zh: '接口概览与格式选择', en: 'Overview and Formats' },
+            visibleWhenOperationIds: ['createSeedance2VideoTask'],
+            pages: [
+              {
+                title: { zh: '接口概览与格式选择', en: 'Overview and Formats' },
+                href: '/docs/api-reference/seedance-2/overview',
+              },
+            ],
+          },
+          {
+            title: { zh: '素材上传与管理', en: 'Asset Upload and Management' },
+            visibleWhenOperationIds: ['uploadSeedanceAsset'],
+            pages: [
+              {
+                title: { zh: '素材上传与管理', en: 'Asset Upload and Management' },
+                href: '/docs/api-reference/seedance-2/assets',
+              },
+            ],
+          },
+          {
+            title: { zh: '通用视频格式调用', en: 'Generic Video Format' },
+            visibleWhenOperationIds: ['createVideoGeneration'],
+            pages: [
+              {
+                title: { zh: '通用视频格式调用', en: 'Generic Video Format' },
+                href: '/docs/api-reference/seedance-2/generic-video',
+              },
+            ],
+          },
+          {
+            title: { zh: '生成模式示例', en: 'Generation Mode Examples' },
+            visibleWhenOperationIds: ['createSeedance2VideoTask'],
+            pages: [
+              {
+                title: { zh: '生成模式示例', en: 'Generation Mode Examples' },
+                href: '/docs/api-reference/seedance-2/modes',
+              },
+            ],
+          },
+          {
+            title: { zh: 'Python 轮询与下载', en: 'Python Polling and Download' },
+            visibleWhenOperationIds: ['getSeedance2VideoTask'],
+            pages: [
+              {
+                title: { zh: 'Python 轮询与下载', en: 'Python Polling and Download' },
+                href: '/docs/api-reference/seedance-2/python-polling',
+              },
+            ],
+          },
+          { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createSeedance2VideoTask'] },
+          { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getSeedance2VideoTask'] },
+          {
+            title: { zh: '素材管理', en: 'Assets' },
+            operationIds: [
+              'uploadSeedanceAsset',
+              'listSeedanceAssets',
+              'getSeedanceAsset',
+              'deleteSeedanceAsset',
+            ],
+            pageTitles: {
+              uploadSeedanceAsset: { zh: '上传素材', en: 'Upload Asset' },
+              listSeedanceAssets: { zh: '查询素材列表', en: 'List Assets' },
+              getSeedanceAsset: { zh: '查询素材详情', en: 'Get Asset' },
+              deleteSeedanceAsset: { zh: '删除素材', en: 'Delete Asset' },
+            },
+          },
         ],
       },
       {
@@ -119,6 +240,28 @@ const apiMenuGroups: ApiMenuGroup[] = [
           { title: { zh: '音频转录', en: 'Audio Transcription' }, operationIds: ['createTranscription'] },
           { title: { zh: '音频翻译', en: 'Audio Translation' }, operationIds: ['createTranslation'] },
           { title: { zh: '文本转语音', en: 'Text to Speech' }, operationIds: ['createSpeech'] },
+        ],
+      },
+      {
+        title: { zh: 'Suno', en: 'Suno' },
+        items: [
+          {
+            title: { zh: '对接说明', en: 'Integration Guide' },
+            visibleWhenOperationIds: ['createSunoMusic'],
+            pages: [
+              {
+                title: { zh: '对接说明', en: 'Integration Guide' },
+                href: '/docs/api-reference/suno/integration',
+              },
+            ],
+          },
+          { title: { zh: '生成音乐', en: 'Generate Music' }, operationIds: ['createSunoMusic'] },
+          { title: { zh: '生成歌词', en: 'Generate Lyrics' }, operationIds: ['createSunoLyrics'] },
+          { title: { zh: '查询音乐任务', en: 'Music Task Status' }, operationIds: ['getSunoTask'] },
+          { title: { zh: '批量查询任务', en: 'Batch Task Status' }, operationIds: ['listSunoTasks'] },
+          { title: { zh: '批量查询歌曲', en: 'Batch Song Feed' }, operationIds: ['getSunoFeed'] },
+          { title: { zh: '获取 WAV', en: 'Get WAV' }, operationIds: ['getSunoWav'] },
+          { title: { zh: '歌词时间线', en: 'Lyric Timing' }, operationIds: ['getSunoTiming'] },
         ],
       },
       {
@@ -360,12 +503,26 @@ export function getLocalizedApiPageTree(tree: Root, locale: Locale): Root {
       const sectionChildren: Item[] = [];
 
       for (const item of section.items) {
-        const itemPages = item.operationIds
+        const itemPages = (item.operationIds ?? [])
           .map((operationId) => {
             const page = pageByOperationId.get(operationId);
             return page ? { operationId, page } : undefined;
           })
           .filter((entry): entry is { operationId: string; page: Item } => Boolean(entry));
+
+        const pageItemsVisible =
+          item.visibleWhenOperationIds?.some((operationId) => pageByOperationId.has(operationId)) ??
+          itemPages.length > 0;
+
+        if (pageItemsVisible) {
+          for (const page of item.pages ?? []) {
+            sectionChildren.push({
+              type: 'page',
+              name: titleFor(locale, page.title),
+              url: localizeApiUrl(page.href, locale),
+            });
+          }
+        }
 
         itemPages.forEach(({ page }) => usedPages.add(page));
 

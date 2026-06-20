@@ -18,7 +18,7 @@ tags:
   - name: 视频系列
     description: OpenAI 兼容视频、通用视频、Kling、即梦等视频生成、任务查询和内容下载接口。
   - name: AI 模型 - 音频
-    description: OpenAI Audio 兼容的音频转录、音频翻译和文本转语音接口。
+    description: OpenAI Audio 兼容的音频转录、音频翻译、文本转语音，以及 Suno 音乐生成、歌词生成、任务查询和音频素材接口。
   - name: AI 模型 - 重排序
     description: Rerank 文档重排序接口。
   - name: AI 模型 - 内容审核
@@ -303,9 +303,12 @@ paths:
     post:
       operationId: createImageGeneration
       summary: 生成图像
-      description: OpenAI Images API 兼容的图像生成接口。
+      description: |
+        OpenAI Images API 兼容的图像生成接口。默认同步返回图片结果；如需异步提交，在请求 URL 上携带 `?async=true`，接口会返回图片任务 ID，可通过 `/v1/tasks/{id}` 查询结果。
       tags:
         - 图片系列
+      parameters:
+        - $ref: '#/components/parameters/ImageAsync'
       requestBody:
         required: true
         content:
@@ -318,22 +321,33 @@ paths:
                   model: gpt-image-1
                   prompt: 一张未来感 API 网关控制台截图
                   size: 1024x1024
+              async:
+                summary: 异步提交
+                value:
+                  model: gpt-image-1
+                  prompt: 一张未来感 API 网关控制台截图
+                  size: 1024x1024
       responses:
         '200':
-          description: 图像生成响应。
+          description: 成功响应。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImageResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/ImageResponse'
+                  - $ref: '#/components/schemas/ImageAsyncSubmitResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /v1/images/edits:
     post:
       operationId: editImage
       summary: 编辑图像
-      description: OpenAI Images API 兼容的图像编辑接口。
+      description: |
+        OpenAI Images API 兼容的图像编辑接口。默认同步返回编辑后的图片结果；如需异步提交，在请求 URL 上携带 `?async=true`，接口会返回图片任务 ID，可通过 `/v1/tasks/{id}` 查询结果。
       tags:
         - 图片系列
+      parameters:
+        - $ref: '#/components/parameters/ImageAsync'
       requestBody:
         required: true
         content:
@@ -342,11 +356,13 @@ paths:
               $ref: '#/components/schemas/EditImageRequest'
       responses:
         '200':
-          description: 图像编辑响应。
+          description: 成功响应。
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImageResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/ImageResponse'
+                  - $ref: '#/components/schemas/ImageAsyncSubmitResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /v1/tasks/{id}:
@@ -354,7 +370,9 @@ paths:
       operationId: getImageAsyncTask
       summary: 查询图片异步任务
       description: |
-        查询图片异步生成或编辑任务的状态与结果。提交图片请求后，如果接口返回任务 ID，可通过该接口轮询任务进度并读取生成图片。
+        仅适用于在 `/v1/images/generations?async=true` 或 `/v1/images/edits?async=true` 提交后返回的图片任务 ID。
+
+        建议客户端按固定间隔轮询该接口：当任务为 `succeeded` 且 `data.images` 非空时读取图片结果；当任务为 `failed` 时读取 `error` 字段并停止轮询。图片结果可能包含 `url` 或 `b64_json`，具体取决于模型、渠道能力和提交请求中的 `response_format`。
       tags:
         - 图片系列
       parameters:
@@ -367,7 +385,7 @@ paths:
             example: task_abc123
       responses:
         '200':
-          description: 图片异步任务状态与结果。
+          description: 成功响应。
           content:
             application/json:
               schema:
@@ -376,6 +394,240 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /mj/submit/imagine:
+    post:
+      operationId: createMidjourneyImagine
+      summary: Midjourney 提交绘图
+      description: |
+        提交 Midjourney 绘图任务。可在 prompt 中携带 Midjourney 参数，例如 `--v 6.1`、`--ar 1:1`、`--fast`、`--relax`。
+
+        如需使用快速或休闲专用入口，也可以在兼容网关上使用对应前缀路径：`mj-fast/mj/submit/imagine` 或 `mj-relax/mj/submit/imagine`。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyImagineRequest'
+            examples:
+              basic:
+                value:
+                  state: ''
+                  notifyHook: ''
+                  botType: MID_JOURNEY
+                  prompt: a girl --v 6.1 --ar 1:1
+                  base64Array: []
+                  accountFilter: {}
+      responses:
+        '200':
+          description: Midjourney 任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/submit/edits:
+    post:
+      operationId: editMidjourneyImage
+      summary: Midjourney 图片编辑
+      description: 使用 Midjourney 图片编辑接口提交参考图片与编辑提示词，返回可轮询的 Midjourney 任务 ID。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyEditRequest'
+            examples:
+              basic:
+                value:
+                  prompt: 几只鸟在飞
+                  image: https://file.rixapi.com/mask.png
+      responses:
+        '200':
+          description: Midjourney 图片编辑任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/submit/video:
+    post:
+      operationId: createMidjourneyVideo
+      summary: Midjourney 视频生成
+      description: 基于 Midjourney 图片任务或参考图片提交视频生成动作，返回任务 ID 后可通过 Midjourney 查询任务接口轮询结果。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyVideoRequest'
+            examples:
+              imageToVideo:
+                value:
+                  prompt: 飞来一只蜜蜂
+                  motion: low
+                  image: https://example.com/midjourney-image.png
+                  endImage: https://example.com/end-frame.png
+      responses:
+        '200':
+          description: Midjourney 视频任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/task/{task_id}/fetch:
+    get:
+      operationId: getMidjourneyTask
+      summary: Midjourney 查询任务
+      description: 根据 Midjourney 任务 ID 查询单个任务详情，包括状态、进度、图片 URL、视频 URL、按钮和扩展属性。
+      tags:
+        - 图片系列
+      parameters:
+        - $ref: '#/components/parameters/MidjourneyTaskId'
+      responses:
+        '200':
+          description: Midjourney 任务详情。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneyTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /mj/task/list-by-condition:
+    post:
+      operationId: listMidjourneyTasksByCondition
+      summary: Midjourney 批量查询任务
+      description: 按 Midjourney 任务 ID 列表批量查询任务详情。适合在客户端保存多个任务 ID 后一次性刷新任务状态。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyTaskListRequest'
+            examples:
+              byIds:
+                value:
+                  ids:
+                    - '1751700106922083'
+      responses:
+        '200':
+          description: Midjourney 任务详情列表。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MidjourneyTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/insight-face/swap:
+    post:
+      operationId: createMidjourneyFaceSwap
+      summary: Midjourney 换脸任务
+      description: 提交 InsightFace 换脸任务。请求体传入源人脸图片和目标图片的 Base64 Data URL，成功后返回 Midjourney 任务 ID。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyFaceSwapRequest'
+            examples:
+              basic:
+                value:
+                  sourceBase64: data:image/jpeg;base64,BASE64_SOURCE_IMAGE
+                  targetBase64: data:image/jpeg;base64,BASE64_TARGET_IMAGE
+      responses:
+        '200':
+          description: Midjourney 换脸任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/submit/action:
+    post:
+      operationId: submitMidjourneyAction
+      summary: Midjourney 提交动作
+      description: |
+        对已有 Midjourney 任务提交动作，例如 U 放大、V 变幻、Reroll 重新生成、Zoom 或局部重绘前置动作。
+
+        `customId` 来自任务查询结果中的按钮数据。部分局部重绘流程会先调用本接口获取 modal，再调用 `/mj/submit/modal` 提交遮罩和提示词。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyActionRequest'
+            examples:
+              upscale:
+                value:
+                  state: ''
+                  notifyHook: ''
+                  taskId: '1754413313273733'
+                  customId: MJ::JOB::upsample::1::68923902a083468cc96dd7eb
+              inpaint:
+                value:
+                  state: ''
+                  notifyHook: ''
+                  taskId: '1754413711269468'
+                  customId: MJ::Inpaint::1::68923902a083468cc96dd7eb::SOLO
+      responses:
+        '200':
+          description: Midjourney 动作提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /mj/submit/modal:
+    post:
+      operationId: submitMidjourneyModal
+      summary: Midjourney 局部重绘
+      description: 提交 Midjourney 局部重绘 modal 内容。通常先通过 `/mj/submit/action` 的 Inpaint 按钮动作获取可重绘任务，再提交提示词和遮罩图。
+      tags:
+        - 图片系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MidjourneyModalRequest'
+            examples:
+              inpaint:
+                value:
+                  state: ''
+                  notifyHook: ''
+                  prompt: ''
+                  taskId: '1754413925342220'
+                  maskBase64: data:image/png;base64,BASE64_MASK_IMAGE
+      responses:
+        '200':
+          description: Midjourney 局部重绘提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidjourneySubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /v1/models:
     get:
       operationId: listModels
@@ -414,6 +666,8 @@ paths:
       summary: 创建视频生成任务
       description: |
         创建视频生成任务。该通用接口覆盖 HappyHorse、Seedance、Veo、万相等 `/v1/video/generations` 提供商。
+
+        使用 Seedance 2.0 时，通用字段会转换为官方 `content[]` 格式：`prompt` 转为文本内容，`image` 或 `images` 转为参考图片，`metadata.video_url` 转为参考视频，`metadata.audio_url` 转为参考音频，`size` 转为 `resolution`，`metadata.ratio` 转为 `ratio`。创建成功后保存返回的任务 ID，并通过 `GET /v1/video/generations/{task_id}` 轮询结果。
       tags:
         - 视频系列
       requestBody:
@@ -424,16 +678,79 @@ paths:
               $ref: '#/components/schemas/CreateVideoGenerationRequest'
             examples:
               textToVideo:
+                summary: Seedance 2.0 文生视频
                 value:
-                  model: veo-3.1-generate-preview
-                  prompt: 一只机械手臂在现代工厂中组装芯片
-                  duration: 8
-                  size: '16:9'
+                  model: doubao-seedance-2-0-260128
+                  prompt: 一只金色柴犬在樱花树下奔跑，镜头缓缓上升
+                  duration: 5
+                  size: 480p
+                  metadata:
+                    ratio: '16:9'
+                    watermark: false
+                    generate_audio: true
               imageToVideo:
+                summary: Seedance 2.0 图生视频
                 value:
-                  model: seedance-1-0-lite-i2v
-                  prompt: 让图片中的产品缓慢旋转
-                  image: https://example.com/product.png
+                  model: doubao-seedance-2-0-fast-260128
+                  prompt: 让画面中的人物缓缓转身微笑
+                  image: https://example.com/photo.jpg
+                  duration: 5
+                  size: 720p
+                  metadata:
+                    ratio: '16:9'
+                    generate_audio: true
+                    watermark: false
+              videoAudio:
+                summary: Seedance 2.0 视频与音频引用
+                value:
+                  model: doubao-seedance-2-0-260128
+                  prompt: 根据音频内容为视频添加匹配的音效
+                  duration: 5
+                  size: 480p
+                  metadata:
+                    ratio: '16:9'
+                    video_url: https://example.com/reference-video.mp4
+                    audio_url: https://example.com/reference-audio.mp3
+                    generate_audio: true
+                    watermark: false
+              imageAudioToVideo:
+                summary: Seedance 2.0 音画协同
+                value:
+                  model: doubao-seedance-2-0-260128
+                  prompt: 让人物根据音频内容说话
+                  image: https://example.com/reference-image.jpg
+                  duration: 5
+                  size: 480p
+                  metadata:
+                    ratio: '16:9'
+                    audio_url: https://example.com/reference-audio.mp3
+                    watermark: false
+              imageVideoReference:
+                summary: Seedance 2.0 多重引用
+                value:
+                  model: doubao-seedance-2-0-260128
+                  prompt: 按照图片的风格，修改这个视频
+                  image: https://example.com/reference-image.jpg
+                  duration: 5
+                  size: 480p
+                  metadata:
+                    ratio: '16:9'
+                    video_url: https://example.com/reference-video.mp4
+                    watermark: false
+              allModalities:
+                summary: Seedance 2.0 全模态生成
+                value:
+                  model: doubao-seedance-2-0-fast-260128
+                  prompt: 使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频
+                  image: https://example.com/reference-image.jpg
+                  duration: 5
+                  size: 720p
+                  metadata:
+                    ratio: '16:9'
+                    video_url: https://example.com/reference-video.mp4
+                    audio_url: https://example.com/reference-audio.mp3
+                    generate_audio: true
+                    watermark: false
       responses:
         '200':
           description: 视频任务响应。
@@ -447,7 +764,7 @@ paths:
     get:
       operationId: getVideoGeneration
       summary: 查询视频生成任务
-      description: 查询 `/v1/video/generations` 视频任务状态与结果。
+      description: 查询 `/v1/video/generations` 视频任务状态与结果。Seedance 2.0 任务成功后，响应会包含生成视频 URL；视频 URL 通常具有时效性，建议获取后及时下载或转存。
       tags:
         - 视频系列
       parameters:
@@ -478,12 +795,32 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateVideoGenerationRequest'
             examples:
-              pixverse:
+              seedance2:
+                summary: Seedance 2.0 视频生视频
                 value:
-                  model: pixverse-v4.5
-                  prompt: 城市夜景中的霓虹招牌缓慢亮起
+                  model: doubao-seedance-2-0-260128
+                  prompt: 让视频中的人物变成卡通风格
                   duration: 5
-                  aspect_ratio: '16:9'
+                  size: 480p
+                  metadata:
+                    ratio: '16:9'
+                    video_url: https://example.com/reference-video.mp4
+                    generate_audio: true
+                    watermark: false
+              seedance2AllModalities:
+                summary: Seedance 2.0 全模态引用
+                value:
+                  model: doubao-seedance-2-0-fast-260128
+                  prompt: 使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频
+                  image: https://example.com/reference-image.jpg
+                  duration: 5
+                  size: 720p
+                  metadata:
+                    ratio: '16:9'
+                    video_url: https://example.com/reference-video.mp4
+                    audio_url: https://example.com/reference-audio.mp3
+                    generate_audio: true
+                    watermark: false
       responses:
         '200':
           description: OpenAI 兼容视频任务响应。
@@ -509,6 +846,360 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v3/contents/generations/tasks:
+    post:
+      operationId: createSeedance2VideoTask
+      summary: Seedance 2.0 视频生成
+      description: |
+        使用 Seedance 2.0 官方 `content[]` 格式创建异步视频生成任务。支持文生视频、图生视频、视频生视频、图像与音频组合、视频与音频组合，以及图像、视频、音频全模态引用。
+
+        若希望使用 ModelSell 的通用视频格式，也可以调用 `/v1/video/generations` 或 `/v1/videos`，通过 `prompt`、`image`、`images`、`metadata.video_url`、`metadata.audio_url` 等字段提交。
+
+        需要复用图片、视频或音频素材时，先调用 `/api/assets/upload` 上传素材，素材状态为 `Active` 后可在 `content[].*_url.url` 中传入 `asset://<asset_id>`。
+      tags:
+        - 视频系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Seedance2VideoTaskRequest'
+            examples:
+              textToVideo:
+                summary: 文生视频
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 一只金色柴犬在樱花树下奔跑，镜头缓缓上升
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  watermark: false
+              imageToVideo:
+                summary: 图生视频
+                value:
+                  model: doubao-seedance-2-0-fast-260128
+                  content:
+                    - type: text
+                      text: 让画面中的人物缓缓转身微笑
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/photo.jpg
+                      role: reference_image
+                  resolution: 720p
+                  ratio: '16:9'
+                  duration: 5
+                  watermark: false
+              videoToVideo:
+                summary: 视频生视频
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 让视频中的人物变成卡通风格
+                    - type: video_url
+                      video_url:
+                        url: https://example.com/reference-video.mp4
+                      role: reference_video
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  generate_audio: true
+                  watermark: false
+              imageAudioToVideo:
+                summary: 音画协同
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 让人物根据音频内容说话
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/reference-image.jpg
+                      role: reference_image
+                    - type: audio_url
+                      audio_url:
+                        url: https://example.com/reference-audio.mp3
+                      role: reference_audio
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  watermark: false
+              imageVideoReference:
+                summary: 多重引用
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 按照图片的风格，修改这个视频
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/reference-image.jpg
+                      role: reference_image
+                    - type: video_url
+                      video_url:
+                        url: https://example.com/reference-video.mp4
+                      role: reference_video
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  watermark: false
+              videoAudioToVideo:
+                summary: 动态音效
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 根据音频内容为视频添加匹配的音效
+                    - type: video_url
+                      video_url:
+                        url: https://example.com/reference-video.mp4
+                      role: reference_video
+                    - type: audio_url
+                      audio_url:
+                        url: https://example.com/reference-audio.mp3
+                      role: reference_audio
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  watermark: false
+              allModalities:
+                summary: 全模态引用
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/reference_image.jpg
+                      role: reference_image
+                    - type: video_url
+                      video_url:
+                        url: https://example.com/reference-video.mp4
+                      role: reference_video
+                    - type: audio_url
+                      audio_url:
+                        url: https://example.com/reference_audio.mp3
+                      role: reference_audio
+                  resolution: 480p
+                  ratio: '16:9'
+                  duration: 5
+                  generate_audio: true
+                  watermark: false
+      responses:
+        '200':
+          description: Seedance 2.0 视频任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seedance2VideoTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/v3/contents/generations/tasks/{task_id}:
+    get:
+      operationId: getSeedance2VideoTask
+      summary: 查询 Seedance 2.0 视频任务
+      description: |
+        查询 Seedance 2.0 异步视频任务状态。任务成功后读取 `content.video_url` 下载生成视频；该地址通常具有时效性，建议获取后及时转存。
+      tags:
+        - 视频系列
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Seedance 2.0 视频任务状态响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seedance2VideoTask'
+              examples:
+                running:
+                  summary: 生成中
+                  value:
+                    id: task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6
+                    status: running
+                    model: doubao-seedance-2-0-260128
+                succeeded:
+                  summary: 生成成功
+                  value:
+                    id: task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6
+                    status: succeeded
+                    model: doubao-seedance-2-0-260128
+                    content:
+                      video_url: https://example.com/doubao-seedance-2-0/result.mp4
+                    usage:
+                      completion_tokens: 100858
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assets/upload:
+    post:
+      operationId: uploadSeedanceAsset
+      summary: 上传 Seedance 2.0 素材
+      description: |
+        上传图片、视频或音频素材到当前用户素材库。该接口只接受公网 URL，不支持 Base64；上传成功后可在 Seedance 2.0 官方 `content[]` 格式或 `/v1/video/generations` 通用视频格式中使用 `asset://<asset_id>` 引用。
+      tags:
+        - 视频系列
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeedanceAssetUploadRequest'
+            examples:
+              image:
+                summary: 上传图片素材
+                value:
+                  url: https://example.com/image.png
+                  asset_type: Image
+                  name: 示例图片
+              video:
+                summary: 上传视频素材
+                value:
+                  url: https://example.com/reference-video.mp4
+                  asset_type: Video
+                  name: 参考视频
+              audio:
+                summary: 上传音频素材
+                value:
+                  url: https://example.com/reference-audio.mp3
+                  asset_type: Audio
+                  name: 参考音频
+      responses:
+        '200':
+          description: 素材上传响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceAssetUploadResponse'
+              example:
+                code: 0
+                message: ok
+                data:
+                  Id: asset-20260325152211-vcchd
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/assets:
+    get:
+      operationId: listSeedanceAssets
+      summary: 查询 Seedance 2.0 素材列表
+      description: 分页查询当前用户素材组下的素材列表，支持按名称搜索、状态过滤和排序。
+      tags:
+        - 视频系列
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: 页码，默认 1。
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          required: false
+          description: 每页数量，默认 10。
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: name
+          in: query
+          required: false
+          description: 按素材名称模糊搜索。
+          schema:
+            type: string
+        - name: statuses
+          in: query
+          required: false
+          description: 素材状态，可重复传参，例如 `statuses=Active&statuses=Processing`。
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - Active
+                - Processing
+                - Failed
+            default:
+              - Active
+        - name: sort_by
+          in: query
+          required: false
+          description: 排序字段，默认 `UpdateTime`。
+          schema:
+            type: string
+            default: UpdateTime
+        - name: sort_order
+          in: query
+          required: false
+          description: 排序方向。
+          schema:
+            type: string
+            enum:
+              - Asc
+              - Desc
+            default: Desc
+      responses:
+        '200':
+          description: 素材列表响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceAssetListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/assets/{id}:
+    get:
+      operationId: getSeedanceAsset
+      summary: 查询 Seedance 2.0 素材详情
+      description: 根据素材 ID 查询单个素材详情。
+      tags:
+        - 视频系列
+      parameters:
+        - $ref: '#/components/parameters/SeedanceAssetId'
+      responses:
+        '200':
+          description: 素材详情响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceAssetResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteSeedanceAsset
+      summary: 删除 Seedance 2.0 素材
+      description: 删除指定素材。删除后不可恢复，请谨慎操作。
+      tags:
+        - 视频系列
+      parameters:
+        - $ref: '#/components/parameters/SeedanceAssetId'
+      responses:
+        '200':
+          description: 素材删除响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceAssetDeleteResponse'
+              example:
+                code: 0
+                message: ok
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1465,6 +2156,211 @@ paths:
           headers: {}
       security:
         - bearerAuth: []
+  /suno/submit/music:
+    post:
+      summary: Suno 生成音乐
+      description: |
+        提交 Suno 音乐生成任务，成功后返回 Suno 任务 ID，可通过 `/suno/fetch/{task_id}` 查询结果。生成音乐接口只提交任务，不直接返回最终音频；部分兼容接口会一次返回两个 Suno 任务 ID，客户端需要分别轮询或等待 Webhook 回调。
+
+        支持 Suno 灵感模式、固定自定义歌词模式、续写、纯音乐和音轨分离等参数组合。灵感模式通常传入 `gpt_description_prompt`、`tags`、`mv` 和 `title`；固定自定义歌词模式传入 `prompt` 歌词文本；音轨分离可传入 `task: gen_stem`、`continue_clip_id`、`stem_task` 等字段。`prompt` 在自定义模式最多 3000 字，灵感模式最多 200 字；`tags` 风格标签最多 120 字。传入知名艺术家名称可能无法生成。
+
+        `mv` 表示 Suno 模型版本，常用可选值包括 `chirp-v4`、`chirp-v3-5`、`chirp-bluejay`、`chirp-auk`、`chirp-fenix`。其中 `chirp-fenix` 对应 Suno 5.5 / 最新版；不传时通常按渠道默认模型处理。
+
+        已兼容 GoAmz 格式，GoAmz 接入地址前缀为 `{{BaseURL}}/suno/v1`，GoAmz 切换 v3.5 接入地址前缀为 `{{BaseURL}}/suno/v1/mv-3.5`。已兼容 SunoAPI 格式，SunoAPI 接入地址前缀为 `{{BaseURL}}/suno`。
+      operationId: createSunoMusic
+      tags:
+        - AI 模型 - 音频
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SunoMusicRequest'
+            examples:
+              inspiration:
+                summary: Suno 灵感模式
+                value:
+                  gpt_description_prompt: ''
+                  tags: emotional punk
+                  mv: chirp-fenix
+                  title: 乡愁
+              customLyrics:
+                summary: 固定自定义歌词模式
+                value:
+                  prompt: "[Verse]\nWalking down the streets..."
+                  tags: emotional punk
+                  mv: chirp-crow
+                  title: City Lights
+              stem:
+                summary: 音轨分离
+                value:
+                  task: gen_stem
+                  generation_type: TEXT
+                  title: 安全之弦
+                  mv: chirp-auk
+                  prompt: ''
+                  make_instrumental: true
+                  continue_clip_id: 90f72668-ba0d-4fa7-95e6-f71bebda88b7
+                  continued_aligned_prompt: null
+                  continue_at: null
+                  stem_type_id: 91
+                  stem_type_group_name: Two
+                  stem_task: two
+              formStyle:
+                summary: multipart/form-data 兼容字段
+                value:
+                  callback_url: https://webhook.site/9e499891-8d20-4f2d-8abb-1b2743a880dd
+                  custom_mode: 1
+                  make_instrumental: 0
+                  prompt: "[Verse]\n风吹过 没有声音\n树影摇晃 像梦境"
+                  mv: chirp-v4
+                  title: 美女
+                  tags: Trance, bass drop, female vocal, armin van buren style
+                  negative_tags: dance pop
+      responses:
+        '200':
+          description: Suno 音乐任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoSubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /suno/submit/lyrics:
+    post:
+      summary: Suno 生成歌词
+      description: 提交 Suno 歌词生成任务，成功后返回任务 ID，可通过任务查询接口读取歌词结果。
+      operationId: createSunoLyrics
+      tags:
+        - AI 模型 - 音频
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SunoLyricsRequest'
+            examples:
+              basic:
+                value:
+                  prompt: dance
+      responses:
+        '200':
+          description: Suno 歌词任务提交响应。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoSubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /suno/fetch/{task_id}:
+    get:
+      summary: Suno 查询音乐任务
+      description: 根据 Suno 任务 ID 查询单个音乐或歌词任务详情，包括状态、进度、音频 URL、封面、歌词文本和元数据。
+      operationId: getSunoTask
+      tags:
+        - AI 模型 - 音频
+      parameters:
+        - $ref: '#/components/parameters/SunoTaskId'
+      responses:
+        '200':
+          description: Suno 任务详情。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoTaskResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /suno/fetch:
+    post:
+      summary: Suno 批量查询任务
+      description: 按 Suno 任务 ID 列表批量查询音乐任务。适合客户端保存多个任务 ID 后一次性刷新状态。
+      operationId: listSunoTasks
+      tags:
+        - AI 模型 - 音频
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SunoTaskListRequest'
+            examples:
+              byIds:
+                value:
+                  ids:
+                    - task_J5dF6JHsvDJmJ5VfsszWb0jJVnWNehWH
+                    - task_prwqSCxldgwbOmbdvW1oDzkE1chE7bKm
+                  action: MUSIC
+      responses:
+        '200':
+          description: Suno 任务详情列表。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoTaskListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /suno/feed/{clip_id}:
+    get:
+      summary: Suno 批量查询歌曲
+      description: 根据 Suno 歌曲或音频片段 ID 查询歌曲详情。不同上游可能返回单个歌曲对象或歌曲列表。
+      operationId: getSunoFeed
+      tags:
+        - AI 模型 - 音频
+      parameters:
+        - $ref: '#/components/parameters/SunoClipId'
+      responses:
+        '200':
+          description: Suno 歌曲详情。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoFeedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /suno/act/wav/{clip_id}:
+    get:
+      summary: Suno 获取 WAV
+      description: 根据 Suno 歌曲或音频片段 ID 获取 WAV 格式文件地址。
+      operationId: getSunoWav
+      tags:
+        - AI 模型 - 音频
+      parameters:
+        - $ref: '#/components/parameters/SunoClipId'
+      responses:
+        '200':
+          description: Suno WAV 文件地址。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoWavResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /suno/act/timing/{clip_id}:
+    get:
+      summary: Suno 歌词时间线
+      description: 查询 Suno 歌词、音频时间线信息，用于歌词高亮、字幕同步或播放器时间轴展示。
+      operationId: getSunoTiming
+      tags:
+        - AI 模型 - 音频
+      parameters:
+        - $ref: '#/components/parameters/SunoClipId'
+      responses:
+        '200':
+          description: Suno 歌词、音频时间线。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SunoTimingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/rerank:
     post:
       summary: 文档重排序
@@ -1696,6 +2592,15 @@ components:
       schema:
         type: string
       example: gemini-2.5-flash
+    ImageAsync:
+      name: async
+      in: query
+      required: false
+      description: 是否异步提交。
+      schema:
+        type: boolean
+        default: false
+      example: true
     TaskId:
       name: task_id
       in: path
@@ -1704,6 +2609,30 @@ components:
       schema:
         type: string
       example: task_123456
+    MidjourneyTaskId:
+      name: task_id
+      in: path
+      required: true
+      description: Midjourney 任务 ID。
+      schema:
+        type: string
+      example: '1751700106922083'
+    SunoTaskId:
+      name: task_id
+      in: path
+      required: true
+      description: Suno 任务 ID。
+      schema:
+        type: string
+      example: c47ec1cf-7e79-4e61-b9fb-2ca2ac36e57b
+    SunoClipId:
+      name: clip_id
+      in: path
+      required: true
+      description: Suno 歌曲或音频片段 ID。
+      schema:
+        type: string
+      example: 90f72668-ba0d-4fa7-95e6-f71bebda88b7
     Id:
       name: id
       in: path
@@ -1720,6 +2649,14 @@ components:
       schema:
         type: string
       example: asset_123456
+    SeedanceAssetId:
+      name: id
+      in: path
+      required: true
+      description: Seedance 2.0 素材 ID。
+      schema:
+        type: string
+      example: asset-20260325152211-vcchd
     Keyword:
       name: keyword
       in: query
@@ -2409,9 +3346,32 @@ components:
               revised_prompt:
                 type: string
                 description: 模型改写后的提示词。
+    ImageAsyncSubmitResponse:
+      type: object
+      description: 异步提交响应。
+      properties:
+        id:
+          type: string
+          description: 图片异步任务 ID。
+          example: task_abc123
+        object:
+          type: string
+          description: 对象类型。
+          example: image.task
+        created:
+          type: integer
+          description: 任务创建时间，Unix 秒级时间戳。
+        model:
+          type: string
+          description: 提交任务时使用的模型 ID。
+          example: gpt-image-1
+        status:
+          type: string
+          description: 上游返回的初始任务状态，部分渠道可能不返回该字段。
+          example: queued
     ImageTaskResponse:
       type: object
-      description: 图片异步任务状态查询响应。
+      description: 任务状态响应。
       properties:
         id:
           type: string
@@ -2459,6 +3419,673 @@ components:
           type: object
           description: 任务失败时的错误信息。
           additionalProperties: true
+    MidjourneyBaseRequest:
+      type: object
+      properties:
+        state:
+          type: string
+          description: 客户端自定义状态，会随回调或任务流转透传。
+        notifyHook:
+          type: string
+          format: uri
+          description: 任务完成后的回调地址；为空时不主动回调。
+        botType:
+          type: string
+          description: Midjourney 机器人类型。
+          example: MID_JOURNEY
+      additionalProperties: true
+    MidjourneyImagineRequest:
+      allOf:
+        - $ref: '#/components/schemas/MidjourneyBaseRequest'
+        - type: object
+          required:
+            - prompt
+          properties:
+            prompt:
+              type: string
+              description: Midjourney 绘图提示词，可包含版本、比例、速度等 Midjourney 参数。
+              example: a girl --v 6.1 --ar 1:1
+            base64Array:
+              type: array
+              description: 图片 Base64 Data URL 数组，用于垫图或参考图。
+              items:
+                type: string
+            accountFilter:
+              type: object
+              description: 上游账号过滤条件，通常留空。
+              additionalProperties: true
+    MidjourneyEditRequest:
+      type: object
+      required:
+        - prompt
+        - image
+      properties:
+        prompt:
+          type: string
+          description: 图片编辑提示词。
+          example: 几只鸟在飞
+        image:
+          type: string
+          description: 需要编辑的图片 URL 或 Base64 Data URL。
+          example: https://file.rixapi.com/mask.png
+        state:
+          type: string
+          description: 客户端自定义状态，会随回调或任务流转透传。
+        notifyHook:
+          type: string
+          format: uri
+          description: 任务完成后的回调地址；为空时不主动回调。
+      additionalProperties: true
+    MidjourneyVideoRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: 视频生成提示词。
+          example: 飞来一只蜜蜂
+        motion:
+          type: string
+          description: 运动强度，例如 low 或 high，具体取值以渠道能力为准。
+          example: low
+        image:
+          type: string
+          description: 起始参考图片 URL 或 Base64 Data URL。
+          example: https://example.com/midjourney-image.png
+        endImage:
+          type: string
+          description: 结束帧参考图片 URL 或 Base64 Data URL。
+          example: https://example.com/end-frame.png
+        taskId:
+          type: string
+          description: Midjourney 任务 ID。对已有图片任务发起视频动作时使用。
+          example: '1754413313273733'
+        action:
+          type: string
+          description: 视频动作类型，留空时由接口按视频生成动作处理。
+        state:
+          type: string
+          description: 客户端自定义状态，会随回调或任务流转透传。
+        notifyHook:
+          type: string
+          format: uri
+          description: 任务完成后的回调地址；为空时不主动回调。
+      additionalProperties: true
+    MidjourneyActionRequest:
+      type: object
+      required:
+        - taskId
+        - customId
+      properties:
+        state:
+          type: string
+          description: 客户端自定义状态，会随回调或任务流转透传。
+        notifyHook:
+          type: string
+          format: uri
+          description: 任务完成后的回调地址；为空时不主动回调。
+        taskId:
+          type: string
+          description: Midjourney 任务 ID。
+          example: '1754413313273733'
+        customId:
+          type: string
+          description: Midjourney 动作 ID，例如放大、变幻、重绘或局部重绘前置动作返回的 customId。
+          example: MJ::JOB::upsample::1::68923902a083468cc96dd7eb
+        action:
+          type: string
+          description: 兼容普通动作格式的动作名称，例如 UPSCALE、VARIATION、REROLL。
+        index:
+          type: integer
+          description: 动作序号，例如 U1/V1 中的 1。
+      additionalProperties: true
+    MidjourneyModalRequest:
+      type: object
+      required:
+        - taskId
+        - maskBase64
+      properties:
+        state:
+          type: string
+          description: 客户端自定义状态，会随回调或任务流转透传。
+        notifyHook:
+          type: string
+          format: uri
+          description: 任务完成后的回调地址；为空时不主动回调。
+        prompt:
+          type: string
+          description: 局部重绘提示词。
+        taskId:
+          type: string
+          description: Midjourney 任务 ID。
+          example: '1754413925342220'
+        maskBase64:
+          type: string
+          description: 局部重绘遮罩图的 Base64 Data URL。
+          example: data:image/png;base64,BASE64_MASK_IMAGE
+      additionalProperties: true
+    MidjourneyFaceSwapRequest:
+      type: object
+      required:
+        - sourceBase64
+        - targetBase64
+      properties:
+        sourceBase64:
+          type: string
+          description: 源人脸图片 Base64 Data URL。
+          example: data:image/jpeg;base64,BASE64_SOURCE_IMAGE
+        targetBase64:
+          type: string
+          description: 目标图片 Base64 Data URL。
+          example: data:image/jpeg;base64,BASE64_TARGET_IMAGE
+    MidjourneyTaskListRequest:
+      type: object
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          description: Midjourney 任务 ID 列表。
+          items:
+            type: string
+          example:
+            - '1751700106922083'
+    MidjourneySubmitResponse:
+      type: object
+      description: Midjourney 任务提交响应。
+      properties:
+        code:
+          type: integer
+          description: 提交结果码。`1` 通常表示提交成功，其他值表示排队、重复、敏感词或错误。
+          example: 1
+        description:
+          type: string
+          description: 提交结果描述。
+          example: 提交成功
+        result:
+          type: string
+          description: Midjourney 任务 ID。
+          example: '1751700106922083'
+        properties:
+          type: object
+          description: 上游返回的扩展属性，例如队列信息、已存在任务状态或翻译后的提示词。
+          additionalProperties: true
+      additionalProperties: true
+    MidjourneyTask:
+      type: object
+      description: Midjourney 任务详情。
+      properties:
+        id:
+          type: string
+          description: Midjourney 任务 ID。
+          example: '1751700106922083'
+        action:
+          type: string
+          description: 任务动作，例如 IMAGINE、UPSCALE、VARIATION、VIDEO、MODAL 或 SWAP_FACE。
+          example: IMAGINE
+        customId:
+          type: string
+          description: Midjourney 动作 ID，常用于后续放大、变幻或局部重绘动作。
+        botType:
+          type: string
+          description: Midjourney 机器人类型。
+          example: MID_JOURNEY
+        prompt:
+          type: string
+          description: 原始提示词。
+        promptEn:
+          type: string
+          description: 上游翻译或处理后的英文提示词。
+        description:
+          type: string
+          description: 任务描述或错误说明。
+        state:
+          type: string
+          description: 客户端自定义状态。
+        submitTime:
+          type: integer
+          description: 提交时间，毫秒时间戳。
+        startTime:
+          type: integer
+          description: 开始时间，毫秒时间戳。
+        finishTime:
+          type: integer
+          description: 完成时间，毫秒时间戳。
+        imageUrl:
+          type: string
+          format: uri
+          description: 图片结果 URL。
+        videoUrl:
+          type: string
+          format: uri
+          description: 视频结果 URL。
+        videoUrls:
+          type: array
+          description: 多个视频结果 URL。
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: uri
+                description: 视频结果 URL。
+        status:
+          type: string
+          description: 任务状态，例如 NOT_START、SUBMITTED、IN_PROGRESS、SUCCESS、FAILURE。
+          example: SUCCESS
+        progress:
+          type: string
+          description: 任务进度。
+          example: 100%
+        failReason:
+          type: string
+          description: 失败原因。
+        buttons:
+          type: array
+          description: 后续可用动作按钮列表，按钮中的 customId 可用于 `/mj/submit/action`。
+          items:
+            type: object
+            additionalProperties: true
+        maskBase64:
+          type: string
+          description: 局部重绘遮罩图的 Base64 Data URL。
+        properties:
+          type: object
+          description: 任务扩展属性。
+          additionalProperties: true
+      additionalProperties: true
+    SunoMusicRequest:
+      type: object
+      description: Suno 音乐生成请求。
+      properties:
+        gpt_description_prompt:
+          type: string
+          description: 灵感模式下的音乐描述提示词，为空时可结合 tags 和标题生成。
+          example: 一首关于乡愁的情绪朋克歌曲
+        prompt:
+          type: string
+          description: 固定自定义歌词模式下的歌词文本，也可用于其他 Suno 兼容格式的提示词。自定义模式最多 3000 字，灵感模式最多 200 字；传入知名艺术家名称可能无法生成。
+          example: "[Verse]\nWalking down the streets..."
+        tags:
+          type: string
+          description: 音乐风格标签最多 120 字，可填写风格、乐器、人声、节奏等提示。
+          example: emotional punk
+        negative_tags:
+          type: string
+          description: 排除风格或不希望出现的元素。
+          example: dance pop
+        mv:
+          type: string
+          enum:
+            - chirp-v4
+            - chirp-v3-5
+            - chirp-bluejay
+            - chirp-auk
+            - chirp-fenix
+          description: Suno 模型版本或模式。支持 `chirp-v4`、`chirp-v3-5`、`chirp-bluejay`、`chirp-auk`、`chirp-fenix`；其中 `chirp-fenix` 对应 Suno 5.5 / 最新版，当前常见默认值为 `chirp-v3-5`。
+          example: chirp-v4
+        title:
+          type: string
+          description: 歌曲标题。
+          example: 乡愁
+        make_instrumental:
+          oneOf:
+            - type: boolean
+            - type: integer
+              enum:
+                - 0
+                - 1
+          description: 是否纯音乐，传 1 表示生成纯音乐，传 0 或 false 表示非纯音乐；在特定任务中也可作为音轨分离参数使用。
+          example: false
+        task:
+          type: string
+          description: Suno 任务类型，例如 `gen_stem` 表示音轨分离。
+          example: gen_stem
+        stem_task:
+          type: string
+          description: 音轨分离任务类型。
+          example: two
+        task_id:
+          type: string
+          description: 需要继续处理的 Suno 任务 ID。
+        continue_clip_id:
+          type: string
+          description: 续写或音轨分离时使用的上一段官方 clip_id，也可传已有 task_id。
+          example: 90f72668-ba0d-4fa7-95e6-f71bebda88b7
+        continue_at:
+          type:
+            - number
+            - 'null'
+          description: 续写时间点，即从上一段的什么时间点开始续写，单位通常为秒。
+          example: 10
+        cover_clip_id:
+          type: string
+          description: 用作封面或参考的歌曲片段 ID。
+        custom_mode:
+          oneOf:
+            - type: boolean
+            - type: integer
+              enum:
+                - 0
+                - 1
+          description: 是否自定义模式，默认 0 表示灵感模式，1 表示自定义模式。
+          example: 1
+        metadata:
+          type: object
+          description: 扩展元数据。可包含 `control_sliders` 等上游高级控制参数。
+          properties:
+            control_sliders:
+              type: object
+              description: Suno 高级控制滑块。
+              properties:
+                style_weight:
+                  type: number
+                  description: 风格权重。
+                weirdness_constraint:
+                  type: number
+                  description: 风格发散或怪异度约束。
+                audio_weight:
+                  type: number
+                  description: 参考音频权重。
+            can_control_sliders:
+              type: array
+              description: 当前任务或模型支持的控制滑块名称。
+              items:
+                type: string
+          additionalProperties: true
+        callback_url:
+          type: string
+          format: uri
+          description: Webhook 回调 URL。音乐生成完毕后，生成结果会主动以 POST 形式发送到该地址。
+        gen_params:
+          type: object
+          description: Suno 兼容格式或上游扩展生成参数。
+          additionalProperties: true
+      additionalProperties: true
+    SunoLyricsRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: 歌词生成提示词。
+          example: dance
+      additionalProperties: true
+    SunoTaskListRequest:
+      type: object
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          description: Suno 任务 ID 列表。
+          items:
+            type: string
+          example:
+            - task_J5dF6JHsvDJmJ5VfsszWb0jJVnWNehWH
+            - task_prwqSCxldgwbOmbdvW1oDzkE1chE7bKm
+        action:
+          type: string
+          description: 查询的任务动作类型，例如 MUSIC。
+          example: MUSIC
+      additionalProperties: true
+    SunoSubmitResponse:
+      type: object
+      description: Suno 任务提交响应。
+      properties:
+        code:
+          oneOf:
+            - type: string
+            - type: integer
+          description: 提交结果状态。
+          example: success
+        msg:
+          type: string
+          description: 提交结果消息，兼容部分上游返回字段。
+          example: 成功
+        data:
+          oneOf:
+            - type: string
+              description: 单个 Suno 任务 ID。
+              example: c47ec1cf-7e79-4e61-b9fb-2ca2ac36e57b
+            - type: array
+              description: 返回两个 Suno 任务 ID 时的任务列表。
+              items:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    description: Suno 任务 ID。
+                    example: f9761a3e-b396-4060-a35b-a26bbce7ba9b
+                  status:
+                    type: integer
+                    description: 提交后的任务状态值。
+                    example: 1
+                  title:
+                    type: string
+                    description: 歌曲标题。
+                  prompt:
+                    type: string
+                    description: 提交时的提示词或歌词。
+                    example: 美女
+          description: Suno 任务 ID 或任务列表。
+        message:
+          type: string
+          description: 提交结果消息。
+          example: ''
+        exec_time:
+          type: number
+          description: 上游接口执行耗时，单位通常为秒。
+        ip:
+          type: string
+          description: 上游返回的请求来源 IP。
+      additionalProperties: true
+    SunoTaskResponse:
+      type: object
+      description: Suno 单任务查询响应。
+      properties:
+        code:
+          type: string
+          description: 查询结果状态。
+          example: success
+        message:
+          type: string
+          description: 查询结果消息。
+          example: ''
+        data:
+          $ref: '#/components/schemas/SunoTask'
+      additionalProperties: true
+    SunoTaskListResponse:
+      type: object
+      description: Suno 批量任务查询响应。
+      properties:
+        code:
+          type: string
+          description: 查询结果状态。
+          example: success
+        message:
+          type: string
+          description: 查询结果消息。
+          example: ''
+        data:
+          type: array
+          description: Suno 任务详情列表。
+          items:
+            $ref: '#/components/schemas/SunoTask'
+      additionalProperties: true
+    SunoTask:
+      type: object
+      description: Suno 任务详情。
+      properties:
+        task_id:
+          type: string
+          description: Suno 任务 ID。
+          example: c47ec1cf-7e79-4e61-b9fb-2ca2ac36e57b
+        platform:
+          type: string
+          description: 平台名称。
+          example: suno
+        action:
+          type: string
+          description: 任务动作，例如 MUSIC 或 LYRICS。
+          example: MUSIC
+        status:
+          type: string
+          description: 任务状态，例如 SUBMITTED、IN_PROGRESS、SUCCESS、FAILURE。
+          example: SUCCESS
+        progress:
+          type: string
+          description: 任务进度。
+          example: 100%
+        fail_reason:
+          type: string
+          description: 失败原因。
+        submit_time:
+          type: integer
+          description: 提交时间，Unix 秒级或毫秒级时间戳，取决于上游返回。
+        start_time:
+          type: integer
+          description: 开始时间，Unix 秒级或毫秒级时间戳，取决于上游返回。
+        finish_time:
+          type: integer
+          description: 完成时间，Unix 秒级或毫秒级时间戳，取决于上游返回。
+        data:
+          type: array
+          description: Suno 歌曲或歌词结果列表。
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/SunoSong'
+              - $ref: '#/components/schemas/SunoLyrics'
+      additionalProperties: true
+    SunoSong:
+      type: object
+      description: Suno 歌曲结果。
+      properties:
+        id:
+          type: string
+          description: Suno 歌曲或音频片段 ID。
+          example: 90f72668-ba0d-4fa7-95e6-f71bebda88b7
+        audio_url:
+          type: string
+          format: uri
+          description: MP3 音频文件 URL。
+        image_url:
+          type: string
+          format: uri
+          description: 封面图 URL。
+        image_large_url:
+          type: string
+          format: uri
+          description: 大尺寸封面图 URL。
+        video_url:
+          type: string
+          format: uri
+          description: 视频文件 URL。
+        title:
+          type: string
+          description: 歌曲标题。
+          example: 雾里那扇门
+        text:
+          type: string
+          description: 歌词文本或 `[Instrumental]`。
+          example: '[Instrumental]'
+        status:
+          type: string
+          description: 歌曲生成状态。
+        major_model_version:
+          type: string
+          description: Suno 主模型版本。
+        model_name:
+          type: string
+          description: Suno 模型名称。
+        metadata:
+          $ref: '#/components/schemas/SunoMetadata'
+      additionalProperties: true
+    SunoMetadata:
+      type: object
+      description: Suno 歌曲元数据。
+      properties:
+        tags:
+          type: string
+          description: 音乐风格标签。
+        prompt:
+          type: string
+          description: 原始歌词或提示词。
+        gpt_description_prompt:
+          type: string
+          description: 灵感模式描述提示词。
+        audio_prompt_id:
+          type: string
+          description: 参考音频提示 ID。
+        duration:
+          type: number
+          description: 音频时长，单位通常为秒。
+        error_type:
+          type: string
+          description: 错误类型。
+        error_message:
+          type: string
+          description: 错误消息。
+      additionalProperties: true
+    SunoLyrics:
+      type: object
+      description: Suno 歌词结果。
+      properties:
+        id:
+          type: string
+          description: 歌词结果 ID。
+        status:
+          type: string
+          description: 歌词任务状态。
+        title:
+          type: string
+          description: 歌词标题。
+        text:
+          type: string
+          description: 歌词文本。
+      additionalProperties: true
+    SunoFeedResponse:
+      type: object
+      description: Suno 歌曲查询响应。
+      properties:
+        code:
+          type: string
+          description: 查询结果状态。
+        message:
+          type: string
+          description: 查询结果消息。
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/SunoSong'
+            - type: array
+              items:
+                $ref: '#/components/schemas/SunoSong'
+      additionalProperties: true
+    SunoWavResponse:
+      type: object
+      description: Suno WAV 文件响应。
+      properties:
+        wav_file_url:
+          type: string
+          format: uri
+          description: WAV 格式文件 URL。
+          example: https://cdn1.suno.ai/90f72668-ba0d-4fa7-95e6-f71bebda88b7.wav
+      additionalProperties: true
+    SunoTimingResponse:
+      type: object
+      description: Suno 歌词、音频时间线响应。
+      properties:
+        code:
+          type: string
+          description: 查询结果状态。
+        message:
+          type: string
+          description: 查询结果消息。
+        data:
+          type: object
+          description: 歌词、音频时间线数据，字段以 Suno 上游返回为准。
+          additionalProperties: true
+      additionalProperties: true
     ListModelsResponse:
       type: object
       required:
@@ -2605,6 +4232,314 @@ components:
           type: object
           description: 任务失败时的错误信息。
           additionalProperties: true
+    Seedance2VideoTaskRequest:
+      type: object
+      required:
+        - model
+        - content
+      properties:
+        model:
+          type: string
+          description: Seedance 2.0 模型 ID。
+          enum:
+            - doubao-seedance-2-0-260128
+            - doubao-seedance-2-0-fast-260128
+          example: doubao-seedance-2-0-260128
+        content:
+          type: array
+          description: Seedance 2.0 官方格式的内容数组。
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Seedance2ContentItem'
+        generate_audio:
+          type: boolean
+          description: 是否生成与画面同步的声音，默认 true。
+          default: true
+        resolution:
+          type: string
+          description: 输出分辨率。
+          enum:
+            - 480p
+            - 720p
+            - 1080p
+          default: 720p
+          example: 480p
+        ratio:
+          type: string
+          description: 输出宽高比。
+          enum:
+            - '16:9'
+            - '9:16'
+            - '3:4'
+            - '1:1'
+            - '4:3'
+          default: '16:9'
+          example: '16:9'
+        duration:
+          type: integer
+          description: 生成视频时长，单位秒，支持 4 到 15 秒，默认 5 秒。
+          minimum: 4
+          maximum: 15
+          default: 5
+        watermark:
+          type: boolean
+          description: 是否添加水印，默认 false。
+          default: false
+    Seedance2ContentItem:
+      type: object
+      description: Seedance 2.0 输入内容。文本使用 `text`；图片、视频、音频使用对应的 `*_url.url`，并设置对应 role。
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: 内容类型。
+          enum:
+            - text
+            - image_url
+            - video_url
+            - audio_url
+        text:
+          type: string
+          description: 提示词或内容描述。`type` 为 `text` 时填写。
+          example: 一只金色柴犬在樱花树下奔跑，镜头缓缓上升
+        image_url:
+          type: object
+          description: 参考图片。支持公网 URL；小于 2MB 的图片可使用 Base64 Data URL。
+          properties:
+            url:
+              type: string
+              description: 图片 URL 或 Base64 Data URL。
+              example: https://example.com/photo.jpg
+        video_url:
+          type: object
+          description: 参考视频，必须是公网可访问 URL，不支持 Base64。
+          properties:
+            url:
+              type: string
+              format: uri
+              description: 参考视频 URL。
+              example: https://example.com/reference-video.mp4
+        audio_url:
+          type: object
+          description: 参考音频 URL。
+          properties:
+            url:
+              type: string
+              format: uri
+              description: 参考音频 URL。
+              example: https://example.com/reference_audio.mp3
+        role:
+          type: string
+          description: 素材角色。图片使用 `reference_image`，视频使用 `reference_video`，音频使用 `reference_audio`。
+          enum:
+            - reference_image
+            - reference_video
+            - reference_audio
+    Seedance2VideoTask:
+      type: object
+      description: Seedance 2.0 视频任务对象。
+      properties:
+        id:
+          type: string
+          description: 视频生成任务 ID。
+          example: task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6
+        status:
+          type: string
+          description: 任务状态。
+          enum:
+            - queued
+            - running
+            - succeeded
+            - failed
+          example: queued
+        model:
+          type: string
+          description: 使用的 Seedance 2.0 模型。
+          example: doubao-seedance-2-0-260128
+        created_at:
+          type: integer
+          description: 创建时间，Unix 秒级时间戳。
+        content:
+          type: object
+          description: 成功后的生成结果。
+          properties:
+            video_url:
+              type: string
+              format: uri
+              description: 生成视频下载 URL，通常具有时效性。
+              example: https://example.com/doubao-seedance-2-0/result.mp4
+        usage:
+          type: object
+          description: 本次任务用量。
+          properties:
+            completion_tokens:
+              type: integer
+              description: 任务消耗的 completion tokens。
+              example: 100858
+        error:
+          type: object
+          description: 任务失败时的错误信息。
+          properties:
+            code:
+              type: string
+              description: 错误码。
+              example: invalid_parameter
+            message:
+              type: string
+              description: 错误信息。
+              example: 视频格式不支持
+    SeedanceAssetUploadRequest:
+      type: object
+      required:
+        - url
+        - asset_type
+      properties:
+        url:
+          type: string
+          format: uri
+          description: 素材公网 URL。素材上传接口只支持 URL，不支持 Base64。
+          example: https://example.com/image.png
+        asset_type:
+          type: string
+          description: 素材类型。
+          enum:
+            - Image
+            - Video
+            - Audio
+          example: Image
+        name:
+          type: string
+          description: 素材名称。
+          example: 示例图片
+    SeedanceAssetUploadResponse:
+      type: object
+      description: Seedance 2.0 素材上传响应。
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，0 表示成功。
+          example: 0
+        message:
+          type: string
+          description: 响应消息。
+          example: ok
+        data:
+          type: object
+          properties:
+            Id:
+              type: string
+              description: 上传后的素材 ID。
+              example: asset-20260325152211-vcchd
+    SeedanceAssetResponse:
+      type: object
+      description: Seedance 2.0 素材详情响应。
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，0 表示成功。
+          example: 0
+        message:
+          type: string
+          description: 响应消息。
+          example: ok
+        data:
+          $ref: '#/components/schemas/SeedanceAsset'
+    SeedanceAssetListResponse:
+      type: object
+      description: Seedance 2.0 素材列表响应。
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，0 表示成功。
+          example: 0
+        message:
+          type: string
+          description: 响应消息。
+          example: ok
+        data:
+          type: object
+          properties:
+            Items:
+              type: array
+              description: 素材列表。
+              items:
+                $ref: '#/components/schemas/SeedanceAsset'
+            PageNumber:
+              type: integer
+              description: 当前页码。
+              example: 1
+            PageSize:
+              type: integer
+              description: 每页数量。
+              example: 10
+            TotalCount:
+              type: integer
+              description: 素材总数。
+              example: 1
+    SeedanceAssetDeleteResponse:
+      type: object
+      description: Seedance 2.0 素材删除响应。
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，0 表示成功。
+          example: 0
+        message:
+          type: string
+          description: 响应消息。
+          example: ok
+    SeedanceAsset:
+      type: object
+      description: Seedance 2.0 素材对象。
+      properties:
+        Id:
+          type: string
+          description: 素材 ID。
+          example: asset-20260325152211-vcchd
+        AssetType:
+          type: string
+          description: 素材类型。
+          enum:
+            - Image
+            - Video
+            - Audio
+          example: Image
+        Name:
+          type: string
+          description: 素材名称。
+          example: 示例图片
+        URL:
+          type: string
+          format: uri
+          description: 原始素材 URL。
+          example: https://example.com/image.png
+        GroupId:
+          type: string
+          description: 素材组 ID。
+          example: group-20260324135506-xxxxx
+        Status:
+          type: string
+          description: 素材状态。`Active` 表示可正常使用，`Processing` 表示处理中，`Failed` 表示上传失败。
+          enum:
+            - Active
+            - Processing
+            - Failed
+          example: Active
+        ProjectName:
+          type: string
+          description: 项目名称。
+          example: default
+        CreateTime:
+          type: string
+          format: date-time
+          description: 创建时间。
+          example: '2026-03-25T15:22:11Z'
+        UpdateTime:
+          type: string
+          format: date-time
+          description: 更新时间。
+          example: '2026-03-25T15:22:11Z'
     LogListResponse:
       allOf:
         - $ref: '#/components/schemas/ManagementResponse'

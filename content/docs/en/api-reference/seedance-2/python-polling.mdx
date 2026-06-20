@@ -1,0 +1,43 @@
+---
+title: Python Polling and Download
+description: Create a Seedance 2.0 task, poll for completion, and download the result video with Python.
+---
+
+Seedance 2.0 is asynchronous. Poll the task endpoint until `status` becomes `succeeded`, then download `content.video_url`.
+
+```python
+import os
+import time
+import requests
+
+BASE_URL = "https://api.modelsell.com"
+API_KEY = os.environ["MODELSELL_API_KEY"]
+
+response = requests.post(
+    f"{BASE_URL}/api/v3/contents/generations/tasks",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    json={
+        "model": "doubao-seedance-2-0-260128",
+        "content": [{"type": "text", "text": "A cinematic city sunrise"}],
+        "resolution": "480p",
+        "ratio": "16:9",
+        "duration": 5,
+    },
+)
+response.raise_for_status()
+task_id = response.json()["id"]
+
+while True:
+    time.sleep(10)
+    result = requests.get(
+        f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+    )
+    result.raise_for_status()
+    data = result.json()
+    if data["status"] == "succeeded":
+        print(data["content"]["video_url"])
+        break
+    if data["status"] == "failed":
+        raise RuntimeError(data.get("error", {}).get("message", "task failed"))
+```

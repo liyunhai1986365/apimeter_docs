@@ -1,0 +1,181 @@
+---
+title: Generic Video Format
+description: Use /v1/video/generations with Seedance 2.0 and let ModelSell convert it to the official content format.
+---
+
+`/v1/video/generations` is ModelSell's generic async video task endpoint. When you call a Seedance 2.0 model, you can express the official `content[]` inputs with `prompt`, `image`, `images`, `metadata.video_url`, and `metadata.audio_url`; ModelSell converts the request to the official `/api/v3/contents/generations/tasks` format.
+
+## Endpoints
+
+| Operation | Endpoint |
+| --- | --- |
+| Create task | `POST /v1/video/generations` |
+| Poll task | `GET /v1/video/generations/{task_id}` |
+| Upload asset | `POST /api/assets/upload` |
+
+## Field Mapping
+
+| Generic field | Official Seedance 2.0 field |
+| --- | --- |
+| `prompt` | `content[]` item with `type: "text"` |
+| `image` or `images[]` | `content[]` item with `type: "image_url"` and `role: "reference_image"` |
+| `metadata.video_url` | `content[]` item with `type: "video_url"` and `role: "reference_video"` |
+| `metadata.audio_url` | `content[]` item with `type: "audio_url"` and `role: "reference_audio"` |
+| `size` | `resolution`, for example `480p`, `720p`, or `1080p` |
+| `duration` or `seconds` | `duration`, in seconds, from 4 to 15 |
+| `metadata.ratio` | `ratio`, for example `16:9`, `9:16`, `3:4`, `1:1`, or `4:3` |
+| `metadata.generate_audio` | `generate_audio` |
+| `metadata.watermark` | `watermark` |
+
+## Common Request Patterns
+
+### Text to Video
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "A golden Shiba Inu runs under cherry blossoms as the camera slowly rises",
+    "duration": 5,
+    "size": "480p",
+    "metadata": {
+      "ratio": "16:9",
+      "generate_audio": true,
+      "watermark": false
+    }
+  }'
+```
+
+### Image to Video
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "prompt": "Make the person in the image slowly turn around and smile",
+  "image": "https://example.com/photo.jpg",
+  "duration": 5,
+  "size": "720p",
+  "metadata": {
+    "ratio": "16:9",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+### Video to Video
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "Turn the person in the video into a cartoon style",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+### Image and Audio
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "Make the character speak according to the audio",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "watermark": false
+  }
+}
+```
+
+### Image and Video References
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "Modify this video using the style of the reference image",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "watermark": false
+  }
+}
+```
+
+### Video and Audio References
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "Add matching sound effects to the video based on the audio",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "watermark": false
+  }
+}
+```
+
+### Full Multimodal Reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-fast-260128",
+  "prompt": "Use the image style, apply the voice to the speaker, and modify the video",
+  "image": "https://example.com/reference-image.jpg",
+  "duration": 5,
+  "size": "720p",
+  "metadata": {
+    "ratio": "16:9",
+    "video_url": "https://example.com/reference-video.mp4",
+    "audio_url": "https://example.com/reference-audio.mp3",
+    "generate_audio": true,
+    "watermark": false
+  }
+}
+```
+
+## Polling
+
+Save the returned `id` or `task_id`, then poll the task endpoint:
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/video/generations/task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+When the task succeeds, the generic response includes the final video URL:
+
+```json
+{
+  "id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
+  "task_id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
+  "object": "video.generation",
+  "status": "succeeded",
+  "model": "doubao-seedance-2-0-260128",
+  "metadata": {
+    "url": "https://example.com/doubao-seedance-2-0/result.mp4"
+  }
+}
+```
+
+Video generation is asynchronous. Poll every 10 seconds in typical integrations. Reference videos must be publicly reachable URLs and cannot be Base64; images can be public URLs, and small images can also use Base64 Data URLs.
+
+For reusable image, video, or audio references, upload the asset with `/api/assets/upload`, then pass the returned `asset://<asset_id>` in `image`, `metadata.video_url`, or `metadata.audio_url`.

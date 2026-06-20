@@ -1,0 +1,19 @@
+---
+title: Overview and Formats
+description: Seedance 2.0 supports both the official content format and ModelSell generic video format.
+---
+
+Seedance 2.0 uses asynchronous video tasks: create a task, poll by task ID, then read the result video from `content.video_url`.
+
+| Item | Value |
+| --- | --- |
+| Official create endpoint | `POST /api/v3/contents/generations/tasks` |
+| Official polling endpoint | `GET /api/v3/contents/generations/tasks/{task_id}` |
+| Generic video create endpoint | `POST /v1/video/generations` or `POST /v1/videos` |
+| Asset upload endpoint | `POST /api/assets/upload` |
+| Asset query endpoints | `GET /api/assets`, `GET /api/assets/{id}` |
+| Supported models | `doubao-seedance-2-0-260128`, `doubao-seedance-2-0-fast-260128` |
+
+Use the official format when you need exact `content[]` modality roles. Use the generic video format when your integration already targets `/v1/video/generations` or `/v1/videos`.
+
+For reusable image, video, or audio references, upload a URL asset with `/api/assets/upload`. After the asset becomes `Active`, pass it as `asset://<asset_id>` in either the official content format or the generic video format.

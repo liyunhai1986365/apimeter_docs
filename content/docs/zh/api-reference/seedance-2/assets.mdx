@@ -1,0 +1,135 @@
+---
+title: 素材上传与管理
+description: 使用 /api/assets/upload 上传图片、视频、音频素材，并在 Seedance 2.0 视频任务中通过 asset:// 引用。
+---
+
+Seedance 2.0 的图片、视频和音频参考素材可以先上传到素材库，再在视频生成请求中用 `asset://<asset_id>` 引用。素材接口统一使用用户 API Key 鉴权，适合需要复用素材、避免每次传公网 URL 的场景。
+
+## 接口
+
+| 操作 | Endpoint |
+| --- | --- |
+| 上传素材 | `POST /api/assets/upload` |
+| 查询素材列表 | `GET /api/assets` |
+| 查询素材详情 | `GET /api/assets/{id}` |
+| 删除素材 | `DELETE /api/assets/{id}` |
+
+## 上传规范
+
+素材上传只支持 URL，不支持 Base64。
+
+| 类型 | 支持格式 | 限制 |
+| --- | --- | --- |
+| `Image` | jpeg、png、webp、bmp、tiff、gif、heic、heif | 宽高比 0.4 到 2.5；宽或高 300 到 6000 px；小于 30MB |
+| `Video` | mp4、mov | 480p 或 720p；2 到 15 秒；宽高比 0.4 到 2.5；宽或高 300 到 6000 px；不超过 50MB；24 到 60 FPS |
+| `Audio` | wav、mp3 | 2 到 15 秒；不超过 15MB |
+
+## 上传素材
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/api/assets/upload" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/image.png",
+    "asset_type": "Image",
+    "name": "示例图片"
+  }'
+```
+
+成功后保存 `data.Id`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "Id": "asset-20260325152211-vcchd"
+  }
+}
+```
+
+## 查询素材列表
+
+```bash
+curl "$MODELSELL_BASE_URL/api/assets?page=1&page_size=20&statuses=Active&statuses=Processing" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+常用查询参数：
+
+| 参数 | 说明 |
+| --- | --- |
+| `page` | 页码，默认 `1` |
+| `page_size` | 每页数量，默认 `10` |
+| `name` | 按素材名称模糊搜索 |
+| `statuses` | 素材状态，可重复传参，例如 `statuses=Active&statuses=Processing` |
+| `sort_by` | 排序字段，默认 `UpdateTime` |
+| `sort_order` | 排序方向：`Asc` 或 `Desc`，默认 `Desc` |
+
+状态值：
+
+| 状态 | 说明 |
+| --- | --- |
+| `Active` | 素材上传成功，可正常使用 |
+| `Processing` | 素材处理中 |
+| `Failed` | 素材上传失败 |
+
+## 查询和删除
+
+```bash
+curl "$MODELSELL_BASE_URL/api/assets/asset-20260325152211-vcchd" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+```bash
+curl -X DELETE "$MODELSELL_BASE_URL/api/assets/asset-20260325152211-vcchd" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+详情响应中的 `Status` 为 `Active` 后，即可在视频生成请求里使用。
+
+## 在视频生成中引用素材
+
+官方 Seedance 2.0 `content[]` 格式：
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "让角色跳一段舞"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "asset://asset-20260325152211-vcchd"
+      },
+      "role": "reference_image"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+通用视频 `/v1/video/generations` 格式：
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "prompt": "让角色跳一段舞",
+  "image": "asset://asset-20260325152211-vcchd",
+  "duration": 5,
+  "size": "480p",
+  "metadata": {
+    "ratio": "16:9",
+    "watermark": false
+  }
+}
+```
+
+视频和音频素材也使用同样的 `asset://<asset_id>` 写法，分别放在 `metadata.video_url` 和 `metadata.audio_url` 中。

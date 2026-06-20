@@ -1,4 +1,7 @@
 import { apiSource } from '@/lib/api-source';
+import type { Locale } from '@/lib/i18n';
+import { source } from '@/lib/source';
+import { apiReferenceMdxSlugKey, apiReferenceMdxSlugs } from '@/lib/api-reference-mdx-pages';
 import { decodeRouteSlug } from '@/lib/route-slug';
 
 export function getApiReferencePage(slug?: string[] | string) {
@@ -11,4 +14,14 @@ export function getApiReferencePage(slug?: string[] | string) {
     .join('/')}`;
 
   return apiSource.getPages().find((page) => page.url === targetUrl);
+}
+
+export function getApiReferenceMdxPage(slug: string[] | string | undefined, locale: Locale) {
+  const decoded = decodeRouteSlug(slug);
+  const slugKey = apiReferenceMdxSlugKey(decoded);
+  const isKnownMdxSlug = apiReferenceMdxSlugs.some((mdxSlug) => apiReferenceMdxSlugKey([...mdxSlug]) === slugKey);
+
+  if (!isKnownMdxSlug) return undefined;
+
+  return source.getPage(['api-reference', ...slugKey.split('/')], locale);
 }

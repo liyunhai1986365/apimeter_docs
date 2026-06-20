@@ -1,0 +1,148 @@
+---
+title: 对接说明
+description: Suno 通过提交音乐或歌词任务，再轮询任务或接收回调获取歌曲、歌词、WAV 和时间线结果。
+---
+
+Suno 接口同样是异步任务模型：生成音乐接口只提交任务，不直接返回最终音频。提交成功后保存返回的任务 ID，再用 `/suno/fetch/{task_id}` 查询结果，或通过 `callback_url` 接收任务完成回调。
+
+| 场景 | 接口 | 说明 |
+| --- | --- | --- |
+| 生成音乐 | `POST /suno/submit/music` | 支持灵感模式、自定义歌词模式、纯音乐、续写和音轨分离 |
+| 生成歌词 | `POST /suno/submit/lyrics` | 根据提示词生成歌词任务 |
+| 查询单个任务 | `GET /suno/fetch/{task_id}` | 读取状态、进度、歌曲列表、歌词文本和元数据 |
+| 批量查询任务 | `POST /suno/fetch` | 一次刷新多个任务 ID |
+| 查询歌曲 | `GET /suno/feed/{clip_id}` | 按歌曲或音频片段 ID 查询歌曲详情 |
+| 获取 WAV | `GET /suno/act/wav/{clip_id}` | 获取 WAV 格式文件地址 |
+| 歌词时间线 | `GET /suno/act/timing/{clip_id}` | 获取歌词、音频时间线 |
+
+## 接入地址
+
+默认接口地址使用 Suno 原生风格：
+
+```text
+https://{BASE_URL}/suno/submit/music
+https://{BASE_URL}/suno/fetch
+```
+
+同时兼容 GoAmz 和 SunoAPI 风格：
+
+| 格式 | 前缀 |
+| --- | --- |
+| GoAmz | `{{BaseURL}}/suno/v1` |
+| GoAmz v3.5 | `{{BaseURL}}/suno/v1/mv-3.5` |
+| SunoAPI | `{{BaseURL}}/suno` |
+
+## 生成音乐
+
+`custom_mode` 决定生成模式。默认 `0` 表示灵感模式，传 `1` 表示自定义模式。灵感模式的 `prompt` 最多 200 字；自定义模式的 `prompt` 最多 3000 字，适合传入完整歌词。
+
+```bash
+curl --location 'https://api.modelsell.com/suno/submit/music' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "callback_url": "https://example.com/webhooks/suno",
+    "custom_mode": 1,
+    "make_instrumental": 0,
+    "prompt": "[Verse]\n风吹过 没有声音\n树影摇晃 像梦境\n\n[Chorus]\n漫长的季节啊 它多深情",
+    "mv": "chirp-v4",
+    "title": "漫长的季节",
+    "tags": "Trance, bass drop, female vocal",
+    "negative_tags": "dance pop"
+  }'
+```
+
+可能返回单个任务 ID，也可能返回两个任务对象。两种形态都需要保存并继续查询：
+
+```json
+{
+  "code": 200,
+  "msg": "成功",
+  "data": [
+    {
+      "task_id": "f9761a3e-b396-4060-a35b-a26bbce7ba9b",
+      "status": 1,
+      "title": "",
+      "prompt": "美女"
+    }
+  ],
+  "exec_time": 0.659346
+}
+```
+
+## 模型和关键字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `mv` | 模型版本，支持 `chirp-v4`、`chirp-v3-5`、`chirp-bluejay`、`chirp-auk`、`chirp-fenix`；其中 `chirp-fenix` 对应 Suno 5.5 / 最新版 |
+| `custom_mode` | 默认 `0` 为灵感模式，`1` 为自定义歌词模式 |
+| `make_instrumental` | 是否纯音乐，传 `1` 表示生成纯音乐 |
+| `prompt` | 灵感模式最多 200 字，自定义模式最多 3000 字；传入知名艺术家名称可能无法生成 |
+| `tags` | 风格标签，最多 120 字，可写曲风、乐器、人声和节奏 |
+| `negative_tags` | 排除风格或不希望出现的元素 |
+| `callback_url` | Webhook 回调 URL，任务完成后会以 POST 形式发送结果 |
+| `continue_clip_id` | 续写或音轨分离时使用的上一段官方 clip_id，也可传已有 task_id |
+| `continue_at` | 续写时间点，单位通常为秒 |
+| `metadata.control_sliders` | 高级控制参数，可包含 `style_weight`、`weirdness_constraint`、`audio_weight` |
+
+## 查询任务和读取结果
+
+任务查询返回状态和结果列表。成功后通常从 `data[].audio_url` 读取 MP3，从 `data[].image_url` 读取封面，从 `data[].metadata` 读取风格和提示词信息。
+
+```bash
+curl --location 'https://api.modelsell.com/suno/fetch/f9761a3e-b396-4060-a35b-a26bbce7ba9b' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```python
+import os
+import time
+import requests
+
+base_url = "https://api.modelsell.com"
+headers = {"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"}
+task_id = "f9761a3e-b396-4060-a35b-a26bbce7ba9b"
+
+while True:
+    resp = requests.get(f"{base_url}/suno/fetch/{task_id}", headers=headers, timeout=30)
+    resp.raise_for_status()
+    payload = resp.json()
+    task = payload.get("data", payload)
+
+    if task.get("status") == "SUCCESS":
+        for song in task.get("data", []):
+            print(song.get("title"), song.get("audio_url"))
+        break
+
+    if task.get("status") == "FAILURE":
+        raise RuntimeError(task.get("fail_reason") or "Suno task failed")
+
+    time.sleep(5)
+```
+
+## 生成歌词、WAV 和时间线
+
+歌词生成适合先产出歌词，再把歌词作为 `prompt` 传给音乐生成接口。
+
+```bash
+curl --location 'https://api.modelsell.com/suno/submit/lyrics' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"prompt":"dance"}'
+```
+
+音乐任务成功后，可以用歌曲 ID 继续获取 WAV 或时间线：
+
+```bash
+curl --location 'https://api.modelsell.com/suno/act/wav/90f72668-ba0d-4fa7-95e6-f71bebda88b7' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```bash
+curl --location 'https://api.modelsell.com/suno/act/timing/90f72668-ba0d-4fa7-95e6-f71bebda88b7' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+## 对接建议
+
+服务端建议统一保存 `task_id`、歌曲 `clip_id`、提交参数、状态、音频 URL、封面 URL 和失败原因。前端展示时应把提交成功、生成中、生成成功、生成失败拆成不同状态；如果业务需要稳定交付，优先用服务端轮询或 Webhook 落库，再把结果推送给前端。

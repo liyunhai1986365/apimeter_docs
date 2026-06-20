@@ -1,0 +1,24 @@
+---
+title: Generation Mode Examples
+description: Official Seedance 2.0 content combinations for text, image, video, and audio references.
+---
+
+Seedance 2.0 official requests use `content[]` to combine text, image, video, and audio inputs. Use `reference_image`, `reference_video`, and `reference_audio` for media roles.
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "A golden Shiba Inu runs under cherry blossoms as the camera slowly rises"
+    }
+  ],
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 5,
+  "watermark": false
+}
+```
+
+For image, video, and audio references, add `image_url`, `video_url`, and `audio_url` content items with the matching role.

@@ -1,0 +1,125 @@
+---
+title: Integration Guide
+description: "Midjourney uses an async task flow: submit a task, poll the result, then submit follow-up actions such as upscale, variation, or inpainting."
+---
+
+Midjourney APIs are asynchronous. Submit a task first, store the task ID from `result`, then poll the task endpoint for progress, generated media, and available action buttons. Pass `notifyHook` if you want webhook delivery; otherwise poll from your backend.
+
+| Step | Endpoint | Notes |
+| --- | --- | --- |
+| Submit imagine | `POST /mj/submit/imagine` | Text-to-image entry point. `prompt` can include Midjourney flags such as `--v`, `--ar`, and `--fast` |
+| Fast/relax submit | `mj-fast/mj/submit/imagine`, `mj-relax/mj/submit/imagine` | Compatible fast and relaxed prefixes |
+| Fetch task | `GET /mj/task/{task_id}/fetch` | Reads status, progress, image URL, video URL, buttons, and failure reason |
+| Batch fetch | `POST /mj/task/list-by-condition` | Refreshes multiple task IDs at once |
+| Submit action | `POST /mj/submit/action` | Uses a returned `customId` for U/V/Reroll, Zoom, Inpaint, and other actions |
+| Submit modal | `POST /mj/submit/modal` | Sends the inpainting prompt and `maskBase64` after an Inpaint action |
+
+## Submit An Imagine Task
+
+The minimal request only needs `prompt`. Keep `state` when possible so your order ID, user ID, or session ID can be carried through task records and webhooks.
+
+```bash
+curl --location 'https://api.modelsell.com/mj/submit/imagine' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "state": "order_10086",
+    "notifyHook": "https://example.com/webhooks/mj",
+    "botType": "MID_JOURNEY",
+    "prompt": "a cinematic city skyline at sunrise --v 6.1 --ar 16:9",
+    "base64Array": [],
+    "accountFilter": {}
+  }'
+```
+
+`result` is the task ID used for polling and follow-up actions:
+
+```json
+{
+  "code": 1,
+  "description": "提交成功",
+  "result": "1754413313273733",
+  "properties": {
+    "discordInstanceId": "44d5a7937f2a4144",
+    "discordChannelId": "44d5a7937f2a4144"
+  }
+}
+```
+
+## Poll The Result
+
+Tasks do not finish synchronously. Poll every 3 to 5 seconds until `status` becomes `SUCCESS` or `FAILURE`. When successful, read `imageUrl`; when `buttons` are present, their `customId` values can be used for upscale, variation, and inpainting actions.
+
+```bash
+curl --location 'https://api.modelsell.com/mj/task/1754413313273733/fetch' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY'
+```
+
+```python
+import os
+import time
+import requests
+
+base_url = "https://api.modelsell.com"
+headers = {"Authorization": f"Bearer {os.environ['MODELSELL_API_KEY']}"}
+task_id = "1754413313273733"
+
+while True:
+    resp = requests.get(f"{base_url}/mj/task/{task_id}/fetch", headers=headers, timeout=30)
+    resp.raise_for_status()
+    task = resp.json()
+
+    if task.get("status") == "SUCCESS":
+        print("image:", task.get("imageUrl"))
+        break
+
+    if task.get("status") == "FAILURE":
+        raise RuntimeError(task.get("failReason") or task.get("description") or "Midjourney task failed")
+
+    time.sleep(4)
+```
+
+## Upscale, Variation, And Inpainting
+
+Task results can include button data with action `customId` values. Common actions include U upscale, V variation, Reroll, Zoom, and Inpaint. Submit the original `taskId` together with the button `customId`:
+
+```bash
+curl --location 'https://api.modelsell.com/mj/submit/action' \
+  --header 'Authorization: Bearer $MODELSELL_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "state": "order_10086_upscale_1",
+    "notifyHook": "https://example.com/webhooks/mj",
+    "taskId": "1754413313273733",
+    "customId": "MJ::JOB::upsample::1::68923902a083468cc96dd7eb"
+  }'
+```
+
+Inpainting is usually a two-step flow: submit the Inpaint action first, then send the new prompt and `maskBase64` to `/mj/submit/modal`.
+
+```json
+{
+  "state": "order_10086_inpaint",
+  "notifyHook": "https://example.com/webhooks/mj",
+  "taskId": "1754413925342220",
+  "prompt": "replace the sky with dramatic golden clouds",
+  "maskBase64": "data:image/png;base64,BASE64_MASK_IMAGE"
+}
+```
+
+## Field Reference
+
+| Field | Usage |
+| --- | --- |
+| `prompt` | Midjourney prompt, optionally with flags like `--v 6.1`, `--ar 1:1`, `--fast`, and `--relax` |
+| `base64Array` | Base64 Data URL reference images |
+| `botType` | Bot type, commonly `MID_JOURNEY` |
+| `state` | Custom state carried through task records and webhooks |
+| `notifyHook` | Webhook URL called after task completion |
+| `accountFilter` | Optional upstream account filter, usually empty |
+| `customId` | Action ID returned from task buttons, used for U/V/Reroll and similar actions |
+| `maskBase64` | Base64 Data URL mask for inpainting |
+
+## Integration Tips
+
+Persist `task_id`, business order ID, submit payload, and current status on your backend. The frontend should not expect the submit endpoint to return an image immediately; show queued or generating states and update by polling or webhook. On failures, surface `failReason` or `description` and let users adjust the prompt before retrying.

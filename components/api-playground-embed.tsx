@@ -21,11 +21,6 @@ export function ApiPlaygroundEmbed({ href, title }: ApiPlaygroundEmbedProps) {
         <p className="text-sm font-medium text-fd-foreground">
           {title ?? page.data.title}
         </p>
-        {page.data.description ? (
-          <p className="mt-1 text-sm text-fd-muted-foreground">
-            {page.data.description}
-          </p>
-        ) : null}
       </div>
       <div className="p-3 md:p-4">
         <APIPage {...page.data.getAPIPageProps()} />

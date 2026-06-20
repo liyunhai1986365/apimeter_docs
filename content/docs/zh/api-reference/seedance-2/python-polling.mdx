@@ -1,0 +1,90 @@
+---
+title: Python 轮询与下载
+description: 使用 Python 创建 Seedance 2.0 任务、轮询状态并下载结果视频。
+---
+
+Seedance 2.0 是异步任务接口。建议按固定间隔轮询任务状态，常见生成耗时为数分钟；示例中使用 10 秒轮询间隔。
+
+```bash
+pip install requests
+```
+
+```python
+import os
+import time
+import requests
+
+BASE_URL = "https://api.modelsell.com"
+API_KEY = os.environ["MODELSELL_API_KEY"]
+MODEL = "doubao-seedance-2-0-260128"
+
+
+def create_task(prompt: str) -> str:
+    response = requests.post(
+        f"{BASE_URL}/api/v3/contents/generations/tasks",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": MODEL,
+            "content": [
+                {
+                    "type": "text",
+                    "text": prompt,
+                }
+            ],
+            "resolution": "480p",
+            "ratio": "16:9",
+            "duration": 5,
+            "generate_audio": True,
+            "watermark": False,
+        },
+        timeout=180,
+    )
+    response.raise_for_status()
+    return response.json()["id"]
+
+
+def wait_for_result(task_id: str, max_wait: int = 600, interval: int = 10) -> str:
+    elapsed = 0
+    while elapsed < max_wait:
+        time.sleep(interval)
+        elapsed += interval
+
+        response = requests.get(
+            f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            timeout=60,
+        )
+        response.raise_for_status()
+        data = response.json()
+        status = data.get("status")
+        print(f"[{elapsed}s] status={status}")
+
+        if status == "succeeded":
+            return data["content"]["video_url"]
+        if status == "failed":
+            error = data.get("error") or {}
+            raise RuntimeError(error.get("message", "视频生成失败"))
+
+    raise TimeoutError(f"任务超时: {task_id}")
+
+
+def download_video(video_url: str, save_path: str) -> None:
+    response = requests.get(video_url, stream=True, timeout=120)
+    response.raise_for_status()
+
+    with open(save_path, "wb") as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                file.write(chunk)
+
+
+if __name__ == "__main__":
+    task_id = create_task("一只金色柴犬在樱花树下奔跑，镜头缓缓上升")
+    video_url = wait_for_result(task_id)
+    download_video(video_url, "seedance-output.mp4")
+```
+
+查询结果中 `content.video_url` 通常具有时效性，生产环境建议获取后立即转存到自己的对象存储。
