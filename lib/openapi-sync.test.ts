@@ -44,14 +44,11 @@ describe('modelsell OpenAPI sync', () => {
       '/api/v3/contents/generations/tasks:',
       '/api/v3/contents/generations/tasks/{task_id}:',
       '/api/assets/upload:',
-      '/api/assets:',
       '/api/assets/{id}:',
       'operationId: createSeedance2VideoTask',
       'operationId: getSeedance2VideoTask',
       'operationId: uploadSeedanceAsset',
-      'operationId: listSeedanceAssets',
       'operationId: getSeedanceAsset',
-      'operationId: deleteSeedanceAsset',
       'Seedance 2.0 时，通用字段会转换为官方 `content[]` 格式',
       '/api/log/self/stat:',
       '/api/log/token:',
@@ -267,8 +264,6 @@ describe('modelsell OpenAPI sync', () => {
       'doubao-seedance-2-0-fast-260128',
       'asset://<asset_id>',
       'SeedanceAssetUploadRequest:',
-      'SeedanceAssetListResponse:',
-      'SeedanceAssetDeleteResponse:',
     ];
 
     for (const snippet of requiredSnippets) {

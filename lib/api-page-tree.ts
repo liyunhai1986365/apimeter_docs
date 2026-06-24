@@ -201,15 +201,11 @@ const apiMenuGroups: ApiMenuGroup[] = [
             title: { zh: '素材管理', en: 'Assets' },
             operationIds: [
               'uploadSeedanceAsset',
-              'listSeedanceAssets',
               'getSeedanceAsset',
-              'deleteSeedanceAsset',
             ],
             pageTitles: {
               uploadSeedanceAsset: { zh: '上传素材', en: 'Upload Asset' },
-              listSeedanceAssets: { zh: '查询素材列表', en: 'List Assets' },
               getSeedanceAsset: { zh: '查询素材详情', en: 'Get Asset' },
-              deleteSeedanceAsset: { zh: '删除素材', en: 'Delete Asset' },
             },
           },
         ],

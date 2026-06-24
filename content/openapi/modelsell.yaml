@@ -1046,9 +1046,19 @@ paths:
       operationId: uploadSeedanceAsset
       summary: 上传 Seedance 2.0 素材
       description: |
-        上传图片、视频或音频素材到当前用户素材库。该接口只接受公网 URL，不支持 Base64；上传成功后可在 Seedance 2.0 官方 `content[]` 格式或 `/v1/video/generations` 通用视频格式中使用 `asset://<asset_id>` 引用。
+        上传图片、视频或音频素材到当前用户素材库。素材上传接口同时支持国内版本和海外版本模型：国内版本模型不需要传入 `model` 查询参数；海外版本 `dreamina-seedance-2-0-fast-260128` 需要在请求地址添加 `?model=dreamina-seedance-2-0-fast-260128`，系统会选择对应的海外版本素材渠道。
+
+        该接口只接受公网 URL，不支持 Base64；上传成功后可在 Seedance 2.0 官方 `content[]` 格式或 `/v1/video/generations` 通用视频格式中使用 `asset://<asset_id>` 引用。
       tags:
         - 视频系列
+      parameters:
+        - name: model
+          in: query
+          required: false
+          description: 指定用于选择素材上传渠道的模型 ID。上传 `dreamina-seedance-2-0-fast-260128` 海外版本素材时传入该参数。
+          schema:
+            type: string
+          example: dreamina-seedance-2-0-fast-260128
       requestBody:
         required: true
         content:
@@ -1056,8 +1066,16 @@ paths:
             schema:
               $ref: '#/components/schemas/SeedanceAssetUploadRequest'
             examples:
-              image:
-                summary: 上传图片素材
+              domesticImage:
+                summary: 国内版本模型上传图片素材
+                description: 请求地址使用 `/api/assets/upload`，不需要传入 `model` 查询参数。
+                value:
+                  url: https://example.com/image.png
+                  asset_type: Image
+                  name: 示例图片
+              overseasImage:
+                summary: 海外版本模型上传图片素材
+                description: 请求地址使用 `/api/assets/upload?model=dreamina-seedance-2-0-fast-260128`。
                 value:
                   url: https://example.com/image.png
                   asset_type: Image
@@ -1090,87 +1108,23 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /api/assets:
-    get:
-      operationId: listSeedanceAssets
-      summary: 查询 Seedance 2.0 素材列表
-      description: 分页查询当前用户素材组下的素材列表，支持按名称搜索、状态过滤和排序。
-      tags:
-        - 视频系列
-      parameters:
-        - name: page
-          in: query
-          required: false
-          description: 页码，默认 1。
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          required: false
-          description: 每页数量，默认 10。
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-        - name: name
-          in: query
-          required: false
-          description: 按素材名称模糊搜索。
-          schema:
-            type: string
-        - name: statuses
-          in: query
-          required: false
-          description: 素材状态，可重复传参，例如 `statuses=Active&statuses=Processing`。
-          explode: true
-          schema:
-            type: array
-            items:
-              type: string
-              enum:
-                - Active
-                - Processing
-                - Failed
-            default:
-              - Active
-        - name: sort_by
-          in: query
-          required: false
-          description: 排序字段，默认 `UpdateTime`。
-          schema:
-            type: string
-            default: UpdateTime
-        - name: sort_order
-          in: query
-          required: false
-          description: 排序方向。
-          schema:
-            type: string
-            enum:
-              - Asc
-              - Desc
-            default: Desc
-      responses:
-        '200':
-          description: 素材列表响应。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SeedanceAssetListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
   /api/assets/{id}:
     get:
       operationId: getSeedanceAsset
       summary: 查询 Seedance 2.0 素材详情
-      description: 根据素材 ID 查询单个素材详情。
+      description: |
+        根据素材 ID 查询单个素材详情。素材状态为 `Active` 后，可在视频生成请求中使用 `asset://<asset_id>` 引用。
       tags:
         - 视频系列
       parameters:
         - $ref: '#/components/parameters/SeedanceAssetId'
+        - name: model
+          in: query
+          required: false
+          description: 指定用于选择素材详情查询渠道的模型 ID。查询 `dreamina-seedance-2-0-fast-260128` 海外版本素材时传入该参数。
+          schema:
+            type: string
+          example: dreamina-seedance-2-0-fast-260128
       responses:
         '200':
           description: 素材详情响应。
@@ -1178,28 +1132,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SeedanceAssetResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      operationId: deleteSeedanceAsset
-      summary: 删除 Seedance 2.0 素材
-      description: 删除指定素材。删除后不可恢复，请谨慎操作。
-      tags:
-        - 视频系列
-      parameters:
-        - $ref: '#/components/parameters/SeedanceAssetId'
-      responses:
-        '200':
-          description: 素材删除响应。
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SeedanceAssetDeleteResponse'
               example:
                 code: 0
                 message: ok
+                data:
+                  AssetType: Image
+                  CreateTime: '2026-03-25T15:22:11Z'
+                  GroupId: group-20260324135506-xxxxx
+                  Id: asset-20260325152211-vcchd
+                  Name: 示例图片
+                  ProjectName: default
+                  Status: Active
+                  URL: https://example.com/image.png
+                  UpdateTime: '2026-03-25T15:22:11Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -4445,50 +4390,6 @@ components:
           example: ok
         data:
           $ref: '#/components/schemas/SeedanceAsset'
-    SeedanceAssetListResponse:
-      type: object
-      description: Seedance 2.0 素材列表响应。
-      properties:
-        code:
-          type: integer
-          description: 业务状态码，0 表示成功。
-          example: 0
-        message:
-          type: string
-          description: 响应消息。
-          example: ok
-        data:
-          type: object
-          properties:
-            Items:
-              type: array
-              description: 素材列表。
-              items:
-                $ref: '#/components/schemas/SeedanceAsset'
-            PageNumber:
-              type: integer
-              description: 当前页码。
-              example: 1
-            PageSize:
-              type: integer
-              description: 每页数量。
-              example: 10
-            TotalCount:
-              type: integer
-              description: 素材总数。
-              example: 1
-    SeedanceAssetDeleteResponse:
-      type: object
-      description: Seedance 2.0 素材删除响应。
-      properties:
-        code:
-          type: integer
-          description: 业务状态码，0 表示成功。
-          example: 0
-        message:
-          type: string
-          description: 响应消息。
-          example: ok
     SeedanceAsset:
       type: object
       description: Seedance 2.0 素材对象。

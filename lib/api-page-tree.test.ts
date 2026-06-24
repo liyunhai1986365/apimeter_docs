@@ -41,9 +41,7 @@ describe('getLocalizedApiPageTree', () => {
         page('Seedance 2.0 视频生成', 'createSeedance2VideoTask'),
         page('查询 Seedance 2.0 视频任务', 'getSeedance2VideoTask'),
         page('上传 Seedance 2.0 素材', 'uploadSeedanceAsset'),
-        page('查询 Seedance 2.0 素材列表', 'listSeedanceAssets'),
         page('查询 Seedance 2.0 素材详情', 'getSeedanceAsset'),
-        page('删除 Seedance 2.0 素材', 'deleteSeedanceAsset'),
         page('Kling 文生视频', 'createKlingText2Video'),
         page('获取 Kling 文生视频任务状态', 'getKlingText2Video'),
         page('Kling 图生视频', 'createKlingImage2Video'),
@@ -271,18 +269,8 @@ describe('getLocalizedApiPageTree', () => {
                 },
                 {
                   type: 'page',
-                  name: '查询素材列表',
-                  url: '/zh/docs/api-reference/listSeedanceAssets',
-                },
-                {
-                  type: 'page',
                   name: '查询素材详情',
                   url: '/zh/docs/api-reference/getSeedanceAsset',
-                },
-                {
-                  type: 'page',
-                  name: '删除素材',
-                  url: '/zh/docs/api-reference/deleteSeedanceAsset',
                 },
               ],
             },

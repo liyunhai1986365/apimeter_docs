@@ -11,7 +11,7 @@ Seedance 2.0 uses asynchronous video tasks: create a task, poll by task ID, then
 | Official polling endpoint | `GET /api/v3/contents/generations/tasks/{task_id}` |
 | Generic video create endpoint | `POST /v1/video/generations` or `POST /v1/videos` |
 | Asset upload endpoint | `POST /api/assets/upload` |
-| Asset query endpoints | `GET /api/assets`, `GET /api/assets/{id}` |
+| Asset detail endpoint | `GET /api/assets/{id}` |
 | Supported models | `doubao-seedance-2-0-260128`, `doubao-seedance-2-0-fast-260128` |
 
 Use the official format when you need exact `content[]` modality roles. Use the generic video format when your integration already targets `/v1/video/generations` or `/v1/videos`.
