@@ -1,0 +1,87 @@
+---
+title: Grok 视频生成
+description: 使用 /v1/videos 提交 Grok 视频生成任务，并通过任务 ID 查询结果。
+---
+
+Grok 视频生成走 OpenAI 兼容的 `/v1/videos` 异步任务接口。提交成功后保存返回的 `id`，再通过 `GET /v1/videos/{task_id}` 查询进度和 `video_url`。
+
+| 能力 | 接口 |
+| --- | --- |
+| 创建任务 | `POST /v1/videos` |
+| 查询任务 | `GET /v1/videos/{task_id}` |
+| 支持模型 | `grok-imagine-video`, `grok-imagine-video-1.5-preview` |
+
+## 文生视频
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -F "model=grok-imagine-video" \
+  -F "prompt=在广场中央跳舞" \
+  -F "aspect_ratio=16:9" \
+  -F "video_length=6" \
+  -F "resolution_name=480p" \
+  -F "preset=fun"
+```
+
+响应会返回异步任务对象：
+
+```json
+{
+  "id": "video_55c77134-3fbe-4d5d-839f-c9af4556405b",
+  "object": "video",
+  "model": "grok-imagine-video",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1762600200,
+  "seconds": "6",
+  "size": "480p"
+}
+```
+
+## 图片参考
+
+需要上传图片文件时使用 `input_reference`：
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -F "model=grok-imagine-video-1.5-preview" \
+  -F "prompt=让图片中的人物向镜头挥手" \
+  -F "aspect_ratio=9:16" \
+  -F "video_length=10" \
+  -F "resolution_name=720p" \
+  -F "preset=normal" \
+  -F "input_reference=@/path/to/reference.png"
+```
+
+如果业务侧已经拿到 Base64 图片，也可以用 `image` 传单图，或用 `images` 传多图数组。多图数组适合在 JSON 客户端中构造请求；文件上传场景优先使用 `input_reference`。
+
+## 查询结果
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/videos/video_55c77134-3fbe-4d5d-839f-c9af4556405b" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+生成完成后读取 `video_url`：
+
+```json
+{
+  "id": "video_55c77134-3fbe-4d5d-839f-c9af4556405b",
+  "object": "video",
+  "model": "grok-imagine-video",
+  "status": "completed",
+  "progress": 100,
+  "created_at": 1762600200,
+  "completed_at": 1762600260,
+  "expires_at": 1762686660,
+  "seconds": "6",
+  "size": "480p",
+  "remixed_from_video_id": "",
+  "error": null,
+  "video_url": "https://example.com/result.mp4"
+}
+```
+
+建议客户端按固定间隔轮询。`status` 为失败状态时读取 `error.message` 和 `error.code`，生成成功后及时下载或转存 `video_url`。

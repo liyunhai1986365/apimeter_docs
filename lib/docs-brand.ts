@@ -15,6 +15,15 @@ export type DocsBrand = {
   publicOrigin: string;
 };
 
+export function isOfficialDocsBrand(brand: DocsBrand): boolean {
+  return brand.name === 'ModelSell';
+}
+
+export function isAgentAppsSlug(slug?: string[] | string): boolean {
+  const parts = Array.isArray(slug) ? slug : slug ? [slug] : [];
+  return parts[0] === 'apps';
+}
+
 export function getDocsBrandFromOrigin(origin?: string | null): DocsBrand {
   const publicOrigin = normalizePublicOrigin(origin) ?? getConfiguredPublicOrigin();
   const host = new URL(publicOrigin).host;
@@ -39,4 +48,3 @@ export function brandText(text: string, brand: DocsBrand) {
 
   return text.replace(/ModelSell(?! CLI)/g, brand.name);
 }
-

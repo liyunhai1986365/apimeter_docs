@@ -41,6 +41,10 @@ describe('modelsell OpenAPI sync', () => {
       '/v1/videos:',
       '/v1/videos/{task_id}:',
       '/v1/videos/{task_id}/content:',
+      'operationId: createOpenAIVideo',
+      'operationId: getOpenAIVideo',
+      'grok-imagine-video',
+      'grok-imagine-video-1.5-preview',
       '/api/v3/contents/generations/tasks:',
       '/api/v3/contents/generations/tasks/{task_id}:',
       '/api/assets/upload:',
@@ -264,6 +268,24 @@ describe('modelsell OpenAPI sync', () => {
       'doubao-seedance-2-0-fast-260128',
       'asset://<asset_id>',
       'SeedanceAssetUploadRequest:',
+    ];
+
+    for (const snippet of requiredSnippets) {
+      expect(openApiText).toContain(snippet);
+    }
+  });
+
+  it('documents Grok video generation through the OpenAI-compatible video endpoint', () => {
+    const requiredSnippets = [
+      'Grok 视频生成',
+      'grok-imagine-video',
+      'grok-imagine-video-1.5-preview',
+      'multipart/form-data:',
+      'input_reference:',
+      'resolution_name:',
+      '风格预设 `fun`, `normal`, `spicy`, `custom`',
+      'video_length:',
+      'video_url:',
     ];
 
     for (const snippet of requiredSnippets) {

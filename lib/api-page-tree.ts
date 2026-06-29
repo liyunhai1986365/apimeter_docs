@@ -143,6 +143,21 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
+        title: { zh: 'Grok 视频', en: 'Grok Video' },
+        items: [
+          {
+            title: { zh: 'Grok 视频生成', en: 'Grok Video Generation' },
+            visibleWhenOperationIds: ['createOpenAIVideo'],
+            pages: [
+              {
+                title: { zh: 'Grok 视频生成', en: 'Grok Video Generation' },
+                href: '/docs/api-reference/grok/video-generation',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'Seedance 2.0', en: 'Seedance 2.0' },
         items: [
           {

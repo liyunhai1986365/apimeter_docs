@@ -1,0 +1,87 @@
+---
+title: Grok Video Generation
+description: Submit Grok video generation tasks with /v1/videos, then poll by task ID.
+---
+
+Grok video generation uses the OpenAI-compatible async `/v1/videos` endpoint. Store the returned `id`, then call `GET /v1/videos/{task_id}` to read progress and `video_url`.
+
+| Capability | Endpoint |
+| --- | --- |
+| Create task | `POST /v1/videos` |
+| Poll task | `GET /v1/videos/{task_id}` |
+| Models | `grok-imagine-video`, `grok-imagine-video-1.5-preview` |
+
+## Text to Video
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -F "model=grok-imagine-video" \
+  -F "prompt=A person dancing in the center of a plaza" \
+  -F "aspect_ratio=16:9" \
+  -F "video_length=6" \
+  -F "resolution_name=480p" \
+  -F "preset=fun"
+```
+
+The response is an async task object:
+
+```json
+{
+  "id": "video_55c77134-3fbe-4d5d-839f-c9af4556405b",
+  "object": "video",
+  "model": "grok-imagine-video",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1762600200,
+  "seconds": "6",
+  "size": "480p"
+}
+```
+
+## Image Reference
+
+Use `input_reference` when uploading an image file:
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -F "model=grok-imagine-video-1.5-preview" \
+  -F "prompt=Make the person in the image wave at the camera" \
+  -F "aspect_ratio=9:16" \
+  -F "video_length=10" \
+  -F "resolution_name=720p" \
+  -F "preset=normal" \
+  -F "input_reference=@/path/to/reference.png"
+```
+
+If your application already has Base64 images, pass one image with `image` or multiple images with `images`. Prefer `input_reference` for direct file upload flows.
+
+## Poll Result
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/videos/video_55c77134-3fbe-4d5d-839f-c9af4556405b" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+When the task is complete, read `video_url`:
+
+```json
+{
+  "id": "video_55c77134-3fbe-4d5d-839f-c9af4556405b",
+  "object": "video",
+  "model": "grok-imagine-video",
+  "status": "completed",
+  "progress": 100,
+  "created_at": 1762600200,
+  "completed_at": 1762600260,
+  "expires_at": 1762686660,
+  "seconds": "6",
+  "size": "480p",
+  "remixed_from_video_id": "",
+  "error": null,
+  "video_url": "https://example.com/result.mp4"
+}
+```
+
+Poll at a fixed interval. If `status` indicates failure, read `error.message` and `error.code`. After success, download or store `video_url` promptly.

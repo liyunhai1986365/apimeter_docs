@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createElement, isValidElement } from 'react';
-import { brandPageTree } from '@/lib/page-tree-brand';
+import { brandPageTree, getBrandedPageTree } from '@/lib/page-tree-brand';
 
 describe('page tree brand helper', () => {
   it('replaces ModelSell in nested page tree labels', () => {
@@ -58,5 +58,67 @@ describe('page tree brand helper', () => {
     expect(brandedTree.name).toBe('欢迎使用 aiiqq.com');
     expect(brandedTree.icon).toBe(icon);
     expect(isValidElement(brandedTree.icon)).toBe(true);
+  });
+
+  it('hides the agent apps docs branch for proxy domains', () => {
+    const tree = {
+      type: 'root',
+      name: '',
+      children: [
+        {
+          type: 'page',
+          name: '欢迎使用 ModelSell',
+          url: '/zh/docs',
+        },
+        {
+          type: 'folder',
+          name: 'Agent 工具',
+          url: '/zh/docs/apps',
+          children: [
+            {
+              type: 'page',
+              name: 'ModelSell CLI',
+              url: '/zh/docs/apps/modelsell-cli',
+            },
+          ],
+        },
+        {
+          type: 'separator',
+          name: 'API 参考',
+        },
+      ],
+    };
+
+    expect(
+      getBrandedPageTree(tree, {
+        name: 'ModelSell',
+        publicOrigin: 'https://modelsell.com',
+      }),
+    ).toMatchObject({
+      children: expect.arrayContaining([
+        expect.objectContaining({ url: '/zh/docs/apps' }),
+      ]),
+    });
+
+    expect(
+      getBrandedPageTree(tree, {
+        name: 'aiiqq.com',
+        publicOrigin: 'https://aiiqq.com',
+      }),
+    ).toEqual({
+      type: 'root',
+      name: '',
+      children: [
+        {
+          type: 'page',
+          name: '欢迎使用 aiiqq.com',
+          url: '/zh/docs',
+        },
+        {
+          type: 'separator',
+          name: 'API 参考',
+        },
+      ],
+    });
   });
 });

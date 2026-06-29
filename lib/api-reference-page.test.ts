@@ -13,11 +13,15 @@ describe('API reference MDX pages', () => {
       ['midjourney', 'integration'],
       ['suno', 'integration'],
       ['seedance-2', 'overview'],
+      ['seedance-2', 'assets'],
+      ['seedance-2', 'generic-video'],
       ['seedance-2', 'modes'],
       ['seedance-2', 'python-polling'],
+      ['grok', 'video-generation'],
     ]);
     expect(apiReferenceMdxSlugKey(['seedance-2', 'overview'])).toBe('seedance-2/overview');
     expect(getApiReferenceMdxTitle(['seedance-2', 'modes'], 'zh')).toBe('生成模式示例');
+    expect(getApiReferenceMdxTitle(['grok', 'video-generation'], 'zh')).toBe('Grok 视频生成');
     expect(getApiReferenceMdxTitle(['midjourney', 'integration'], 'zh')).toBe('对接说明');
     expect(getApiReferenceMdxTitle(['suno', 'integration'], 'en')).toBe('Integration Guide');
   });

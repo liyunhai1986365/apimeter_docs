@@ -6,6 +6,7 @@ export const seedance2ApiReferenceMdxSlugs = [
   ['seedance-2', 'generic-video'],
   ['seedance-2', 'modes'],
   ['seedance-2', 'python-polling'],
+  ['grok', 'video-generation'],
 ] as const;
 
 export const apiReferenceMdxSlugs = [
@@ -42,6 +43,10 @@ const titles: Record<string, Record<Locale, string>> = {
   'seedance-2/python-polling': {
     en: 'Python Polling and Download',
     zh: 'Python 轮询与下载',
+  },
+  'grok/video-generation': {
+    en: 'Grok Video Generation',
+    zh: 'Grok 视频生成',
   },
 };
 

@@ -225,6 +225,17 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
+              name: 'Grok 视频',
+              children: [
+                {
+                  type: 'page',
+                  name: 'Grok 视频生成',
+                  url: '/zh/docs/api-reference/grok/video-generation',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'Seedance 2.0',
               children: [
                 {

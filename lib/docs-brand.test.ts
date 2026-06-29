@@ -3,6 +3,8 @@ import {
   brandText,
   getDocsBrandFromHeaders,
   getDocsBrandFromOrigin,
+  isAgentAppsSlug,
+  isOfficialDocsBrand,
 } from '@/lib/docs-brand';
 
 describe('docs brand helpers', () => {
@@ -22,6 +24,25 @@ describe('docs brand helpers', () => {
       name: 'aiiqq.com',
       publicOrigin: 'https://aiiqq.com',
     });
+  });
+
+  it('identifies official docs brands and agent apps slugs', () => {
+    expect(
+      isOfficialDocsBrand({
+        name: 'ModelSell',
+        publicOrigin: 'https://modelsell.com',
+      }),
+    ).toBe(true);
+    expect(
+      isOfficialDocsBrand({
+        name: 'aiiqq.com',
+        publicOrigin: 'https://aiiqq.com',
+      }),
+    ).toBe(false);
+    expect(isAgentAppsSlug(['apps'])).toBe(true);
+    expect(isAgentAppsSlug(['apps', 'modelsell-cli'])).toBe(true);
+    expect(isAgentAppsSlug(['api-reference'])).toBe(false);
+    expect(isAgentAppsSlug()).toBe(false);
   });
 
   it('derives proxy brand from forwarded request headers', () => {
@@ -48,4 +69,3 @@ describe('docs brand helpers', () => {
     );
   });
 });
-

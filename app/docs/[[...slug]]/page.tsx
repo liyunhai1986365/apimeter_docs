@@ -6,7 +6,12 @@ import { ApiPlaygroundEmbed } from '@/components/api-playground-embed';
 import { defaultLocale } from '@/lib/i18n';
 import { getBrandedMdxComponents } from '@/lib/brand-mdx-components';
 import { headers } from 'next/headers';
-import { getDocsBrandFromHeaders, brandText } from '@/lib/docs-brand';
+import {
+  brandText,
+  getDocsBrandFromHeaders,
+  isAgentAppsSlug,
+  isOfficialDocsBrand,
+} from '@/lib/docs-brand';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -20,6 +25,7 @@ export default async function Page(props: {
     new Headers(requestHeaders),
     `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
   );
+  if (isAgentAppsSlug(params.slug) && !isOfficialDocsBrand(brand)) notFound();
 
   const MDX = page.data.body;
 
@@ -59,6 +65,7 @@ export async function generateMetadata(props: {
     new Headers(requestHeaders),
     `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
   );
+  if (isAgentAppsSlug(params.slug) && !isOfficialDocsBrand(brand)) notFound();
 
   return {
     title: brandText(page.data.title, brand),

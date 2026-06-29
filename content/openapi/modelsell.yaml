@@ -16,7 +16,7 @@ tags:
   - name: 图片系列
     description: OpenAI Images 兼容生成/编辑、Gemini 原生图像和图片异步任务查询接口。
   - name: 视频系列
-    description: OpenAI 兼容视频、通用视频、Kling、即梦等视频生成、任务查询和内容下载接口。
+    description: OpenAI 兼容视频、通用视频、Grok、Kling、即梦等视频生成、任务查询和内容下载接口。
   - name: AI 模型 - 音频
     description: OpenAI Audio 兼容的音频转录、音频翻译、文本转语音，以及 Suno 音乐生成、歌词生成、任务查询和音频素材接口。
   - name: AI 模型 - 重排序
@@ -786,6 +786,8 @@ paths:
       summary: OpenAI 兼容视频生成
       description: |
         通过 OpenAI 兼容的 `/v1/videos` 接口创建视频生成任务，适用于 PixVerse、Veo、Seedance 等兼容提供商。
+
+        Grok 视频生成也使用该接口，模型可选 `grok-imagine-video` 或 `grok-imagine-video-1.5-preview`。Grok 支持 `multipart/form-data`，可传 `input_reference` 文件，也可通过 `image` 或 `images` 传 Base64 图片参考。
       tags:
         - 视频系列
       requestBody:
@@ -821,6 +823,28 @@ paths:
                     audio_url: https://example.com/reference-audio.mp3
                     generate_audio: true
                     watermark: false
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GrokVideoGenerationRequest'
+            examples:
+              grokTextToVideo:
+                summary: Grok 视频生成
+                value:
+                  model: grok-imagine-video
+                  prompt: 在广场中央跳舞
+                  aspect_ratio: '16:9'
+                  video_length: 6
+                  resolution_name: 480p
+                  preset: fun
+              grokImageToVideo:
+                summary: Grok 图片参考视频生成
+                value:
+                  model: grok-imagine-video-1.5-preview
+                  prompt: 让图片中的人物向镜头挥手
+                  aspect_ratio: '9:16'
+                  video_length: 10
+                  resolution_name: 720p
+                  preset: normal
       responses:
         '200':
           description: OpenAI 兼容视频任务响应。
@@ -4159,14 +4183,36 @@ components:
         updated_at:
           type: integer
           description: 任务更新时间，Unix 秒级时间戳。
+        completed_at:
+          type: integer
+          description: 任务完成时间，Unix 秒级时间戳。
+        expires_at:
+          type: integer
+          description: 结果过期时间，Unix 秒级时间戳。
+        seconds:
+          type: string
+          description: 视频时长。
+        size:
+          type: string
+          description: 视频尺寸或分辨率。
+        progress:
+          type: integer
+          description: 任务进度百分比。
         url:
           type: string
           format: uri
           description: 生成视频的访问 URL。
+        video_url:
+          type: string
+          format: uri
+          description: 视频地址。
         content_url:
           type: string
           format: uri
           description: 可用于下载视频内容的 URL。
+        remixed_from_video_id:
+          type: string
+          description: 源视频 ID（如果是基于其他视频生成）。
         output:
           type: array
           description: 供应商返回的扩展输出结果。
@@ -4177,6 +4223,68 @@ components:
           type: object
           description: 任务失败时的错误信息。
           additionalProperties: true
+    GrokVideoGenerationRequest:
+      type: object
+      required:
+        - model
+        - prompt
+      properties:
+        model:
+          type: string
+          description: 模型名称。支持 `grok-imagine-video` 和 `grok-imagine-video-1.5-preview`。
+          enum:
+            - grok-imagine-video
+            - grok-imagine-video-1.5-preview
+          example: grok-imagine-video
+        prompt:
+          type: string
+          description: 提示词。
+          example: 在广场中央跳舞
+        aspect_ratio:
+          type: string
+          description: 视频宽高比，支持 `16:9`, `9:16`, `1:1`, `2:3`, `3:2`。
+          enum:
+            - '16:9'
+            - '9:16'
+            - '1:1'
+            - '2:3'
+            - '3:2'
+          example: '16:9'
+        video_length:
+          type: integer
+          description: 视频时长，单位秒，支持 `6` 或 `10`。
+          enum:
+            - 6
+            - 10
+          example: 6
+        input_reference:
+          type: string
+          format: binary
+          description: 图片参考文件。
+        image:
+          type: string
+          description: 图片参考，传 Base64 或 Base64 Data URL 时使用。
+        images:
+          type: array
+          description: 多图数组，传 Base64 或 Base64 Data URL 数组时使用。
+          items:
+            type: string
+        resolution_name:
+          type: string
+          description: 分辨率，支持 `480p`, `720p`。
+          enum:
+            - 480p
+            - 720p
+          example: 480p
+        preset:
+          type: string
+          description: 风格预设 `fun`, `normal`, `spicy`, `custom`。
+          enum:
+            - fun
+            - normal
+            - spicy
+            - custom
+          example: fun
     Seedance2VideoTaskRequest:
       type: object
       required:

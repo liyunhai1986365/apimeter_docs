@@ -6,7 +6,7 @@ import { getCombinedPageTree } from '@/lib/combined-page-tree';
 import { baseOptions } from '@/lib/layout.shared';
 import { getLocaleFromParams } from '@/lib/i18n-path';
 import { getDocsBrandFromHeaders } from '@/lib/docs-brand';
-import { brandPageTree } from '@/lib/page-tree-brand';
+import { getBrandedPageTree } from '@/lib/page-tree-brand';
 
 export default async function Layout({
   children,
@@ -27,7 +27,7 @@ export default async function Layout({
       <SiteHeader publicOrigin={brand.publicOrigin} />
       <DocsLayout
         {...baseOptions(locale, brand)}
-        tree={brandPageTree(getCombinedPageTree(locale), brand)}
+        tree={getBrandedPageTree(getCombinedPageTree(locale), brand)}
       >
         {children}
       </DocsLayout>
