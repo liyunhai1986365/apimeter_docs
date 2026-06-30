@@ -158,6 +158,41 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
+        title: { zh: 'Omni 视频', en: 'Omni Video' },
+        items: [
+          {
+            title: { zh: 'Omni 视频模型概览', en: 'Omni Video Model Overview' },
+            visibleWhenOperationIds: ['createOpenAIVideo'],
+            pages: [
+              {
+                title: { zh: 'Omni 视频模型概览', en: 'Omni Video Model Overview' },
+                href: '/docs/api-reference/omni/overview',
+              },
+            ],
+          },
+          {
+            title: { zh: 'omni-fast 视频生成', en: 'omni-fast Video Generation' },
+            visibleWhenOperationIds: ['createOpenAIVideo'],
+            pages: [
+              {
+                title: { zh: 'omni-fast 视频生成', en: 'omni-fast Video Generation' },
+                href: '/docs/api-reference/omni/omni-fast',
+              },
+            ],
+          },
+          {
+            title: { zh: 'omni-fast-v2v 参考视频生成', en: 'omni-fast-v2v Reference Video Generation' },
+            visibleWhenOperationIds: ['createOpenAIVideo'],
+            pages: [
+              {
+                title: { zh: 'omni-fast-v2v 参考视频生成', en: 'omni-fast-v2v Reference Video Generation' },
+                href: '/docs/api-reference/omni/omni-fast-v2v',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'Seedance 2.0', en: 'Seedance 2.0' },
         items: [
           {

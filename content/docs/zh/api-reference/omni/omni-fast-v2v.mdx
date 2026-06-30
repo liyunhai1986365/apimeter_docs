@@ -1,0 +1,143 @@
+---
+title: omni-fast-v2v 参考视频生成
+description: 使用 /v1/videos 调用 omni-fast-v2v 做参考视频编辑、延长或重生成。
+---
+
+`omni-fast-v2v` 适合把已有 MP4 作为参考视频进行编辑、延长或重生成。它同样使用 JSON 请求体提交异步任务，参考视频字段支持 `video`、`video_url` 和 `input_video`。
+
+| 能力 | 字段 |
+| --- | --- |
+| 参考视频编辑 | `video` |
+| 兼容参考视频字段 | `video_url`, `input_video` |
+| 输出控制 | `seconds`, `aspect_ratio`, `resolution` |
+
+## 创建任务
+
+推荐优先使用 `video` 传参考视频。参考视频可以是公网 MP4 URL，也可以是 `data:video/mp4;base64,...`。
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "omni-fast-v2v",
+    "prompt": "Edit the attached video into a visibly new version while preserving the original camera path, timing, subject motion, and shot continuity. Add a rainy cinematic night look with neon reflections. Output a newly generated video, not the uploaded source clip or its preview.",
+    "video": "https://example.com/source.mp4",
+    "seconds": "8",
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
+  }'
+```
+
+响应会返回任务 ID：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast-v2v",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1735689600,
+  "video_url": ""
+}
+```
+
+## 使用 video_url
+
+`video_url` 是 `video` 的兼容字段。未传 `video` 时可以使用：
+
+```json
+{
+  "model": "omni-fast-v2v",
+  "prompt": "Extend this clip into a new cinematic shot with the same camera path.",
+  "video_url": "https://example.com/source.mp4",
+  "seconds": "8",
+  "aspect_ratio": "16:9",
+  "resolution": "720p"
+}
+```
+
+## 使用 input_video
+
+`input_video` 也是参考视频兼容字段，适合沿用已有客户端字段名：
+
+```json
+{
+  "model": "omni-fast-v2v",
+  "prompt": "Regenerate the attached clip with brighter lighting and smoother motion.",
+  "input_video": "https://example.com/source.mp4",
+  "seconds": "8",
+  "aspect_ratio": "16:9",
+  "resolution": "720p"
+}
+```
+
+## 本地 MP4 转 data URI
+
+如果没有公网 MP4 地址，可以把本地文件转成 data URI。参考视频最大 15MB，过大时建议先压缩或上传到可访问的公网地址。
+
+```python
+import base64
+from pathlib import Path
+
+source = Path("source.mp4")
+if source.stat().st_size > 15 * 1024 * 1024:
+    raise ValueError("参考视频最大 15MB")
+
+video = "data:video/mp4;base64," + base64.b64encode(source.read_bytes()).decode("ascii")
+```
+
+## 查询结果
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/videos/video_abc123" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+完成后读取 `video_url`：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast-v2v",
+  "status": "completed",
+  "progress": 100,
+  "created_at": 1735689600,
+  "completed_at": 1735689900,
+  "video_url": "https://example.com/results/omni-fast-v2v.mp4"
+}
+```
+
+也可以通过内容接口下载 MP4：
+
+```bash
+curl -L "$MODELSELL_BASE_URL/v1/videos/video_abc123/content" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -o omni-fast-v2v.mp4
+```
+
+## 字段说明
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `model` | string | 是 | 固定传 `omni-fast-v2v` |
+| `prompt` | string | 是 | 视频编辑或生成提示词，建议说明保留哪些运动、镜头或主体 |
+| `video` | string | 否 | 参考视频，推荐字段，支持公网 MP4 URL 或 Base64 data URI |
+| `video_url` | string | 否 | `video` 的兼容字段 |
+| `input_video` | string | 否 | `video` 的兼容字段 |
+| `seconds` | string | 否 | 输出时长，建议传字符串，推荐 `4` 到 `30` 秒 |
+| `aspect_ratio` | string | 否 | 画面比例，例如 `16:9`、`9:16` |
+| `resolution` | string | 否 | 分辨率，例如 `720p`、`1080p`、`2k`、`4k` |
+| `first_image_url` | string | 否 | 兼容首帧图字段；没有参考视频时建议直接用 `omni-fast` |
+| `images` | string array | 否 | 兼容多参考图字段，最多 5 张；没有参考视频时建议直接用 `omni-fast` |
+
+## 注意事项
+
+- 参考视频编辑、延长或重生成必须使用 `omni-fast-v2v`。
+- `video`、`video_url`、`input_video` 是同一类参考视频输入，推荐优先使用 `video`。
+- 参考视频最大 15MB；使用 `data:video/mp4;base64,...` 时实际请求体会变大，请预留网络超时时间。
+- 不需要参考视频时，优先使用 [omni-fast 视频生成](/docs/api-reference/omni/omni-fast)。

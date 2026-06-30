@@ -10,7 +10,7 @@ import { getApiReferenceMdxPage, getApiReferencePage } from '@/lib/api-reference
 import { getDocsBrandFromHeaders, brandText } from '@/lib/docs-brand';
 import { brandOpenAPIDocument } from '@/lib/openapi-brand';
 import { ApiReferenceMdxPage } from '@/lib/api-reference-mdx-page';
-import { apiReferenceMdxSlugs } from '@/lib/api-reference-mdx-pages';
+import { getApiReferenceMdxSlugs } from '@/lib/api-reference-mdx-pages';
 import {
   DocsBody,
   DocsPage,
@@ -73,7 +73,7 @@ export function generateStaticParams() {
         slug: param.slug,
         lang,
       }));
-      const mdxParams = apiReferenceMdxSlugs.map((slug) => ({
+      const mdxParams = getApiReferenceMdxSlugs(lang).map((slug) => ({
         slug: [...slug],
         lang,
       }));

@@ -1,0 +1,130 @@
+---
+title: omni-fast 视频生成
+description: 使用 /v1/videos 调用 omni-fast 生成文生视频、图生视频、首尾帧和多参考图视频。
+---
+
+`omni-fast` 适合不需要参考视频的快速视频生成场景。它使用 JSON 请求体提交异步任务，支持文生视频、首帧图生视频、首尾帧视频和多参考图视频。
+
+| 能力 | 字段 |
+| --- | --- |
+| 文生视频 | `model`, `prompt`, `seconds`, `aspect_ratio`, `resolution` |
+| 首帧图生视频 | `first_image_url` |
+| 首尾帧视频 | `first_image_url`, `last_image_url` |
+| 多参考图视频 | `images` |
+
+## 创建任务
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "omni-fast",
+    "prompt": "Ocean waves gently rolling onto a sandy beach at golden hour, cinematic, warm sunlight",
+    "seconds": "8",
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
+  }'
+```
+
+响应会返回任务 ID：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1735689600,
+  "video_url": ""
+}
+```
+
+## 首帧图生视频
+
+传入 `first_image_url` 后，模型会以该图片作为首帧生成视频。图片可以是公网 URL，也可以是 `data:image/...;base64,...`。
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "omni-fast",
+    "prompt": "The scene comes alive with gentle wind and drifting clouds",
+    "first_image_url": "https://example.com/first-frame.jpg",
+    "seconds": "8",
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
+  }'
+```
+
+## 首尾帧视频
+
+同时传入 `first_image_url` 和 `last_image_url`，适合生成从首帧过渡到尾帧的视频。
+
+```json
+{
+  "model": "omni-fast",
+  "prompt": "Create a smooth transition from the first frame to the last frame.",
+  "first_image_url": "https://example.com/first-frame.jpg",
+  "last_image_url": "https://example.com/last-frame.jpg",
+  "seconds": "8",
+  "aspect_ratio": "16:9",
+  "resolution": "720p"
+}
+```
+
+## 多参考图视频
+
+使用 `images` 传入多张参考图，最多 5 张。参考图可以表达角色、风格、场景或商品外观。
+
+```json
+{
+  "model": "omni-fast",
+  "prompt": "Use the first image as the character reference and the second image as the visual style reference. Create a cozy cafe conversation scene.",
+  "images": [
+    "https://example.com/character.jpg",
+    "https://example.com/style.jpg"
+  ],
+  "seconds": "8",
+  "aspect_ratio": "16:9",
+  "resolution": "720p"
+}
+```
+
+## 查询结果
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/videos/video_abc123" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+完成后读取 `video_url`，或通过 `/content` 下载：
+
+```bash
+curl -L "$MODELSELL_BASE_URL/v1/videos/video_abc123/content" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -o omni-fast.mp4
+```
+
+## 字段说明
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `model` | string | 是 | 固定传 `omni-fast` |
+| `prompt` | string | 是 | 视频提示词 |
+| `seconds` | string | 否 | 视频时长，建议传字符串，推荐 `4` 到 `30` 秒 |
+| `aspect_ratio` | string | 否 | 画面比例，例如 `16:9`、`9:16` |
+| `resolution` | string | 否 | 分辨率，例如 `720p`、`1080p`、`2k`、`4k` |
+| `first_image_url` | string | 否 | 首帧图，支持公网 URL 或 Base64 data URI |
+| `last_image_url` | string | 否 | 尾帧图，需要配合 `first_image_url` 使用 |
+| `images` | string array | 否 | 多参考图列表，最多 5 张 |
+
+## 注意事项
+
+- `omni-fast` 不支持 `video`、`video_url`、`input_video` 参考视频字段。
+- 图片字段使用 JSON 传入，不需要 multipart。
+- 参考视频编辑或延长请使用 [omni-fast-v2v 参考视频生成](/docs/api-reference/omni/omni-fast-v2v)。
+- 建议轮询 `GET /v1/videos/{task_id}`，完成后用 `GET /v1/videos/{task_id}/content` 下载 MP4。

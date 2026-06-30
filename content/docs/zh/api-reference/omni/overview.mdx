@@ -1,0 +1,118 @@
+---
+title: Omni 视频模型概览
+description: 按模型拆分整理 omni-fast 与 omni-fast-v2v 的视频生成、任务查询和内容下载方式。
+---
+
+Omni 视频模型统一使用 OpenAI 兼容的 `/v1/videos` 异步任务接口。提交任务后保存返回的 `id` 或 `task_id`，再通过任务查询接口轮询状态；任务完成后可以读取 `video_url`，也可以通过内容下载接口获取 MP4。
+
+| 能力 | 接口 |
+| --- | --- |
+| 创建任务 | `POST /v1/videos` |
+| 查询任务 | `GET /v1/videos/{task_id}` |
+| 下载视频 | `GET /v1/videos/{task_id}/content` |
+
+## 模型选择
+
+| 模型 | 适用场景 | 关键输入 | 限制 |
+| --- | --- | --- | --- |
+| `omni-fast` | 文生视频、首帧图生视频、首尾帧、多参考图视频 | `prompt`, `first_image_url`, `last_image_url`, `images` | `images` 最多 5 张，不支持参考视频 |
+| `omni-fast-v2v` | 参考视频编辑、延长、重生成 | `video`, `video_url`, `input_video` | 参考视频最大 15MB |
+
+## 通用请求
+
+所有 Omni 视频任务都使用 JSON 请求体，不需要 multipart 上传。基础字段如下：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `model` | string | 必填，传 `omni-fast` 或 `omni-fast-v2v` |
+| `prompt` | string | 必填，视频生成或编辑提示词 |
+| `seconds` | string | 视频时长，建议传字符串，例如 `"8"` |
+| `aspect_ratio` | string | 画面比例，例如 `"16:9"`、`"9:16"` |
+| `resolution` | string | 分辨率，例如 `"720p"`、`"1080p"`、`"2k"`、`"4k"` |
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "omni-fast",
+    "prompt": "Ocean waves gently rolling onto a sandy beach at golden hour, cinematic",
+    "seconds": "8",
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
+  }'
+```
+
+提交成功后会返回异步任务对象：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1735689600,
+  "video_url": ""
+}
+```
+
+## 查询与下载
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/videos/video_abc123" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+完成后响应中通常会包含 `video_url`：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast",
+  "status": "completed",
+  "progress": 100,
+  "created_at": 1735689600,
+  "completed_at": 1735689900,
+  "video_url": "https://example.com/results/omni-fast.mp4"
+}
+```
+
+如果需要直接下载 MP4，使用内容接口：
+
+```bash
+curl -L "$MODELSELL_BASE_URL/v1/videos/video_abc123/content" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -o result.mp4
+```
+
+## 状态与错误
+
+`status` 常见值包括 `queued`、`in_progress`、`completed`、`failed`。当状态为失败时，读取 `error.message` 和 `error.code` 定位原因：
+
+```json
+{
+  "id": "video_abc123",
+  "task_id": "video_abc123",
+  "object": "video",
+  "model": "omni-fast",
+  "status": "failed",
+  "progress": 100,
+  "error": {
+    "message": "upstream task failed",
+    "code": "task_failed"
+  }
+}
+```
+
+建议客户端按固定间隔轮询任务状态。生成成功后及时下载或转存 `video_url`，避免临时链接过期。
+
+## 子页面
+
+| 页面 | 内容 |
+| --- | --- |
+| [omni-fast 视频生成](/docs/api-reference/omni/omni-fast) | 文生视频、图生视频、首尾帧、多参考图 |
+| [omni-fast-v2v 参考视频生成](/docs/api-reference/omni/omni-fast-v2v) | 参考视频编辑、延长、重生成 |

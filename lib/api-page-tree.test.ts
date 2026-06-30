@@ -236,6 +236,27 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
+              name: 'Omni 视频',
+              children: [
+                {
+                  type: 'page',
+                  name: 'Omni 视频模型概览',
+                  url: '/zh/docs/api-reference/omni/overview',
+                },
+                {
+                  type: 'page',
+                  name: 'omni-fast 视频生成',
+                  url: '/zh/docs/api-reference/omni/omni-fast',
+                },
+                {
+                  type: 'page',
+                  name: 'omni-fast-v2v 参考视频生成',
+                  url: '/zh/docs/api-reference/omni/omni-fast-v2v',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'Seedance 2.0',
               children: [
                 {

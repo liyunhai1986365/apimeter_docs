@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   apiReferenceMdxSlugs,
   apiReferenceMdxSlugKey,
+  getApiReferenceMdxSlugs,
   getApiReferenceMdxTitle,
 } from './api-reference-mdx-pages';
 
@@ -18,26 +19,34 @@ describe('API reference MDX pages', () => {
       ['seedance-2', 'modes'],
       ['seedance-2', 'python-polling'],
       ['grok', 'video-generation'],
+      ['omni', 'overview'],
+      ['omni', 'omni-fast'],
+      ['omni', 'omni-fast-v2v'],
     ]);
     expect(apiReferenceMdxSlugKey(['seedance-2', 'overview'])).toBe('seedance-2/overview');
     expect(getApiReferenceMdxTitle(['seedance-2', 'modes'], 'zh')).toBe('生成模式示例');
     expect(getApiReferenceMdxTitle(['grok', 'video-generation'], 'zh')).toBe('Grok 视频生成');
+    expect(getApiReferenceMdxTitle(['omni', 'overview'], 'zh')).toBe('Omni 视频模型概览');
     expect(getApiReferenceMdxTitle(['midjourney', 'integration'], 'zh')).toBe('对接说明');
     expect(getApiReferenceMdxTitle(['suno', 'integration'], 'en')).toBe('Integration Guide');
   });
 
   it('keeps supplemental API reference page files in sync with the declared slugs', () => {
-    for (const slug of apiReferenceMdxSlugs) {
+    for (const slug of getApiReferenceMdxSlugs('zh')) {
       const zhContent = readFileSync(
         resolve(process.cwd(), 'content/docs/zh/api-reference', ...slug) + '.mdx',
         'utf8',
       );
+
+      expect(zhContent).toContain('title:');
+    }
+
+    for (const slug of getApiReferenceMdxSlugs('en')) {
       const enContent = readFileSync(
         resolve(process.cwd(), 'content/docs/en/api-reference', ...slug) + '.mdx',
         'utf8',
       );
 
-      expect(zhContent).toContain('title:');
       expect(enContent).toContain('title:');
     }
   });
