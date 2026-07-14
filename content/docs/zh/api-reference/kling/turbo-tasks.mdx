@@ -1,0 +1,106 @@
+---
+title: Kling 3.0 Turbo 任务接口
+description: 使用新版异步任务接口调用 Kling 3.0 Turbo 文生视频、图生视频，并通过 /kling/tasks 查询任务。
+---
+
+Kling 3.0 Turbo 使用独立的新版任务接口，不走 `/kling/v1/videos/*` 路径。创建任务后保存返回的 `data.id`，或在请求中传入 `options.external_task_id` 方便业务侧查询。
+
+## 创建任务
+
+| 调用方式 | 请求方式 | 路径 |
+| --- | --- | --- |
+| 文生视频 | `POST` | `/kling/text-to-video/kling-3.0-turbo` |
+| 图生视频 | `POST` | `/kling/image-to-video/kling-3.0-turbo` |
+
+### 请求头
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### 请求体
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `contents` | array | 是 | 素材合集，文生视频传 `prompt`，图生视频额外传 `first_frame` |
+| `settings.resolution` | string | 否 | `720p` 或 `1080p`，默认 `720p` |
+| `settings.duration` | int | 否 | 生成时长，支持 `3` 到 `15` 秒 |
+| `options.callback_url` | string | 否 | 任务状态变化回调地址 |
+| `options.external_task_id` | string | 否 | 业务自定义任务 ID，单用户下需要唯一 |
+| `options.watermark_info.enabled` | boolean | 否 | 是否生成含水印结果，默认 `false` |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data-raw '{
+    "contents": [
+      {
+        "type": "prompt",
+        "text": "A girl sat on the train, looking out the window."
+      },
+      {
+        "type": "first_frame",
+        "url": "https://your-cdn.com/start-frame.jpg"
+      }
+    ],
+    "settings": {
+      "resolution": "1080p",
+      "duration": 10
+    },
+    "options": {
+      "callback_url": "https://example.com/callback",
+      "external_task_id": "order-10001",
+      "watermark_info": {
+        "enabled": false
+      }
+    }
+  }'
+```
+
+## 查询任务（指定任务 ID）
+
+| 请求方式 | 路径 | 查询参数 |
+| --- | --- | --- |
+| `GET` | `/kling/tasks` | `task_ids` 或 `external_task_ids` |
+
+`task_ids` 和 `external_task_ids` 至少且只能传一种，支持用英文逗号批量查询。
+
+```bash
+curl "$KLING_BASE_URL/kling/tasks?external_task_ids=order-10001" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（按游标查询）
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/tasks` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/tasks" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "start_time": "1781193600000",
+    "end_time": "1781516352968",
+    "cursor": "",
+    "limit": 500,
+    "filters": [
+      {
+        "key": "status",
+        "values": ["succeeded"]
+      },
+      {
+        "key": "product_type",
+        "values": ["video"]
+      }
+    ]
+  }'
+```
+
+游标查询返回 `data.result`、`data.next_cursor` 和 `data.has_more`，可用 `next_cursor` 继续翻页。

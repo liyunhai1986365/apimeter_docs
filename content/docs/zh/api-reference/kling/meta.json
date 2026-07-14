@@ -1,0 +1,19 @@
+{
+  "title": "Kling",
+  "pages": [
+    "video-overview",
+    "turbo-tasks",
+    "text-to-video",
+    "image-to-video",
+    "omni-video",
+    "motion-control",
+    "multi-image-to-video",
+    "multi-elements",
+    "video-extension",
+    "lip-sync",
+    "avatar",
+    "audio-generation",
+    "elements-voices",
+    "image-recognition"
+  ]
+}

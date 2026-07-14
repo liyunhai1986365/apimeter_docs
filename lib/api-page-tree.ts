@@ -62,6 +62,21 @@ const apiMenuGroups: ApiMenuGroup[] = [
     title: { zh: '图片系列', en: 'Images' },
     sections: [
       {
+        title: { zh: '通用图片', en: 'Generic Images' },
+        items: [
+          {
+            title: { zh: '通用图片生成', en: 'Generic Image Generation' },
+            visibleWhenOperationIds: ['createImageGeneration'],
+            pages: [
+              {
+                title: { zh: '通用图片生成', en: 'Generic Image Generation' },
+                href: '/docs/api-reference/image/generic-image',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'OpenAI Images', en: 'OpenAI Images' },
         items: [
           { title: { zh: '图像生成', en: 'Image Generation' }, operationIds: ['createImageGeneration'] },
@@ -72,7 +87,17 @@ const apiMenuGroups: ApiMenuGroup[] = [
       {
         title: { zh: 'Gemini', en: 'Gemini' },
         items: [
-          { title: { zh: '原生图像', en: 'Native Images' }, operationIds: ['generateGeminiImageContent'] },
+          {
+            title: { zh: 'Gemini 原生图像生成', en: 'Gemini Native Image Generation' },
+            visibleWhenOperationIds: ['generateGeminiImageContent'],
+            pages: [
+              {
+                title: { zh: 'Gemini 原生图像生成', en: 'Gemini Native Image Generation' },
+                href: '/docs/api-reference/image/gemini-native-image',
+              },
+            ],
+          },
+          { title: { zh: '原生接口参考', en: 'Native API Reference' }, operationIds: ['generateGeminiImageContent'] },
         ],
       },
       {
@@ -263,10 +288,68 @@ const apiMenuGroups: ApiMenuGroup[] = [
       {
         title: { zh: 'Kling', en: 'Kling' },
         items: [
-          { title: { zh: '文生视频', en: 'Text to Video' }, operationIds: ['createKlingText2Video'] },
-          { title: { zh: '查询文生视频任务', en: 'Text to Video Status' }, operationIds: ['getKlingText2Video'] },
-          { title: { zh: '图生视频', en: 'Image to Video' }, operationIds: ['createKlingImage2Video'] },
-          { title: { zh: '查询图生视频任务', en: 'Image to Video Status' }, operationIds: ['getKlingImage2Video'] },
+          {
+            title: { zh: '可灵视频接口概览', en: 'Kling Video API Overview' },
+            visibleWhenOperationIds: ['createKlingText2Video'],
+            pages: [
+              {
+                title: { zh: '可灵视频接口概览', en: 'Kling Video API Overview' },
+                href: '/docs/api-reference/kling/video-overview',
+              },
+              {
+                title: { zh: 'Kling 3.0 Turbo 任务接口', en: 'Kling 3.0 Turbo Tasks' },
+                href: '/docs/api-reference/kling/turbo-tasks',
+              },
+              {
+                title: { zh: '文生视频', en: 'Text to Video' },
+                href: '/docs/api-reference/kling/text-to-video',
+              },
+              {
+                title: { zh: '图生视频', en: 'Image to Video' },
+                href: '/docs/api-reference/kling/image-to-video',
+              },
+              {
+                title: { zh: 'Omni 视频生成', en: 'Omni Video Generation' },
+                href: '/docs/api-reference/kling/omni-video',
+              },
+              {
+                title: { zh: '动作控制', en: 'Motion Control' },
+                href: '/docs/api-reference/kling/motion-control',
+              },
+              {
+                title: { zh: '多图参考生视频', en: 'Multi-Image to Video' },
+                href: '/docs/api-reference/kling/multi-image-to-video',
+              },
+              {
+                title: { zh: '多模态视频编辑', en: 'Multimodal Video Editing' },
+                href: '/docs/api-reference/kling/multi-elements',
+              },
+              {
+                title: { zh: '视频延长', en: 'Video Extension' },
+                href: '/docs/api-reference/kling/video-extension',
+              },
+              {
+                title: { zh: '对口型', en: 'Lip Sync' },
+                href: '/docs/api-reference/kling/lip-sync',
+              },
+              {
+                title: { zh: '数字人', en: 'Avatar' },
+                href: '/docs/api-reference/kling/avatar',
+              },
+              {
+                title: { zh: '音频生成', en: 'Audio Generation' },
+                href: '/docs/api-reference/kling/audio-generation',
+              },
+              {
+                title: { zh: '主体与音色管理', en: 'Elements and Voices' },
+                href: '/docs/api-reference/kling/elements-voices',
+              },
+              {
+                title: { zh: '图像识别', en: 'Image Recognition' },
+                href: '/docs/api-reference/kling/image-recognition',
+              },
+            ],
+          },
         ],
       },
       {
@@ -436,7 +519,13 @@ const apiMenuGroups: ApiMenuGroup[] = [
   },
 ];
 
-const hiddenOperationIds = new Set(['post_pg_chat_completions']);
+const hiddenOperationIds = new Set([
+  'post_pg_chat_completions',
+  'createKlingText2Video',
+  'getKlingText2Video',
+  'createKlingImage2Video',
+  'getKlingImage2Video',
+]);
 
 function localizeApiUrl(url: string, locale: Locale) {
   if (locale === 'en') return url;

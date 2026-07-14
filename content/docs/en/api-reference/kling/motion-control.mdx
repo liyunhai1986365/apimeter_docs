@@ -1,0 +1,37 @@
+---
+title: Motion Control
+description: Use /kling/v1/videos/motion-control for Kling motion-controlled video generation.
+---
+
+Motion control creates video while controlling movement from a reference image or subject.
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/motion-control` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/motion-control" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v2-6",
+    "image": "https://your-cdn.com/character.png",
+    "prompt": "The person waves to the right and walks forward."
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/motion-control/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/motion-control?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

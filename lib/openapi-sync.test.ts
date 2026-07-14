@@ -131,6 +131,28 @@ describe('modelsell OpenAPI sync', () => {
     expect(openApiText.match(/`\\?async=true` 时返回图片任务 ID/g) ?? []).toHaveLength(0);
   });
 
+  it('documents Gemini native image generation with official generateContent fields', () => {
+    const requiredSnippets = [
+      'operationId: generateGeminiImageContent',
+      'summary: Gemini 原生图像生成',
+      'Gemini 官方 `generateContent` REST 格式的图像生成接口',
+      'responseModalities:',
+      '- IMAGE',
+      'imageConfig:',
+      'aspectRatio: 16:9',
+      'imageSize: 2K',
+      'inlineData:',
+      'mimeType: image/png',
+      'format: byte',
+      '不带 Data URL 前缀的 Base64 媒体数据。',
+      '空列表等价于只请求文本。',
+    ];
+
+    for (const snippet of requiredSnippets) {
+      expect(openApiText).toContain(snippet);
+    }
+  });
+
   it('documents Midjourney image task APIs under the image category', () => {
     const requiredSnippets = [
       'summary: Midjourney 提交绘图',

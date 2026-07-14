@@ -1,0 +1,53 @@
+---
+title: 多图参考生视频
+description: 使用 /kling/v1/videos/multi-image2video 调用 Kling 1.6 多图参考视频生成能力。
+---
+
+多图参考生视频用于传入多张参考图，让模型保持角色、主体或场景一致性。可灵官方视频菜单中该调用方式位于 Kling 1.6。
+
+## 创建任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/multi-image2video` |
+
+### 请求体要点
+
+| 字段 | 说明 |
+| --- | --- |
+| `model_name` | 通常使用 Kling 1.6 相关模型 |
+| `images` | 多张参考图片 URL 或 Base64 |
+| `prompt` | 视频描述 |
+| `duration` | 视频时长 |
+| `aspect_ratio` | 画面比例 |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-image2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v1-6",
+    "images": [
+      "https://your-cdn.com/ref-1.png",
+      "https://your-cdn.com/ref-2.png"
+    ],
+    "prompt": "保持参考人物一致，在城市街道中行走",
+    "duration": "5"
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-image2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-image2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

@@ -24,6 +24,7 @@ describe('getLocalizedApiPageTree', () => {
         { type: 'separator', name: '图片系列' },
         page('生成图像', 'createImageGeneration'),
         page('查询图片异步任务', 'getImageAsyncTask'),
+        page('Gemini 原生图像生成', 'generateGeminiImageContent'),
         page('Midjourney 提交绘图', 'createMidjourneyImagine'),
         page('Midjourney 图片编辑', 'editMidjourneyImage'),
         page('Midjourney 视频生成', 'createMidjourneyVideo'),
@@ -105,6 +106,17 @@ describe('getLocalizedApiPageTree', () => {
           children: [
             {
               type: 'folder',
+              name: '通用图片',
+              children: [
+                {
+                  type: 'page',
+                  name: '通用图片生成',
+                  url: '/zh/docs/api-reference/image/generic-image',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'OpenAI Images',
               children: [
                 {
@@ -116,6 +128,22 @@ describe('getLocalizedApiPageTree', () => {
                   type: 'page',
                   name: '异步任务查询',
                   url: '/zh/docs/api-reference/getImageAsyncTask',
+                },
+              ],
+            },
+            {
+              type: 'folder',
+              name: 'Gemini',
+              children: [
+                {
+                  type: 'page',
+                  name: 'Gemini 原生图像生成',
+                  url: '/zh/docs/api-reference/image/gemini-native-image',
+                },
+                {
+                  type: 'page',
+                  name: '原生接口参考',
+                  url: '/zh/docs/api-reference/generateGeminiImageContent',
                 },
               ],
             },
@@ -312,23 +340,73 @@ describe('getLocalizedApiPageTree', () => {
               children: [
                 {
                   type: 'page',
-                  name: '文生视频',
-                  url: '/zh/docs/api-reference/createKlingText2Video',
+                  name: '可灵视频接口概览',
+                  url: '/zh/docs/api-reference/kling/video-overview',
                 },
                 {
                   type: 'page',
-                  name: '查询文生视频任务',
-                  url: '/zh/docs/api-reference/getKlingText2Video',
+                  name: 'Kling 3.0 Turbo 任务接口',
+                  url: '/zh/docs/api-reference/kling/turbo-tasks',
+                },
+                {
+                  type: 'page',
+                  name: '文生视频',
+                  url: '/zh/docs/api-reference/kling/text-to-video',
                 },
                 {
                   type: 'page',
                   name: '图生视频',
-                  url: '/zh/docs/api-reference/createKlingImage2Video',
+                  url: '/zh/docs/api-reference/kling/image-to-video',
                 },
                 {
                   type: 'page',
-                  name: '查询图生视频任务',
-                  url: '/zh/docs/api-reference/getKlingImage2Video',
+                  name: 'Omni 视频生成',
+                  url: '/zh/docs/api-reference/kling/omni-video',
+                },
+                {
+                  type: 'page',
+                  name: '动作控制',
+                  url: '/zh/docs/api-reference/kling/motion-control',
+                },
+                {
+                  type: 'page',
+                  name: '多图参考生视频',
+                  url: '/zh/docs/api-reference/kling/multi-image-to-video',
+                },
+                {
+                  type: 'page',
+                  name: '多模态视频编辑',
+                  url: '/zh/docs/api-reference/kling/multi-elements',
+                },
+                {
+                  type: 'page',
+                  name: '视频延长',
+                  url: '/zh/docs/api-reference/kling/video-extension',
+                },
+                {
+                  type: 'page',
+                  name: '对口型',
+                  url: '/zh/docs/api-reference/kling/lip-sync',
+                },
+                {
+                  type: 'page',
+                  name: '数字人',
+                  url: '/zh/docs/api-reference/kling/avatar',
+                },
+                {
+                  type: 'page',
+                  name: '音频生成',
+                  url: '/zh/docs/api-reference/kling/audio-generation',
+                },
+                {
+                  type: 'page',
+                  name: '主体与音色管理',
+                  url: '/zh/docs/api-reference/kling/elements-voices',
+                },
+                {
+                  type: 'page',
+                  name: '图像识别',
+                  url: '/zh/docs/api-reference/kling/image-recognition',
                 },
               ],
             },
@@ -550,6 +628,17 @@ describe('getLocalizedApiPageTree', () => {
           name: '图片系列',
           defaultOpen: true,
           children: [
+            {
+              type: 'folder',
+              name: '通用图片',
+              children: [
+                {
+                  type: 'page',
+                  name: '通用图片生成',
+                  url: '/zh/docs/api-reference/image/generic-image',
+                },
+              ],
+            },
             {
               type: 'folder',
               name: 'OpenAI Images',

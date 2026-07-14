@@ -1,0 +1,143 @@
+---
+title: Generic Image Generation
+description: Use /v1/images/generations for nano-banana families and gpt-image-2 image models.
+---
+
+`/v1/images/generations` is the recommended generic image entrypoint in ModelSell. For text-to-image, send `model` and `prompt`. For reference-image generation or image editing, also send `images`, `image`, or `image_urls`.
+
+Supported parameters are not identical across models. Keep the unified entrypoint, but choose fields and values according to the requested model.
+
+## Endpoints
+
+| Operation | Endpoint |
+| --- | --- |
+| Image generation | `POST /v1/images/generations` |
+| Image edit compatible entrypoint | `POST /v1/images/edits` |
+| Poll async image task | `GET /v1/images/generations/{task_id}` |
+
+## Supported Models
+
+| Model | Description |
+| --- | --- |
+| `nano-banana` | Base nano-banana image generation and editing model. |
+| `nano-banana-2` | nano-banana 2 image generation and editing model with broader resolution and search-enhancement options. |
+| `nano-banana-2-lite` | Lightweight nano-banana 2 model for faster or lower-cost image generation and editing. |
+| `nanp-banana-pro` | nano-banana pro image generation and editing model. |
+| `gpt-image-2` | GPT Image 2 image generation and editing model. |
+
+## Generic Request Fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `model` | string | Yes | Model name, such as `nano-banana-2` or `gpt-image-2`. |
+| `prompt` | string | Yes | Image generation or edit prompt. |
+| `images` | string[] | No | Reference image URLs or reachable image references. This is the recommended unified field. |
+| `image` | string / string[] | No | OpenAI image edit compatible field for single or multiple image inputs. |
+| `image_urls` | string[] | No | Reference image field compatible with some upstream formats. |
+| `aspect_ratio` | string | No | Output aspect ratio. Suitable for nano-banana families and some gpt-image-2 channels. |
+| `resolution` | string | No | Image resolution or billing tier. Suitable for nano-banana families and some gpt-image-2 channels. |
+| `size` | string | No | OpenAI/gpt-image compatible size field. Suitable for `gpt-image-2`. |
+| `quality` | string | No | Image quality. Suitable for `gpt-image-2`; some channels may allow it for other models. |
+| `output_format` | string | No | Output format, such as `png` or `jpeg`. |
+| `response_format` | string | No | OpenAI-compatible response format, such as `url` or `b64_json`. |
+| `n` | number | No | Number of images. Support depends on the model and channel. |
+| `enable_web_search` | boolean | No | Available for nano-banana-2 families to enable web search enhancement. |
+| `enable_image_search` | boolean | No | Available for nano-banana-2 families to enable image search enhancement. |
+
+## Model-Specific Parameters
+
+### nano-banana Families
+
+The nano-banana family includes `nano-banana`, `nano-banana-2`, `nano-banana-2-lite`, and `nanp-banana-pro`. Prefer `images`, `aspect_ratio`, `resolution`, and `output_format`.
+
+| Field | Recommended values |
+| --- | --- |
+| `images` | Reference image array. Omit it for text-to-image; send it for image-to-image or image editing. |
+| `aspect_ratio` | `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:4`, `4:1`, `1:8`, `8:1`. |
+| `resolution` | `0.5k`, `1k`, `2k`, `4k`. |
+| `output_format` | `png`, `jpeg`. |
+| `enable_web_search` | `true` or `false`, mainly for nano-banana-2 families. |
+| `enable_image_search` | `true` or `false`, mainly for nano-banana-2 families. |
+
+```json
+{
+  "model": "nano-banana-2",
+  "prompt": "Replace the item in the poster with a cup",
+  "images": [
+    "https://example.com/input.png"
+  ],
+  "aspect_ratio": "4:3",
+  "resolution": "2k",
+  "output_format": "png",
+  "enable_web_search": false,
+  "enable_image_search": false
+}
+```
+
+### gpt-image-2
+
+`gpt-image-2` may use either OpenAI-compatible size parameters or tiered image parameters, depending on the active channel. Do not treat `size` and the nano-banana `resolution` tier as the same semantic field.
+
+| Field | Recommended values |
+| --- | --- |
+| `size` | OpenAI-compatible sizes such as `1024x1024`, `1536x1024`, or `1024x1536`, depending on channel support. |
+| `aspect_ratio` | Ratio-based channels may use values such as `1:1`, `4:3`, `16:9`, or `9:16`. |
+| `resolution` | Tier-based channels may use values such as `1k`, `2k`, or `4k`. |
+| `quality` | `low`, `medium`, `high`, `auto`. |
+| `output_format` | `png`, `jpeg`. |
+| `response_format` | `url`, `b64_json`. |
+
+```json
+{
+  "model": "gpt-image-2",
+  "prompt": "A cinematic product photo of a ceramic cup",
+  "size": "1536x1024",
+  "quality": "high",
+  "response_format": "url"
+}
+```
+
+If the active channel uses ratio and tier fields, call it like this:
+
+```json
+{
+  "model": "gpt-image-2",
+  "prompt": "A cinematic product photo of a ceramic cup",
+  "aspect_ratio": "4:3",
+  "resolution": "2k",
+  "quality": "high",
+  "output_format": "png"
+}
+```
+
+## Image Editing
+
+For reference-image input, prefer the `images` array. `image` also works for single-image input, but `images` is clearer for multi-image editing.
+
+```json
+{
+  "model": "nano-banana-2",
+  "prompt": "Replace the main object in the reference poster with a cup",
+  "images": [
+    "https://example.com/poster.png"
+  ],
+  "aspect_ratio": "4:3",
+  "resolution": "2k"
+}
+```
+
+## Response
+
+Some image models return an async task ID:
+
+```json
+{
+  "id": "task_xxx",
+  "object": "image.task",
+  "created": 1770000000,
+  "model": "nano-banana-2",
+  "status": "created"
+}
+```
+
+After the task completes, poll the async task endpoint for the final image URL. Synchronous waiting and OpenAI image response conversion depend on the active model and channel configuration.

@@ -1,0 +1,54 @@
+---
+title: Multimodal Video Editing
+description: Use the /kling/v1/videos/multi-elements workflow to manage selections, preview edits, and create edited videos.
+---
+
+Multimodal video editing is a multi-step workflow: manage selections first, preview them, then submit the final editing task.
+
+## Selection Management
+
+| Action | Method | Path |
+| --- | --- | --- |
+| Initialize selection | `POST` | `/kling/v1/videos/multi-elements/init-selection` |
+| Add selection | `POST` | `/kling/v1/videos/multi-elements/add-selection` |
+| Delete selection | `POST` | `/kling/v1/videos/multi-elements/delete-selection` |
+| Clear selection | `POST` | `/kling/v1/videos/multi-elements/clear-selection` |
+| Preview selection | `POST` | `/kling/v1/videos/multi-elements/preview-selection` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-elements/init-selection" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{ "image": "https://your-cdn.com/source.png" }'
+```
+
+## Create Editing Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/multi-elements` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-elements" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v1-6",
+    "prompt": "Replace the selected person with a character in a red coat.",
+    "selection_id": "selection_xxx"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-elements/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-elements?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

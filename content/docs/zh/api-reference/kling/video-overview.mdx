@@ -1,0 +1,43 @@
+---
+title: 可灵视频接口概览
+description: 按调用类型整理可灵视频相关接口，帮助在文生视频、图生视频、Omni、动作控制、对口型、数字人、音频和资源管理之间选择对应页面。
+---
+
+可灵视频文档按“调用类型”拆分。每个页面都沿用可灵官方文档的结构：先说明创建任务接口，再给出请求头、请求体要点、cURL 示例，最后说明单任务查询或列表查询。本文档中的请求路径为 ModelSell 代理路径，即在可灵官方接口路径前增加 `/kling` 前缀；请求体、响应结构和其他参数保持与官方接口一致。字段、模型能力和枚举值可查阅 [可灵官方文档](https://klingai.com/document-api/api/video/3-0-turbo/text-to-video)。
+
+## 接口族
+
+| 调用类型 | 适用模型或能力 | 文档 |
+| --- | --- | --- |
+| Kling 3.0 Turbo | `kling-3.0-turbo` 文生视频、图生视频、新版 `/kling/tasks` 查询 | [Kling 3.0 Turbo 任务接口](/docs/api-reference/kling/turbo-tasks) |
+| 文生视频 | Kling 3.0 & 3.0 Omni、2.6、2.5 Turbo、2.1 Master、2.0 Master、1.6、1.0 | [文生视频](/docs/api-reference/kling/text-to-video) |
+| 图生视频 | Kling 3.0 & 3.0 Omni、2.6、2.5 Turbo、2.1 Master、2.1、2.0 Master、1.6、1.5、1.0 | [图生视频](/docs/api-reference/kling/image-to-video) |
+| Omni 视频生成 | Kling 3.0 & 3.0 Omni、Kling O1 | [Omni 视频生成](/docs/api-reference/kling/omni-video) |
+| 动作控制 | Kling 3.0 & 3.0 Omni、Kling 2.6、动作控制能力页 | [动作控制](/docs/api-reference/kling/motion-control) |
+| 多图参考生视频 | Kling 1.6 | [多图参考生视频](/docs/api-reference/kling/multi-image-to-video) |
+| 多模态视频编辑 | Kling 1.6 多选区编辑工作流 | [多模态视频编辑](/docs/api-reference/kling/multi-elements) |
+| 视频延长 | Kling 1.6、1.5、1.0 | [视频延长](/docs/api-reference/kling/video-extension) |
+| 对口型 | 人脸识别、对口型生成、任务查询 | [对口型](/docs/api-reference/kling/lip-sync) |
+| 数字人 | 数字人图生视频、数字人语音合成 | [数字人](/docs/api-reference/kling/avatar) |
+| 音频生成 | 文生音效、视频生音效 | [音频生成](/docs/api-reference/kling/audio-generation) |
+| 主体与音色管理 | 自定义主体、官方主体、自定义音色、官方音色 | [主体与音色管理](/docs/api-reference/kling/elements-voices) |
+| 图像识别 | 图像识别辅助能力 | [图像识别](/docs/api-reference/kling/image-recognition) |
+
+## 通用规则
+
+除特殊说明外，请求头使用：
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+常规 `/kling/v1/videos/*` 异步任务一般包含三个接口：
+
+| 请求方式 | 用途 |
+| --- | --- |
+| `POST /kling/v1/videos/{capability}` | 创建任务 |
+| `GET /kling/v1/videos/{capability}/{id}` | 查询单个任务 |
+| `GET /kling/v1/videos/{capability}?pageNum=1&pageSize=30` | 分页查询任务列表 |
+
+Kling 3.0 Turbo 是例外，它使用 `/kling/text-to-video/kling-3.0-turbo`、`/kling/image-to-video/kling-3.0-turbo` 创建任务，并使用 `/kling/tasks` 查询任务。

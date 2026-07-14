@@ -1,0 +1,61 @@
+---
+title: 图生视频
+description: 使用 /kling/v1/videos/image2video 创建可灵图生视频任务，并查询单个任务或任务列表。
+---
+
+图生视频适用于 Kling 3.0 & 3.0 Omni、Kling 2.6、Kling 2.5 Turbo、Kling 2.1 Master、Kling 2.1、Kling 2.0 Master、Kling 1.6、Kling 1.5 和 Kling 1.0。Kling 3.0 Turbo 请使用 [Kling 3.0 Turbo 任务接口](/docs/api-reference/kling/turbo-tasks)。
+
+## 创建任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/image2video` |
+
+### 请求头
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### 请求体要点
+
+| 字段 | 说明 |
+| --- | --- |
+| `model_name` | 可灵模型名，例如 `kling-v3`, `kling-v2-6`, `kling-v1-5` |
+| `image` | 首帧图片 URL 或 Base64 |
+| `image_tail` | 尾帧图片，按模型支持情况传入 |
+| `prompt` | 视频描述 |
+| `negative_prompt` | 负向提示词，可选 |
+| `duration` | 视频时长 |
+| `aspect_ratio` | 画面比例 |
+| `callback_url` | 任务状态回调地址，可选 |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/image2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v2-6",
+    "image": "https://your-cdn.com/start-frame.png",
+    "prompt": "让图片中的人物缓慢转身并看向镜头",
+    "duration": "5",
+    "aspect_ratio": "16:9"
+  }'
+```
+
+## 查询任务（单个）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/image2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/image2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

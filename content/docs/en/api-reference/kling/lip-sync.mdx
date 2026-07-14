@@ -1,0 +1,50 @@
+---
+title: Lip Sync
+description: Use face detection and /kling/v1/videos/advanced-lip-sync to create Kling lip-sync video tasks.
+---
+
+Lip sync usually has two steps: identify a face, then submit the lip-sync generation task.
+
+## Face Detection
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/identify-face` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/identify-face" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{ "image": "https://your-cdn.com/face.png" }'
+```
+
+## Create Lip-Sync Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/advanced-lip-sync` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "audio": "https://your-cdn.com/speech.mp3",
+    "face_id": "face_xxx"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

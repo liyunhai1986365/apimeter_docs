@@ -1,0 +1,63 @@
+---
+title: Audio Generation
+description: Use /kling/v1/audio/text-to-audio and /kling/v1/audio/video-to-audio to create Kling sound-effect tasks.
+---
+
+Audio generation includes text-to-audio and video-to-audio. Both are async task flows.
+
+## Text To Audio
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/audio/text-to-audio` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/audio/text-to-audio" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{ "prompt": "Rainy street, distant traffic, soft footsteps." }'
+```
+
+Query:
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/text-to-audio/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+List:
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/text-to-audio?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## Video To Audio
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/audio/video-to-audio` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/audio/video-to-audio" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "prompt": "Generate natural sound effects from the video motion."
+  }'
+```
+
+Query:
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/video-to-audio/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+List:
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/video-to-audio?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

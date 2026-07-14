@@ -1,0 +1,85 @@
+---
+title: Kling 3.0 Turbo Tasks
+description: Use the newer async task API for Kling 3.0 Turbo text-to-video, image-to-video, and /kling/tasks queries.
+---
+
+Kling 3.0 Turbo does not use the `/kling/v1/videos/*` paths. Save `data.id` from the create response, or pass `options.external_task_id` for business-side lookup.
+
+## Create Task
+
+| Mode | Method | Path |
+| --- | --- | --- |
+| Text to video | `POST` | `/kling/text-to-video/kling-3.0-turbo` |
+| Image to video | `POST` | `/kling/image-to-video/kling-3.0-turbo` |
+
+### Headers
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### Body Notes
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `contents` | Yes | Materials. Text-to-video uses `prompt`; image-to-video also passes `first_frame`. |
+| `settings.resolution` | No | `720p` or `1080p`, default `720p`. |
+| `settings.duration` | No | `3` to `15` seconds. |
+| `options.callback_url` | No | Callback URL for task status changes. |
+| `options.external_task_id` | No | Custom task ID, unique per user. |
+| `options.watermark_info.enabled` | No | Whether to generate watermarked output. |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data-raw '{
+    "contents": [
+      { "type": "prompt", "text": "A girl sat on the train, looking out the window." },
+      { "type": "first_frame", "url": "https://your-cdn.com/start-frame.jpg" }
+    ],
+    "settings": { "resolution": "1080p", "duration": 10 },
+    "options": {
+      "callback_url": "https://example.com/callback",
+      "external_task_id": "order-10001",
+      "watermark_info": { "enabled": false }
+    }
+  }'
+```
+
+## Query Task By ID
+
+| Method | Path | Query |
+| --- | --- | --- |
+| `GET` | `/kling/tasks` | `task_ids` or `external_task_ids` |
+
+```bash
+curl "$KLING_BASE_URL/kling/tasks?external_task_ids=order-10001" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## Query Tasks By Cursor
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/tasks` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/tasks" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "start_time": "1781193600000",
+    "end_time": "1781516352968",
+    "cursor": "",
+    "limit": 500,
+    "filters": [
+      { "key": "status", "values": ["succeeded"] },
+      { "key": "product_type", "values": ["video"] }
+    ]
+  }'
+```

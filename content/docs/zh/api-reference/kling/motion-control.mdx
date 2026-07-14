@@ -1,0 +1,49 @@
+---
+title: 动作控制
+description: 使用 /kling/v1/videos/motion-control 调用可灵动作控制视频生成能力。
+---
+
+动作控制用于在图像或主体参考的基础上控制动作表现。适用于 Kling 3.0 & 3.0 Omni、Kling 2.6 和动作控制能力页。
+
+## 创建任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/motion-control` |
+
+### 请求体要点
+
+| 字段 | 说明 |
+| --- | --- |
+| `model_name` | 支持动作控制的可灵模型 |
+| `image` | 参考图 |
+| `prompt` | 生成描述 |
+| `trajectory` 或动作参数 | 动作轨迹、关键点或页面支持的动作控制参数 |
+| `callback_url` | 任务回调地址，可选 |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/motion-control" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v2-6",
+    "image": "https://your-cdn.com/character.png",
+    "prompt": "人物向右侧挥手并向前走两步"
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/motion-control/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/motion-control?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

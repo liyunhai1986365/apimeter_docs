@@ -1,0 +1,143 @@
+---
+title: 通用图片生成
+description: 使用 /v1/images/generations 统一调用 nano-banana 全系和 gpt-image-2 图片模型。
+---
+
+`/v1/images/generations` 是 ModelSell 推荐的通用图片入口。文本生成图片时传入 `model` 和 `prompt`；如果需要参考图或图片编辑，再传入 `images`、`image` 或 `image_urls`。
+
+不同模型支持的参数并不完全一致。建议调用方保留统一入口，但按模型选择对应参数和值。
+
+## 接口
+
+| 操作 | Endpoint |
+| --- | --- |
+| 图片生成 | `POST /v1/images/generations` |
+| 图片编辑兼容入口 | `POST /v1/images/edits` |
+| 查询异步图片任务 | `GET /v1/images/generations/{task_id}` |
+
+## 支持模型
+
+| 模型 | 说明 |
+| --- | --- |
+| `nano-banana` | nano-banana 基础图片生成/编辑模型。 |
+| `nano-banana-2` | nano-banana 2 图片生成/编辑模型，支持更完整的分辨率和搜索增强参数。 |
+| `nano-banana-2-lite` | nano-banana 2 轻量版本，适合更快或更低成本的图片生成/编辑。 |
+| `nanp-banana-pro` | nano-banana pro 图片生成/编辑模型。 |
+| `gpt-image-2` | GPT Image 2 图片生成/编辑模型。 |
+
+## 通用请求字段
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `model` | string | 是 | 模型名称，例如 `nano-banana-2` 或 `gpt-image-2`。 |
+| `prompt` | string | 是 | 图片生成或编辑提示词。 |
+| `images` | string[] | 否 | 参考图 URL 或可访问的图片引用。推荐统一使用该字段。 |
+| `image` | string / string[] | 否 | OpenAI 图片编辑兼容字段，可用于单图或多图输入。 |
+| `image_urls` | string[] | 否 | 兼容部分上游格式的参考图字段。 |
+| `aspect_ratio` | string | 否 | 输出比例。适合 nano-banana 全系和部分 gpt-image-2 渠道。 |
+| `resolution` | string | 否 | 图片分辨率或计费分档。适合 nano-banana 全系和部分 gpt-image-2 渠道。 |
+| `size` | string | 否 | OpenAI/gpt-image 兼容尺寸字段。适合 `gpt-image-2`。 |
+| `quality` | string | 否 | 图片质量。适合 `gpt-image-2`，部分渠道也可用于其他模型。 |
+| `output_format` | string | 否 | 输出格式，如 `png`、`jpeg`。 |
+| `response_format` | string | 否 | OpenAI 兼容响应格式，如 `url`、`b64_json`。 |
+| `n` | number | 否 | 生成张数。是否支持由具体模型和渠道决定。 |
+| `enable_web_search` | boolean | 否 | nano-banana-2 系列可用，开启网页搜索增强。 |
+| `enable_image_search` | boolean | 否 | nano-banana-2 系列可用，开启图片搜索增强。 |
+
+## 按模型区分参数
+
+### nano-banana 全系
+
+nano-banana 全系包括 `nano-banana`、`nano-banana-2`、`nano-banana-2-lite`、`nanp-banana-pro`。推荐使用 `images`、`aspect_ratio`、`resolution`、`output_format` 这组参数。
+
+| 参数 | 推荐值 |
+| --- | --- |
+| `images` | 参考图数组。不传时为文生图，传入时为图生图或图片编辑。 |
+| `aspect_ratio` | `1:1`、`3:2`、`2:3`、`3:4`、`4:3`、`4:5`、`5:4`、`9:16`、`16:9`、`21:9`、`1:4`、`4:1`、`1:8`、`8:1`。 |
+| `resolution` | `0.5k`、`1k`、`2k`、`4k`。 |
+| `output_format` | `png`、`jpeg`。 |
+| `enable_web_search` | `true` 或 `false`，主要用于 `nano-banana-2` 系列。 |
+| `enable_image_search` | `true` 或 `false`，主要用于 `nano-banana-2` 系列。 |
+
+```json
+{
+  "model": "nano-banana-2",
+  "prompt": "修改海报中的物品，改为杯子",
+  "images": [
+    "https://example.com/input.png"
+  ],
+  "aspect_ratio": "4:3",
+  "resolution": "2k",
+  "output_format": "png",
+  "enable_web_search": false,
+  "enable_image_search": false
+}
+```
+
+### gpt-image-2
+
+`gpt-image-2` 可按渠道能力选择 OpenAI 兼容尺寸参数或图片分档参数。不要把 `size` 和 nano-banana 的 `resolution` 分档混为同一个含义。
+
+| 参数 | 推荐值 |
+| --- | --- |
+| `size` | OpenAI 兼容尺寸，如 `1024x1024`、`1536x1024`、`1024x1536`，具体以渠道支持为准。 |
+| `aspect_ratio` | 比例型渠道可使用，如 `1:1`、`4:3`、`16:9`、`9:16`。 |
+| `resolution` | 分档型渠道可使用，如 `1k`、`2k`、`4k`。 |
+| `quality` | `low`、`medium`、`high`、`auto`。 |
+| `output_format` | `png`、`jpeg`。 |
+| `response_format` | `url`、`b64_json`。 |
+
+```json
+{
+  "model": "gpt-image-2",
+  "prompt": "A cinematic product photo of a ceramic cup",
+  "size": "1536x1024",
+  "quality": "high",
+  "response_format": "url"
+}
+```
+
+如果当前渠道使用比例和分档参数，也可以这样调用：
+
+```json
+{
+  "model": "gpt-image-2",
+  "prompt": "A cinematic product photo of a ceramic cup",
+  "aspect_ratio": "4:3",
+  "resolution": "2k",
+  "quality": "high",
+  "output_format": "png"
+}
+```
+
+## 图片编辑
+
+带参考图时，推荐使用 `images` 数组。单图也可以使用 `image`，但多图编辑时 `images` 更清晰。
+
+```json
+{
+  "model": "nano-banana-2",
+  "prompt": "把参考图中的海报主体改为杯子",
+  "images": [
+    "https://example.com/poster.png"
+  ],
+  "aspect_ratio": "4:3",
+  "resolution": "2k"
+}
+```
+
+## 返回结果
+
+部分图片模型会返回异步任务 ID：
+
+```json
+{
+  "id": "task_xxx",
+  "object": "image.task",
+  "created": 1770000000,
+  "model": "nano-banana-2",
+  "status": "created"
+}
+```
+
+生成完成后，通过异步任务查询接口获取最终图片 URL。是否同步等待、是否返回 OpenAI 图片格式，由当前模型和渠道配置决定。

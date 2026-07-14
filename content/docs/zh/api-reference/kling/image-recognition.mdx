@@ -1,0 +1,30 @@
+---
+title: 图像识别
+description: 使用 /kling/v1/videos/image-recognize 获取可灵视频相关的图像识别结果。
+---
+
+图像识别是可灵视频菜单中的辅助能力，可用于识别图片内容并服务后续视频生成流程。
+
+## 图像识别
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/image-recognize` |
+
+### 请求头
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/image-recognize" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "image": "https://your-cdn.com/input.png"
+  }'
+```

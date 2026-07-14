@@ -1,0 +1,46 @@
+---
+title: 视频延长
+description: 使用 /kling/v1/videos/video-extend 延长 Kling 1.6、1.5、1.0 视频结果。
+---
+
+视频延长用于基于已有视频继续生成后续片段。可灵视频菜单中该能力出现在 Kling 1.6、Kling 1.5 和 Kling 1.0。
+
+## 创建任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/video-extend` |
+
+### 请求体要点
+
+| 字段 | 说明 |
+| --- | --- |
+| `video` 或 `video_id` | 待延长的视频素材或任务输出 |
+| `prompt` | 延长片段的描述 |
+| `duration` | 延长时长 |
+| `callback_url` | 回调地址，可选 |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/video-extend" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "prompt": "镜头继续向前推进，角色走进建筑内部",
+    "duration": "5"
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/video-extend/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/video-extend?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

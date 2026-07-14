@@ -1,0 +1,65 @@
+---
+title: 音频生成
+description: 使用 /kling/v1/audio/text-to-audio 和 /kling/v1/audio/video-to-audio 创建可灵音效生成任务。
+---
+
+音频生成包含文生音效和视频生音效，两者都按异步任务处理。
+
+## 文生音效
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/audio/text-to-audio` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/audio/text-to-audio" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "prompt": "雨夜街道、远处车辆驶过、轻微脚步声"
+  }'
+```
+
+查询：
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/text-to-audio/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+列表：
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/text-to-audio?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 视频生音效
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/audio/video-to-audio` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/audio/video-to-audio" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "prompt": "根据视频动作生成自然环境音"
+  }'
+```
+
+查询：
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/video-to-audio/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+列表：
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/audio/video-to-audio?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

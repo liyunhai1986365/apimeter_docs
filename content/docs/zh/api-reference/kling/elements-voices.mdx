@@ -1,0 +1,50 @@
+---
+title: 主体与音色管理
+description: 管理可灵 Omni、O1、数字人等工作流中的自定义主体、官方主体、自定义音色和官方音色。
+---
+
+主体和音色接口属于通用资源管理能力。创建自定义资源后，可以在 Omni、O1、数字人或其他支持的生成任务中引用资源 ID。
+
+## 主体管理
+
+| 动作 | 请求方式 | 路径 |
+| --- | --- | --- |
+| 创建自定义主体 | `POST` | `/kling/v1/general/advanced-custom-elements` |
+| 查询自定义主体 | `GET` | `/kling/v1/general/advanced-custom-elements/{id}` |
+| 查询官方主体列表 | `POST` | `/kling/v1/general/advanced-presets-elements` |
+| 删除自定义主体 | `POST` | `/kling/v1/general/delete-advanced-elements` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/general/advanced-custom-elements" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "name": "brand-character",
+    "references": [
+      {
+        "type": "image",
+        "url": "https://your-cdn.com/character.png"
+      }
+    ]
+  }'
+```
+
+## 音色管理
+
+| 动作 | 请求方式 | 路径 |
+| --- | --- | --- |
+| 创建自定义音色 | `POST` | `/kling/v1/general/custom-voices` |
+| 查询自定义音色 | `GET` | `/kling/v1/general/custom-voices/{id}` |
+| 查询自定义音色列表 | `GET` | `/kling/v1/general/custom-voices?pageNum=1&pageSize=30` |
+| 查询官方音色列表 | `GET` | `/kling/v1/general/presets-voices?pageNum=1&pageSize=30` |
+| 删除自定义音色 | `POST` | `/kling/v1/general/delete-voices` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/general/custom-voices" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "name": "brand-voice",
+    "audio": "https://your-cdn.com/sample.wav"
+  }'
+```

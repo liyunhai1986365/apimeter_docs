@@ -1,0 +1,52 @@
+---
+title: 数字人
+description: 使用 /kling/v1/videos/avatar/image2video 创建数字人视频任务，并使用 /kling/v1/audio/tts 生成数字人语音。
+---
+
+数字人能力包含数字人图生视频和语音合成。图生视频任务支持单个查询和列表查询，语音合成接口直接返回音频相关结果。
+
+## 数字人图生视频
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/avatar/image2video` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/avatar/image2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "image": "https://your-cdn.com/avatar.png",
+    "prompt": "数字人看向镜头并自然说话"
+  }'
+```
+
+### 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/avatar/image2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+### 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/avatar/image2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 语音合成
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/audio/tts` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/audio/tts" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "text": "欢迎使用可灵数字人。",
+    "voice_id": "voice_xxx"
+  }'
+```

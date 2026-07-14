@@ -271,8 +271,9 @@ paths:
   /v1beta/models/{model}:generateContent/:
     post:
       operationId: generateGeminiImageContent
-      summary: Gemini 原生格式
-      description: Gemini 兼容的图像生成接口，路径带尾部斜杠。
+      summary: Gemini 原生图像生成
+      description: |
+        Gemini 官方 `generateContent` REST 格式的图像生成接口。请求体使用 `contents[].parts[]` 传入文本和图片，使用 `generationConfig.responseModalities` 请求图片输出。兼容 `/v1beta/models/{model}:generateContent` 与 `/v1/models/{model}:generateContent` 路径。
       tags:
         - 图片系列
       parameters:
@@ -284,12 +285,35 @@ paths:
             schema:
               $ref: '#/components/schemas/GeminiGenerateContentRequest'
             examples:
-              image:
+              textToImage:
+                summary: 文生图
                 value:
                   contents:
                     - role: user
                       parts:
-                        - text: 生成一张 ModelSell 控制台插图。
+                        - text: 生成一张高级质感的产品摄影图，干净通透，柔和自然光，细节清晰。
+                  generationConfig:
+                    responseModalities:
+                      - IMAGE
+                    imageConfig:
+                      aspectRatio: 4:3
+                      imageSize: 2K
+              imageEdit:
+                summary: 参考图编辑
+                value:
+                  contents:
+                    - role: user
+                      parts:
+                        - text: 去除画面中所有人物，保留空间结构，生成干净通透的高级摄影画面。
+                        - inlineData:
+                            mimeType: image/png
+                            data: BASE64_IMAGE_DATA
+                  generationConfig:
+                    responseModalities:
+                      - IMAGE
+                    imageConfig:
+                      aspectRatio: 16:9
+                      imageSize: 2K
       responses:
         '200':
           description: Gemini 图像生成响应。
@@ -3156,6 +3180,32 @@ components:
                 description: 文本、图片或其他多模态内容块。
                 items:
                   type: object
+                  properties:
+                    text:
+                      type: string
+                      description: 文本提示词。
+                    inlineData:
+                      type: object
+                      description: Gemini 官方内联媒体字段，使用 camelCase。
+                      properties:
+                        mimeType:
+                          type: string
+                          description: IANA MIME 类型，例如 image/png、image/jpeg、image/webp。
+                          example: image/png
+                        data:
+                          type: string
+                          format: byte
+                          description: 不带 Data URL 前缀的 Base64 媒体数据。
+                    fileData:
+                      type: object
+                      description: Gemini 官方文件 URI 媒体字段。
+                      properties:
+                        mimeType:
+                          type: string
+                          description: IANA MIME 类型。
+                        fileUri:
+                          type: string
+                          description: 文件 URI。
                   additionalProperties: true
         systemInstruction:
           type: object
@@ -3163,7 +3213,48 @@ components:
           additionalProperties: true
         generationConfig:
           type: object
-          description: Gemini 生成参数，例如温度、topP、最大输出 token 等。
+          description: Gemini 生成参数，例如温度、topP、最大输出 token、图片输出模态等。
+          properties:
+            temperature:
+              type: number
+              description: 采样温度。
+            topP:
+              type: number
+              description: topP 采样参数。
+            topK:
+              type: integer
+              description: topK 采样参数。
+            maxOutputTokens:
+              type: integer
+              description: 最大输出 token 数。
+            candidateCount:
+              type: integer
+              description: 候选结果数量。
+            responseModalities:
+              type: array
+              description: 请求输出模态。图像生成必须包含 IMAGE；空列表等价于只请求文本。
+              items:
+                type: string
+                enum:
+                  - TEXT
+                  - IMAGE
+                  - AUDIO
+            imageConfig:
+              type: object
+              description: Gemini 图片生成配置。仅适用于支持该配置的图像模型。
+              properties:
+                aspectRatio:
+                  type: string
+                  description: 输出比例，例如 1:1、4:3、16:9、9:16、21:9。
+                  example: 16:9
+                imageSize:
+                  type: string
+                  description: 输出尺寸档位，例如 512、1K、2K、4K。
+                  example: 2K
+            thinkingConfig:
+              type: object
+              description: Gemini 思考配置。
+              additionalProperties: true
           additionalProperties: true
         safetySettings:
           type: array

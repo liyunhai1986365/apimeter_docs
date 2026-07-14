@@ -1,0 +1,56 @@
+---
+title: Omni 视频生成
+description: 使用 /kling/v1/videos/omni-video 调用 Kling 3.0 & 3.0 Omni 和 Kling O1 的多模态视频生成能力。
+---
+
+Omni 视频生成支持在同一个请求中组织文本、图片、视频、主体、音色等多模态素材。适用于 Kling 3.0 & 3.0 Omni 和 Kling O1。
+
+## 创建任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/omni-video` |
+
+### 请求体要点
+
+| 字段 | 说明 |
+| --- | --- |
+| `model_name` | Omni 或 O1 模型名 |
+| `contents` | 多模态素材列表，按素材类型组织 |
+| `settings` | 输出配置，如清晰度、时长、比例 |
+| `callback_url` | 任务状态回调地址，可选 |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/omni-video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-o1",
+    "contents": [
+      {
+        "type": "prompt",
+        "text": "角色走进雨夜街道，并说一句台词"
+      }
+    ],
+    "settings": {
+      "duration": 5,
+      "aspect_ratio": "16:9"
+    }
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/omni-video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/omni-video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

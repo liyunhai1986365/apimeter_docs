@@ -1,0 +1,56 @@
+---
+title: 多模态视频编辑
+description: 使用 /kling/v1/videos/multi-elements 系列接口完成选择区编辑、预览和最终视频生成。
+---
+
+多模态视频编辑是一个多步骤工作流：先初始化或维护选择区，再预览选择区，最后提交视频编辑任务。
+
+## 选择区管理
+
+| 动作 | 请求方式 | 路径 |
+| --- | --- | --- |
+| 初始化选择区 | `POST` | `/kling/v1/videos/multi-elements/init-selection` |
+| 添加选择区 | `POST` | `/kling/v1/videos/multi-elements/add-selection` |
+| 删除选择区 | `POST` | `/kling/v1/videos/multi-elements/delete-selection` |
+| 清空选择区 | `POST` | `/kling/v1/videos/multi-elements/clear-selection` |
+| 预览选择区 | `POST` | `/kling/v1/videos/multi-elements/preview-selection` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-elements/init-selection" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "image": "https://your-cdn.com/source.png"
+  }'
+```
+
+## 创建视频编辑任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/multi-elements` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-elements" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v1-6",
+    "prompt": "将选中的人物替换为穿红色外套的角色",
+    "selection_id": "selection_xxx"
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-elements/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-elements?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

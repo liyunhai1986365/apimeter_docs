@@ -1,0 +1,41 @@
+---
+title: Multi-Image to Video
+description: Use /kling/v1/videos/multi-image2video for Kling 1.6 multi-image reference video generation.
+---
+
+Multi-image to video keeps subjects, characters, or scenes consistent by passing multiple reference images.
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/multi-image2video` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/multi-image2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v1-6",
+    "images": [
+      "https://your-cdn.com/ref-1.png",
+      "https://your-cdn.com/ref-2.png"
+    ],
+    "prompt": "Keep the character consistent while walking through a city street.",
+    "duration": "5"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-image2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/multi-image2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

@@ -1,0 +1,122 @@
+---
+title: Gemini Native Image Generation
+description: Use the official Gemini generateContent REST shape for native image generation and image editing models.
+---
+
+Gemini native image generation uses Google's official `generateContent` REST request shape: the model is carried in the path, text and images are sent through `contents[].parts[]`, and image output is requested with `generationConfig.responseModalities`.
+
+If your client already uses the Gemini SDK or Google REST format, you can point it at the ModelSell Gemini-compatible endpoint without converting the request body to the OpenAI Images format.
+
+## Endpoints
+
+| Operation | Endpoint |
+| --- | --- |
+| Gemini native content generation | `POST /v1beta/models/{model}:generateContent` |
+| Gemini native content generation | `POST /v1/models/{model}:generateContent` |
+
+`{model}` is the Gemini image model ID, such as `gemini-3.1-flash-image-preview` or another Gemini image model available to your account.
+
+## Request Shape
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `contents` | array | Yes | Request content. A single-turn request usually has one `role: "user"` item. |
+| `contents[].role` | string | No | `user` or `model`. Use `user` for a single-turn request. |
+| `contents[].parts` | array | Yes | Multimodal parts. Each part should carry one content type. |
+| `parts[].text` | string | No | Text prompt. |
+| `parts[].inlineData` | object | No | Base64 inline media using the official camelCase fields. |
+| `inlineData.mimeType` | string | Yes | Input image MIME type, such as `image/png`, `image/jpeg`, or `image/webp`. |
+| `inlineData.data` | string | Yes | Base64 image data without a `data:image/...;base64,` prefix. |
+| `generationConfig.responseModalities` | string array | Yes | Image generation must include `IMAGE`. Use `["TEXT", "IMAGE"]` if you also want text. |
+| `generationConfig.imageConfig.aspectRatio` | string | No | Output aspect ratio, such as `1:1`, `4:3`, `16:9`, `9:16`, or `21:9`. |
+| `generationConfig.imageConfig.imageSize` | string | No | Output image tier, such as `512`, `1K`, `2K`, or `4K`, depending on model support. |
+| `systemInstruction` | object | No | Gemini official system instruction shape. |
+| `safetySettings` | array | No | Gemini official safety settings. |
+| `tools` | array | No | Gemini official tools. |
+
+## Text To Image
+
+```bash
+curl -X POST "https://api.modelsell.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Create a polished product photo with clean composition, soft natural light, and crisp detail."
+          }
+        ]
+      }
+    ],
+    "generationConfig": {
+      "responseModalities": ["IMAGE"],
+      "imageConfig": {
+        "aspectRatio": "4:3",
+        "imageSize": "2K"
+      }
+    }
+  }'
+```
+
+## Reference Image Editing
+
+When sending an image through `inlineData`, `data` must be the complete Base64 string. Do not include a Data URL prefix and do not send a truncated log capture.
+
+```json
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Remove all people from the scene while preserving the room structure. Make the final image clean, airy, and cinematic."
+        },
+        {
+          "inlineData": {
+            "mimeType": "image/png",
+            "data": "BASE64_IMAGE_DATA"
+          }
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "responseModalities": ["IMAGE"],
+    "imageConfig": {
+      "aspectRatio": "16:9",
+      "imageSize": "2K"
+    }
+  }
+}
+```
+
+## Response
+
+The response keeps the native Gemini structure. Generated image data is usually returned at:
+
+```text
+candidates[].content.parts[].inlineData.data
+```
+
+The MIME type is returned at:
+
+```text
+candidates[].content.parts[].inlineData.mimeType
+```
+
+## Common Errors
+
+| Problem | Description |
+| --- | --- |
+| Missing `responseModalities` | Image generation must request `IMAGE`; an empty list is equivalent to text-only output. |
+| Truncated Base64 | `inlineData.data` must be complete. Truncated payloads commonly produce `400 invalid argument`. |
+| Data URL prefix included | `inlineData.data` expects raw Base64, not `data:image/png;base64,...`. |
+| Mixed new-interface fields | This endpoint uses `contents`, `inlineData`, and `generationConfig`. Do not send `interactions` fields such as `input`, `type: "image"`, or `response_format` in a `generateContent` body. |
+| `imageConfig` sent to a non-image model | `imageConfig` is only valid for models that support image generation configuration. |
+
+## Difference From Generic Images
+
+`/v1/images/generations` is the OpenAI Images-compatible entrypoint for unified image model calls. Gemini native image generation preserves Google's official `generateContent` request and response shape, which is best for clients already built around the Gemini protocol.

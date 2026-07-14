@@ -1,0 +1,122 @@
+---
+title: Gemini 原生图像生成
+description: 使用 Gemini 官方 generateContent REST 格式调用原生图像生成和图片编辑模型。
+---
+
+Gemini 原生图像生成使用 Google 官方 `generateContent` REST 请求格式：路径中携带模型名，请求体使用 `contents[].parts[]` 组织文本和图片，输出图片通过 `generationConfig.responseModalities` 声明。
+
+如果你已经在客户端使用 Gemini SDK 或 Google REST 格式，可以直接迁移到 ModelSell 的 Gemini 兼容入口，不需要改成 OpenAI Images 请求体。
+
+## 接口
+
+| 操作 | Endpoint |
+| --- | --- |
+| Gemini 原生内容生成 | `POST /v1beta/models/{model}:generateContent` |
+| Gemini 原生内容生成 | `POST /v1/models/{model}:generateContent` |
+
+`{model}` 是 Gemini 图像模型 ID，例如 `gemini-3.1-flash-image-preview` 或当前账号可用的其他 Gemini 图像模型。
+
+## 请求格式
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `contents` | array | 是 | 当前请求内容。单轮生成通常只需要一个 `role: "user"` 内容块。 |
+| `contents[].role` | string | 否 | `user` 或 `model`。单轮请求推荐传 `user`。 |
+| `contents[].parts` | array | 是 | 多模态内容块。每个 part 只能表达一种内容。 |
+| `parts[].text` | string | 否 | 文本提示词。 |
+| `parts[].inlineData` | object | 否 | Base64 内联媒体，使用官方 camelCase 字段。 |
+| `inlineData.mimeType` | string | 是 | 输入图片 MIME 类型，例如 `image/png`、`image/jpeg`、`image/webp`。 |
+| `inlineData.data` | string | 是 | 不带 `data:image/...;base64,` 前缀的 Base64 图片数据。 |
+| `generationConfig.responseModalities` | string array | 是 | 图像生成必须包含 `IMAGE`。需要同时返回文字说明时可传 `["TEXT", "IMAGE"]`。 |
+| `generationConfig.imageConfig.aspectRatio` | string | 否 | 输出比例，例如 `1:1`、`4:3`、`16:9`、`9:16`、`21:9`。 |
+| `generationConfig.imageConfig.imageSize` | string | 否 | 输出尺寸档位，例如 `512`、`1K`、`2K`、`4K`，以模型支持为准。 |
+| `systemInstruction` | object | 否 | Gemini 官方系统指令结构。 |
+| `safetySettings` | array | 否 | Gemini 官方安全设置结构。 |
+| `tools` | array | 否 | Gemini 官方工具结构。 |
+
+## 文生图示例
+
+```bash
+curl -X POST "https://api.modelsell.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "生成一张高级质感的产品摄影图，干净通透，柔和自然光，细节清晰。"
+          }
+        ]
+      }
+    ],
+    "generationConfig": {
+      "responseModalities": ["IMAGE"],
+      "imageConfig": {
+        "aspectRatio": "4:3",
+        "imageSize": "2K"
+      }
+    }
+  }'
+```
+
+## 带参考图编辑
+
+把图片作为 `inlineData` 传入时，`data` 字段必须是完整 Base64 字符串，不能带 Data URL 前缀，也不能被日志或客户端截断。
+
+```json
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "去除画面中所有人物，保留空间结构，生成干净通透的高级摄影画面。"
+        },
+        {
+          "inlineData": {
+            "mimeType": "image/png",
+            "data": "BASE64_IMAGE_DATA"
+          }
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "responseModalities": ["IMAGE"],
+    "imageConfig": {
+      "aspectRatio": "16:9",
+      "imageSize": "2K"
+    }
+  }
+}
+```
+
+## 返回结果
+
+Gemini 原生响应保留官方结构。生成的图片通常位于：
+
+```text
+candidates[].content.parts[].inlineData.data
+```
+
+对应的 MIME 类型位于：
+
+```text
+candidates[].content.parts[].inlineData.mimeType
+```
+
+## 常见错误
+
+| 问题 | 说明 |
+| --- | --- |
+| 缺少 `responseModalities` | 图像生成必须请求 `IMAGE` 输出；空列表等价于只请求文本。 |
+| Base64 被截断 | `inlineData.data` 必须是完整字符串，截断会导致上游返回 `400 invalid argument`。 |
+| Data URL 前缀未去除 | `inlineData.data` 只接收纯 Base64，不要传 `data:image/png;base64,...`。 |
+| 字段混用新接口格式 | 本接口使用 `contents` / `inlineData` / `generationConfig`，不要把 `interactions` 的 `input`、`type: "image"`、`response_format` 放到 `generateContent` 请求体里。 |
+| 非图像模型传 `imageConfig` | `imageConfig` 只适用于支持图像生成配置的模型。 |
+
+## 与通用图片接口的区别
+
+`/v1/images/generations` 是 OpenAI Images 兼容入口，适合统一图片模型调用。Gemini 原生图像生成保留 Google 官方 `generateContent` 请求和响应结构，适合已经使用 Gemini 官方协议的客户端。

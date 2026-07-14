@@ -1,0 +1,61 @@
+---
+title: Text to Video
+description: Create Kling text-to-video tasks with /kling/v1/videos/text2video and query task status or task lists.
+---
+
+Use this endpoint for Kling 3.0 & 3.0 Omni, Kling 2.6, Kling 2.5 Turbo, Kling 2.1 Master, Kling 2.0 Master, Kling 1.6, and Kling 1.0. For Kling 3.0 Turbo, use [Kling 3.0 Turbo Tasks](/docs/api-reference/kling/turbo-tasks).
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/text2video` |
+
+### Headers
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### Body Notes
+
+| Field | Notes |
+| --- | --- |
+| `model_name` | Kling model name, such as `kling-v3`, `kling-v2-6`, or `kling-v1-6`. |
+| `prompt` | Positive prompt. |
+| `negative_prompt` | Optional negative prompt. |
+| `cfg_scale` | Optional prompt adherence. |
+| `mode` | Generation mode supported by the selected model. |
+| `duration` | Video duration supported by the selected model. |
+| `aspect_ratio` | Output aspect ratio. |
+| `callback_url` | Optional task callback URL. |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/text2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v2-6",
+    "prompt": "A cat runs through a neon street on a rainy night.",
+    "negative_prompt": "blurry, low quality",
+    "duration": "5",
+    "aspect_ratio": "16:9"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/text2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/text2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

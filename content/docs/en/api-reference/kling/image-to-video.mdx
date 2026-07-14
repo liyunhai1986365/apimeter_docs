@@ -1,0 +1,61 @@
+---
+title: Image to Video
+description: Create Kling image-to-video tasks with /kling/v1/videos/image2video and query task status or task lists.
+---
+
+Use this endpoint for Kling 3.0 & 3.0 Omni, Kling 2.6, Kling 2.5 Turbo, Kling 2.1 Master, Kling 2.1, Kling 2.0 Master, Kling 1.6, Kling 1.5, and Kling 1.0. For Kling 3.0 Turbo, use [Kling 3.0 Turbo Tasks](/docs/api-reference/kling/turbo-tasks).
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/image2video` |
+
+### Headers
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### Body Notes
+
+| Field | Notes |
+| --- | --- |
+| `model_name` | Kling model name, such as `kling-v3`, `kling-v2-6`, or `kling-v1-5`. |
+| `image` | First-frame image URL or Base64. |
+| `image_tail` | Optional tail-frame image when supported by the model. |
+| `prompt` | Video prompt. |
+| `negative_prompt` | Optional negative prompt. |
+| `duration` | Video duration. |
+| `aspect_ratio` | Output aspect ratio. |
+| `callback_url` | Optional task callback URL. |
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/image2video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-v2-6",
+    "image": "https://your-cdn.com/start-frame.png",
+    "prompt": "The person slowly turns toward the camera.",
+    "duration": "5",
+    "aspect_ratio": "16:9"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/image2video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/image2video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

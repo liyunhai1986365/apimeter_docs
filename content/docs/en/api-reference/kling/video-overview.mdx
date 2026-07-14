@@ -1,0 +1,43 @@
+---
+title: Kling Video API Overview
+description: Organizes Kling video APIs by call type, matching the structure of the official Kling documentation.
+---
+
+Kling video documentation is split by call type. Each page follows the same shape as the official docs: create task, headers, request body notes, cURL example, then single-task and list-task queries. Paths in these pages are ModelSell proxy paths: add the `/kling` prefix before the official Kling path, while request bodies, response shapes, and other parameters stay aligned with the official API. For field details, model capabilities, and enum values, see the [official Kling documentation](https://klingai.com/document-api/api/video/3-0-turbo/text-to-video).
+
+## API Families
+
+| Call type | Applies to | Page |
+| --- | --- | --- |
+| Kling 3.0 Turbo | `kling-3.0-turbo` text-to-video, image-to-video, `/kling/tasks` queries | [Kling 3.0 Turbo Tasks](/docs/api-reference/kling/turbo-tasks) |
+| Text to video | Kling 3.0 & 3.0 Omni, 2.6, 2.5 Turbo, 2.1 Master, 2.0 Master, 1.6, 1.0 | [Text to Video](/docs/api-reference/kling/text-to-video) |
+| Image to video | Kling 3.0 & 3.0 Omni, 2.6, 2.5 Turbo, 2.1 Master, 2.1, 2.0 Master, 1.6, 1.5, 1.0 | [Image to Video](/docs/api-reference/kling/image-to-video) |
+| Omni video | Kling 3.0 & 3.0 Omni, Kling O1 | [Omni Video Generation](/docs/api-reference/kling/omni-video) |
+| Motion control | Kling 3.0 & 3.0 Omni, Kling 2.6, motion-control page | [Motion Control](/docs/api-reference/kling/motion-control) |
+| Multi-image to video | Kling 1.6 | [Multi-Image to Video](/docs/api-reference/kling/multi-image-to-video) |
+| Multimodal video editing | Kling 1.6 selection editing workflow | [Multimodal Video Editing](/docs/api-reference/kling/multi-elements) |
+| Video extension | Kling 1.6, 1.5, 1.0 | [Video Extension](/docs/api-reference/kling/video-extension) |
+| Lip sync | Face detection, lip-sync task creation, task queries | [Lip Sync](/docs/api-reference/kling/lip-sync) |
+| Avatar | Avatar image-to-video and TTS | [Avatar](/docs/api-reference/kling/avatar) |
+| Audio generation | Text-to-audio and video-to-audio | [Audio Generation](/docs/api-reference/kling/audio-generation) |
+| Elements and voices | Custom elements, preset elements, custom voices, preset voices | [Elements and Voices](/docs/api-reference/kling/elements-voices) |
+| Image recognition | Image-recognition helper capability | [Image Recognition](/docs/api-reference/kling/image-recognition) |
+
+## Common Rules
+
+Most requests use:
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+Most `/kling/v1/videos/*` async jobs expose:
+
+| Method | Purpose |
+| --- | --- |
+| `POST /kling/v1/videos/{capability}` | Create task |
+| `GET /kling/v1/videos/{capability}/{id}` | Query one task |
+| `GET /kling/v1/videos/{capability}?pageNum=1&pageSize=30` | List tasks |
+
+Kling 3.0 Turbo is different: it creates tasks through `/kling/text-to-video/kling-3.0-turbo` and `/kling/image-to-video/kling-3.0-turbo`, then queries through `/kling/tasks`.

@@ -1,0 +1,39 @@
+---
+title: Omni Video Generation
+description: Use /kling/v1/videos/omni-video for Kling 3.0 & 3.0 Omni and Kling O1 multimodal video generation.
+---
+
+Omni video accepts multimodal materials such as text, images, video, elements, and voices in one request.
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/omni-video` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/omni-video" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "model_name": "kling-o1",
+    "contents": [
+      { "type": "prompt", "text": "A character walks into a rainy street and speaks." }
+    ],
+    "settings": { "duration": 5, "aspect_ratio": "16:9" }
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/omni-video/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/omni-video?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

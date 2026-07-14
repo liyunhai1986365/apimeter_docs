@@ -1,0 +1,37 @@
+---
+title: Video Extension
+description: Use /kling/v1/videos/video-extend to extend Kling 1.6, 1.5, and 1.0 video results.
+---
+
+Video extension continues a generated or uploaded video with a new follow-up segment.
+
+## Create Task
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/kling/v1/videos/video-extend` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/video-extend" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "prompt": "The camera continues forward as the character enters the building.",
+    "duration": "5"
+  }'
+```
+
+## Query Task
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/video-extend/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## List Tasks
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/video-extend?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```

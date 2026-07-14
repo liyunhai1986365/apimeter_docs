@@ -1,0 +1,52 @@
+---
+title: 对口型
+description: 使用人脸识别和 /kling/v1/videos/advanced-lip-sync 创建可灵对口型视频任务。
+---
+
+对口型通常包含两步：先识别视频或图片中的人脸，再提交对口型任务。
+
+## 人脸识别
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/identify-face` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/identify-face" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "image": "https://your-cdn.com/face.png"
+  }'
+```
+
+## 创建对口型任务
+
+| 请求方式 | 路径 |
+| --- | --- |
+| `POST` | `/kling/v1/videos/advanced-lip-sync` |
+
+```bash
+curl --location "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync" \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Bearer $KLING_API_KEY" \
+  --data '{
+    "video": "https://your-cdn.com/source.mp4",
+    "audio": "https://your-cdn.com/speech.mp3",
+    "face_id": "face_xxx"
+  }'
+```
+
+## 查询任务
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync/{id}" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
+
+## 查询任务（列表）
+
+```bash
+curl "$KLING_BASE_URL/kling/v1/videos/advanced-lip-sync?pageNum=1&pageSize=30" \
+  --header "Authorization: Bearer $KLING_API_KEY"
+```
