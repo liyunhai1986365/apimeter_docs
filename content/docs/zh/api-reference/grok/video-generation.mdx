@@ -11,18 +11,31 @@ Grok 视频生成走 OpenAI 兼容的 `/v1/videos` 异步任务接口。提交�
 | 查询任务 | `GET /v1/videos/{task_id}` |
 | 支持模型 | `grok-imagine-video`, `grok-imagine-video-1.5-preview` |
 
-## 文生视频
+## 创建视频
 
 ```bash
 curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
   -H "Authorization: Bearer $MODELSELL_API_KEY" \
-  -F "model=grok-imagine-video" \
-  -F "prompt=在广场中央跳舞" \
-  -F "aspect_ratio=16:9" \
-  -F "video_length=6" \
-  -F "resolution_name=480p" \
-  -F "preset=fun"
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "grok-imagine-video",
+    "prompt": "这里显示请求将发送的提示词",
+    "seconds": "6",
+    "resolution": "720p",
+    "aspect_ratio": "16:9",
+    "custom_domain": "true",
+    "reference_images": [
+      {
+        "url": "http://38.145.220.6:9000/preview/reference.png"
+      }
+    ],
+    "video": {
+      "url": "http://38.145.220.6:9000/preview/reference.mp4"
+    }
+  }'
 ```
+
+请求体使用 `application/json`。`reference_images` 用于传入参考图片 URL，`video.url` 用于传入参考视频 URL；不需要某类参考素材时可省略对应字段。
 
 响应会返回异步任务对象：
 
@@ -35,27 +48,9 @@ curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
   "progress": 0,
   "created_at": 1762600200,
   "seconds": "6",
-  "size": "480p"
+  "size": "720p"
 }
 ```
-
-## 图片参考
-
-需要上传图片文件时使用 `input_reference`：
-
-```bash
-curl -X POST "$MODELSELL_BASE_URL/v1/videos" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
-  -F "model=grok-imagine-video-1.5-preview" \
-  -F "prompt=让图片中的人物向镜头挥手" \
-  -F "aspect_ratio=9:16" \
-  -F "video_length=10" \
-  -F "resolution_name=720p" \
-  -F "preset=normal" \
-  -F "input_reference=@/path/to/reference.png"
-```
-
-如果业务侧已经拿到 Base64 图片，也可以用 `image` 传单图，或用 `images` 传多图数组。多图数组适合在 JSON 客户端中构造请求；文件上传场景优先使用 `input_reference`。
 
 ## 查询结果
 
@@ -77,7 +72,7 @@ curl "$MODELSELL_BASE_URL/v1/videos/video_55c77134-3fbe-4d5d-839f-c9af4556405b" 
   "completed_at": 1762600260,
   "expires_at": 1762686660,
   "seconds": "6",
-  "size": "480p",
+  "size": "720p",
   "remixed_from_video_id": "",
   "error": null,
   "video_url": "https://example.com/result.mp4"

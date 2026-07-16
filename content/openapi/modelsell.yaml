@@ -811,7 +811,7 @@ paths:
       description: |
         通过 OpenAI 兼容的 `/v1/videos` 接口创建视频生成任务，适用于 PixVerse、Veo、Seedance 等兼容提供商。
 
-        Grok 视频生成也使用该接口，模型可选 `grok-imagine-video` 或 `grok-imagine-video-1.5-preview`。Grok 支持 `multipart/form-data`，可传 `input_reference` 文件，也可通过 `image` 或 `images` 传 Base64 图片参考。
+        Grok 视频生成也使用该接口，模型可选 `grok-imagine-video` 或 `grok-imagine-video-1.5-preview`。Grok 请求使用 `application/json`，可通过 `reference_images` 传参考图片 URL，并通过 `video.url` 传参考视频 URL。
       tags:
         - 视频系列
       requestBody:
@@ -819,7 +819,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateVideoGenerationRequest'
+              oneOf:
+                - $ref: '#/components/schemas/CreateVideoGenerationRequest'
+                - $ref: '#/components/schemas/GrokVideoGenerationRequest'
             examples:
               seedance2:
                 summary: Seedance 2.0 视频生视频
@@ -847,28 +849,19 @@ paths:
                     audio_url: https://example.com/reference-audio.mp3
                     generate_audio: true
                     watermark: false
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GrokVideoGenerationRequest'
-            examples:
-              grokTextToVideo:
-                summary: Grok 视频生成
+              grokVideo:
+                summary: Grok 视频生成（JSON）
                 value:
                   model: grok-imagine-video
-                  prompt: 在广场中央跳舞
+                  prompt: 这里显示请求将发送的提示词
+                  seconds: '6'
+                  resolution: 720p
                   aspect_ratio: '16:9'
-                  video_length: 6
-                  resolution_name: 480p
-                  preset: fun
-              grokImageToVideo:
-                summary: Grok 图片参考视频生成
-                value:
-                  model: grok-imagine-video-1.5-preview
-                  prompt: 让图片中的人物向镜头挥手
-                  aspect_ratio: '9:16'
-                  video_length: 10
-                  resolution_name: 720p
-                  preset: normal
+                  custom_domain: 'true'
+                  reference_images:
+                    - url: http://38.145.220.6:9000/preview/reference.png
+                  video:
+                    url: http://38.145.220.6:9000/preview/reference.mp4
       responses:
         '200':
           description: OpenAI 兼容视频任务响应。
@@ -4341,41 +4334,45 @@ components:
             - '2:3'
             - '3:2'
           example: '16:9'
-        video_length:
-          type: integer
+        seconds:
+          type: string
           description: 视频时长，单位秒，支持 `6` 或 `10`。
           enum:
-            - 6
-            - 10
-          example: 6
-        input_reference:
+            - '6'
+            - '10'
+          example: '6'
+        resolution:
           type: string
-          format: binary
-          description: 图片参考文件。
-        image:
-          type: string
-          description: 图片参考，传 Base64 或 Base64 Data URL 时使用。
-        images:
-          type: array
-          description: 多图数组，传 Base64 或 Base64 Data URL 数组时使用。
-          items:
-            type: string
-        resolution_name:
-          type: string
-          description: 分辨率，支持 `480p`, `720p`。
+          description: 输出视频分辨率，支持 `480p`, `720p`。
           enum:
             - 480p
             - 720p
-          example: 480p
-        preset:
+          example: 720p
+        custom_domain:
           type: string
-          description: 风格预设 `fun`, `normal`, `spicy`, `custom`。
+          description: 是否使用自定义域名，传字符串 `true` 或 `false`。
           enum:
-            - fun
-            - normal
-            - spicy
-            - custom
-          example: fun
+            - 'true'
+            - 'false'
+          example: 'true'
+        reference_images:
+          type: array
+          description: 参考图片列表。
+          items:
+            $ref: '#/components/schemas/GrokVideoReference'
+        video:
+          allOf:
+            - $ref: '#/components/schemas/GrokVideoReference'
+          description: 参考视频。
+    GrokVideoReference:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: 参考素材的公网 URL。
     Seedance2VideoTaskRequest:
       type: object
       required:

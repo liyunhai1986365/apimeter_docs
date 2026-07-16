@@ -5,12 +5,9 @@ description: 使用新版异步任务接口调用 Kling 3.0 Turbo 文生视频�
 
 Kling 3.0 Turbo 使用独立的新版任务接口，不走 `/kling/v1/videos/*` 路径。创建任务后保存返回的 `data.id`，或在请求中传入 `options.external_task_id` 方便业务侧查询。
 
-## 创建任务
+## 文生视频：创建任务
 
-| 调用方式 | 请求方式 | 路径 |
-| --- | --- | --- |
-| 文生视频 | `POST` | `/kling/text-to-video/kling-3.0-turbo` |
-| 图生视频 | `POST` | `/kling/image-to-video/kling-3.0-turbo` |
+`POST /kling/text-to-video/kling-3.0-turbo`
 
 ### 请求头
 
@@ -19,19 +16,24 @@ Content-Type: application/json
 Authorization: Bearer {apikey}
 ```
 
-### 文生视频请求体
+### 请求体
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `prompt` | string | 是 | 视频生成提示词 |
+| `prompt` | string | 是 | 文本提示词，可包含正向和负向描述；最长 3072 个字符，建议不超过 2500 个字符 |
+| `settings` | object | 否 | 输出配置；未传时使用默认值 |
+| `settings.resolution` | string | 否 | 清晰度：`720p`、`1080p`；默认 `720p` |
+| `settings.aspect_ratio` | string | 否 | 画面比例：`16:9`、`9:16`、`1:1`；默认 `16:9` |
+| `settings.duration` | int | 否 | 视频时长：`3` 到 `15` 秒的整数；默认 `5` |
+| `options` | object | 否 | 回调、水印和自定义任务 ID 等通用配置 |
 | `options.callback_url` | string | 否 | 任务状态变化回调地址 |
-| `options.watermark_info.enabled` | boolean | 否 | 是否生成含水印结果，默认 `false` |
 | `options.external_task_id` | string | 否 | 业务自定义任务 ID，单用户下需要唯一 |
-| `settings.duration` | int | 否 | 生成时长，支持 `3` 到 `15` 秒 |
-| `settings.resolution` | string | 否 | `720p` 或 `1080p`，默认 `720p` |
-| `settings.aspect_ratio` | string | 否 | 输出画面比例，例如 `9:16` |
+| `options.watermark_info` | object | 否 | 含水印结果配置，暂不支持自定义水印 |
+| `options.watermark_info.enabled` | boolean | 否 | 是否同时生成含水印结果，默认 `false` |
 
-### 文生视频 cURL
+`prompt` 支持多镜头格式：`镜头 n, m, words; 镜头 n, m, words;`。最多 6 个、最少 1 个镜头；`m` 为该镜头时长且不得小于 1 秒，所有镜头时长之和须等于视频总时长；每段 `words` 最长 512 个字符。
+
+### cURL
 
 ```bash
 curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
@@ -52,6 +54,86 @@ curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
       "aspect_ratio": "9:16"
     }
   }'
+```
+
+## 图生视频：创建任务
+
+`POST /kling/image-to-video/kling-3.0-turbo`
+
+### 请求头
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### 请求体
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `contents` | array | 是 | 提示词、首帧图等参考素材合集 |
+| `contents[].type` | string | 是 | 素材类型：`prompt` 或 `first_frame` |
+| `contents[].text` | string | 条件必填 | `type=prompt` 时必填，文本提示词不超过 2500 个字符 |
+| `contents[].url` | string | 条件必填 | `type=first_frame` 时必填，支持图片 URL 或 Base64 |
+| `settings` | object | 否 | 输出配置；未传时使用默认值 |
+| `settings.resolution` | string | 否 | 清晰度：`720p`、`1080p`；默认 `720p` |
+| `settings.duration` | int | 否 | 视频时长：`3` 到 `15` 秒的整数；默认 `5` |
+| `options` | object | 否 | 回调、水印和自定义任务 ID 等通用配置 |
+| `options.callback_url` | string | 否 | 任务状态变化回调地址 |
+| `options.external_task_id` | string | 否 | 业务自定义任务 ID，单用户下需要唯一 |
+| `options.watermark_info` | object | 否 | 含水印结果配置，暂不支持自定义水印 |
+| `options.watermark_info.enabled` | boolean | 否 | 是否同时生成含水印结果，默认 `false` |
+
+首帧图片支持 `.jpg`、`.jpeg`、`.png`，文件不得超过 50 MB；宽高均不得小于 300 px，宽高比须在 `1:2.5` 到 `2.5:1` 之间。目前仅支持首帧，不支持首帧加尾帧或仅尾帧。
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer {apikey}' \
+  --data-raw '{
+    "contents": [
+      {
+        "type": "prompt",
+        "text": "A girl sat on the train, looking out the window with a melancholic expression, her head swaying with the train."
+      },
+      {
+        "type": "first_frame",
+        "url": "https://p2-kling.klingai.com/kcdn/cdn-kcdn112452/kling-tob-release_note/image_25.png"
+      }
+    ],
+    "settings": {
+      "resolution": "1080p",
+      "duration": 10
+    },
+    "options": {
+      "callback_url": "https://xxx/callback",
+      "external_task_id": "",
+      "watermark_info": {
+        "enabled": true
+      }
+    }
+  }'
+```
+
+## 创建任务响应
+
+文生视频和图生视频创建成功后均返回任务基础信息：
+
+```json
+{
+  "code": 0,
+  "message": "string",
+  "request_id": "string",
+  "data": {
+    "id": "893605946402811985",
+    "status": "submitted",
+    "create_time": 1781080778802,
+    "update_time": 1781080794151,
+    "external_id": "string"
+  }
+}
 ```
 
 ## 查询任务（指定任务 ID）

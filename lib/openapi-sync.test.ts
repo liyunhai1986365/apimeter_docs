@@ -302,16 +302,24 @@ describe('modelsell OpenAPI sync', () => {
       'Grok 视频生成',
       'grok-imagine-video',
       'grok-imagine-video-1.5-preview',
-      'multipart/form-data:',
-      'input_reference:',
-      'resolution_name:',
-      '风格预设 `fun`, `normal`, `spicy`, `custom`',
-      'video_length:',
+      'summary: Grok 视频生成（JSON）',
+      "seconds: '6'",
+      'resolution: 720p',
+      "custom_domain: 'true'",
+      'reference_images:',
+      'url: http://38.145.220.6:9000/preview/reference.png',
+      'url: http://38.145.220.6:9000/preview/reference.mp4',
       'video_url:',
     ];
 
     for (const snippet of requiredSnippets) {
       expect(openApiText).toContain(snippet);
     }
+
+    const openAIVideoPath = openApiText.slice(
+      openApiText.indexOf('  /v1/videos:'),
+      openApiText.indexOf('  /v1/videos/{task_id}:'),
+    );
+    expect(openAIVideoPath).not.toContain('multipart/form-data:');
   });
 });

@@ -5,12 +5,9 @@ description: Use the newer async task API for Kling 3.0 Turbo text-to-video, ima
 
 Kling 3.0 Turbo does not use the `/kling/v1/videos/*` paths. Save `data.id` from the create response, or pass `options.external_task_id` for business-side lookup.
 
-## Create Task
+## Text-to-Video: Create Task
 
-| Mode | Method | Path |
-| --- | --- | --- |
-| Text to video | `POST` | `/kling/text-to-video/kling-3.0-turbo` |
-| Image to video | `POST` | `/kling/image-to-video/kling-3.0-turbo` |
+`POST /kling/text-to-video/kling-3.0-turbo`
 
 ### Headers
 
@@ -19,19 +16,21 @@ Content-Type: application/json
 Authorization: Bearer {apikey}
 ```
 
-### Text-to-Video Body
+### Body
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `prompt` | Yes | Video generation prompt. |
+| `prompt` | Yes | Positive and negative prompt text, up to 3072 characters; 2500 or fewer is recommended. |
+| `settings` | No | Output settings. |
+| `settings.resolution` | No | `720p` or `1080p`; default `720p`. |
+| `settings.aspect_ratio` | No | `16:9`, `9:16`, or `1:1`; default `16:9`. |
+| `settings.duration` | No | An integer from `3` to `15` seconds; default `5`. |
+| `options` | No | Callback, watermark, and external task ID settings. |
 | `options.callback_url` | No | Callback URL for task status changes. |
-| `options.watermark_info.enabled` | No | Whether to generate watermarked output. |
 | `options.external_task_id` | No | Custom task ID, unique per user. |
-| `settings.duration` | No | `3` to `15` seconds. |
-| `settings.resolution` | No | `720p` or `1080p`, default `720p`. |
-| `settings.aspect_ratio` | No | Output aspect ratio, for example `9:16`. |
+| `options.watermark_info.enabled` | No | Whether to also generate watermarked output; default `false`. |
 
-### Text-to-Video cURL
+### cURL
 
 ```bash
 curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
@@ -52,6 +51,83 @@ curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
       "aspect_ratio": "9:16"
     }
   }'
+```
+
+## Image-to-Video: Create Task
+
+`POST /kling/image-to-video/kling-3.0-turbo`
+
+### Headers
+
+```http
+Content-Type: application/json
+Authorization: Bearer {apikey}
+```
+
+### Body
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `contents` | Yes | Prompt and first-frame reference materials. |
+| `contents[].type` | Yes | `prompt` or `first_frame`. |
+| `contents[].text` | Conditional | Required for `type=prompt`; up to 2500 characters. |
+| `contents[].url` | Conditional | Required for `type=first_frame`; accepts an image URL or Base64. |
+| `settings.resolution` | No | `720p` or `1080p`; default `720p`. |
+| `settings.duration` | No | An integer from `3` to `15` seconds; default `5`. |
+| `options.callback_url` | No | Callback URL for task status changes. |
+| `options.external_task_id` | No | Custom task ID, unique per user. |
+| `options.watermark_info.enabled` | No | Whether to also generate watermarked output; default `false`. |
+
+The first-frame image must be `.jpg`, `.jpeg`, or `.png`, no larger than 50 MB, at least 300 px on each side, and have an aspect ratio between `1:2.5` and `2.5:1`. Only a first frame is currently supported.
+
+### cURL
+
+```bash
+curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer {apikey}' \
+  --data-raw '{
+    "contents": [
+      {
+        "type": "prompt",
+        "text": "A girl sat on the train, looking out the window with a melancholic expression, her head swaying with the train."
+      },
+      {
+        "type": "first_frame",
+        "url": "https://p2-kling.klingai.com/kcdn/cdn-kcdn112452/kling-tob-release_note/image_25.png"
+      }
+    ],
+    "settings": {
+      "resolution": "1080p",
+      "duration": 10
+    },
+    "options": {
+      "callback_url": "https://xxx/callback",
+      "external_task_id": "",
+      "watermark_info": {
+        "enabled": true
+      }
+    }
+  }'
+```
+
+## Create Task Response
+
+Both create endpoints return the base task information:
+
+```json
+{
+  "code": 0,
+  "message": "string",
+  "request_id": "string",
+  "data": {
+    "id": "893605946402811985",
+    "status": "submitted",
+    "create_time": 1781080778802,
+    "update_time": 1781080794151,
+    "external_id": "string"
+  }
+}
 ```
 
 ## Query Task By ID
