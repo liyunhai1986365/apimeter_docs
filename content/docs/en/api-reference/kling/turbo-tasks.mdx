@@ -19,33 +19,37 @@ Content-Type: application/json
 Authorization: Bearer {apikey}
 ```
 
-### Body Notes
+### Text-to-Video Body
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `contents` | Yes | Materials. Text-to-video uses `prompt`; image-to-video also passes `first_frame`. |
-| `settings.resolution` | No | `720p` or `1080p`, default `720p`. |
-| `settings.duration` | No | `3` to `15` seconds. |
+| `prompt` | Yes | Video generation prompt. |
 | `options.callback_url` | No | Callback URL for task status changes. |
-| `options.external_task_id` | No | Custom task ID, unique per user. |
 | `options.watermark_info.enabled` | No | Whether to generate watermarked output. |
+| `options.external_task_id` | No | Custom task ID, unique per user. |
+| `settings.duration` | No | `3` to `15` seconds. |
+| `settings.resolution` | No | `720p` or `1080p`, default `720p`. |
+| `settings.aspect_ratio` | No | Output aspect ratio, for example `9:16`. |
 
-### cURL
+### Text-to-Video cURL
 
 ```bash
-curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
-  --header "Content-Type: application/json" \
-  --header "Authorization: Bearer $KLING_API_KEY" \
-  --data-raw '{
-    "contents": [
-      { "type": "prompt", "text": "A girl sat on the train, looking out the window." },
-      { "type": "first_frame", "url": "https://your-cdn.com/start-frame.jpg" }
-    ],
-    "settings": { "resolution": "1080p", "duration": 10 },
+curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer {apikey}' \
+  --data '{
+    "prompt": "A girl sat on the train, looking out the window with a melancholic expression, her head swaying with the train.",
     "options": {
-      "callback_url": "https://example.com/callback",
-      "external_task_id": "order-10001",
-      "watermark_info": { "enabled": false }
+      "callback_url": "https://xxx/callback",
+      "watermark_info": {
+        "enabled": false
+      },
+      "external_task_id": ""
+    },
+    "settings": {
+      "duration": 3,
+      "resolution": "720p",
+      "aspect_ratio": "9:16"
     }
   }'
 ```

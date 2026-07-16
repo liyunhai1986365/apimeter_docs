@@ -73,6 +73,27 @@ describe('API reference MDX pages', () => {
     }
   });
 
+  it('documents the official Kling 3.0 Turbo text-to-video request shape', () => {
+    const turboTasks = readFileSync(
+      resolve(process.cwd(), 'content/docs/zh/api-reference/kling/turbo-tasks.mdx'),
+      'utf8',
+    );
+
+    for (const snippet of [
+      '/kling/text-to-video/kling-3.0-turbo',
+      '"prompt":',
+      '"options":',
+      '"watermark_info":',
+      '"external_task_id":',
+      '"settings":',
+      '"aspect_ratio": "9:16"',
+    ]) {
+      expect(turboTasks).toContain(snippet);
+    }
+
+    expect(turboTasks).not.toContain('"contents":');
+  });
+
   it('documents Midjourney and Suno integration guides with runnable examples', () => {
     const midjourney = readFileSync(
       resolve(process.cwd(), 'content/docs/zh/api-reference/midjourney/integration.mdx'),

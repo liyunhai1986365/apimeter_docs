@@ -19,44 +19,37 @@ Content-Type: application/json
 Authorization: Bearer {apikey}
 ```
 
-### 请求体
+### 文生视频请求体
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `contents` | array | 是 | 素材合集，文生视频传 `prompt`，图生视频额外传 `first_frame` |
-| `settings.resolution` | string | 否 | `720p` 或 `1080p`，默认 `720p` |
-| `settings.duration` | int | 否 | 生成时长，支持 `3` 到 `15` 秒 |
+| `prompt` | string | 是 | 视频生成提示词 |
 | `options.callback_url` | string | 否 | 任务状态变化回调地址 |
-| `options.external_task_id` | string | 否 | 业务自定义任务 ID，单用户下需要唯一 |
 | `options.watermark_info.enabled` | boolean | 否 | 是否生成含水印结果，默认 `false` |
+| `options.external_task_id` | string | 否 | 业务自定义任务 ID，单用户下需要唯一 |
+| `settings.duration` | int | 否 | 生成时长，支持 `3` 到 `15` 秒 |
+| `settings.resolution` | string | 否 | `720p` 或 `1080p`，默认 `720p` |
+| `settings.aspect_ratio` | string | 否 | 输出画面比例，例如 `9:16` |
 
-### cURL
+### 文生视频 cURL
 
 ```bash
-curl --location "$KLING_BASE_URL/kling/image-to-video/kling-3.0-turbo" \
-  --header "Content-Type: application/json" \
-  --header "Authorization: Bearer $KLING_API_KEY" \
-  --data-raw '{
-    "contents": [
-      {
-        "type": "prompt",
-        "text": "A girl sat on the train, looking out the window."
-      },
-      {
-        "type": "first_frame",
-        "url": "https://your-cdn.com/start-frame.jpg"
-      }
-    ],
-    "settings": {
-      "resolution": "1080p",
-      "duration": 10
-    },
+curl --location "$KLING_BASE_URL/kling/text-to-video/kling-3.0-turbo" \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer {apikey}' \
+  --data '{
+    "prompt": "A girl sat on the train, looking out the window with a melancholic expression, her head swaying with the train.",
     "options": {
-      "callback_url": "https://example.com/callback",
-      "external_task_id": "order-10001",
+      "callback_url": "https://xxx/callback",
       "watermark_info": {
         "enabled": false
-      }
+      },
+      "external_task_id": ""
+    },
+    "settings": {
+      "duration": 3,
+      "resolution": "720p",
+      "aspect_ratio": "9:16"
     }
   }'
 ```
