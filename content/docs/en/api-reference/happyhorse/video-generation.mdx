@@ -1,0 +1,211 @@
+---
+title: HappyHorse Video Integration
+description: Call HappyHorse through the ModelSell generic video API or the DashScope-compatible API and poll asynchronous tasks.
+---
+
+HappyHorse is an asynchronous video task API. ModelSell supports both its generic video format and a DashScope-compatible native format. Both formats use the same HappyHorse task capability.
+
+## Supported Models
+
+| Model | Use case | Media field |
+| --- | --- | --- |
+| `happyhorse-1.0-t2v` | Text to video | No media required |
+| `happyhorse-1.0-i2v` | Image to video | `image`, or `first_frame` in the native format |
+| `happyhorse-1.0-r2v` | Multi-image reference video | `images[]`, or `reference_image` in the native format |
+| `happyhorse-1.0-video-edit` | Video editing | `metadata.video_url`, optionally with `images[]` as references |
+
+## Choose an API Format
+
+| Format | Create task | Poll task |
+| --- | --- | --- |
+| ModelSell generic | `POST /v1/video/generations` | `GET /v1/video/generations/{task_id}` |
+| DashScope-compatible native | `POST /api/v1/services/aigc/video-generation/video-synthesis` | `GET /api/v1/tasks/{task_id}` |
+
+Authenticate every request with your ModelSell API key:
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+```
+
+After creating a task, store the public `id` or `task_id` returned by ModelSell. Use this public task ID for polling, not the upstream task ID.
+
+## Generic Format
+
+The generic API accepts JSON. ModelSell converts media fields to HappyHorse `input.media` entries according to the selected model:
+
+| Generic field | HappyHorse upstream field |
+| --- | --- |
+| `prompt` | `input.prompt` |
+| `size` | `parameters.resolution` |
+| `seconds` or `duration` | `parameters.duration` |
+| `image` | A `first_frame` item in `input.media`; only the first image is used |
+| `images[]` | `reference_image` items in `input.media` |
+| `metadata.video_url` | A `video` item in `input.media` |
+| `metadata.ratio` | `parameters.ratio` |
+| `metadata.watermark` | `parameters.watermark` |
+| `metadata.seed` | `parameters.seed` |
+| `metadata.audio_setting` | `parameters.audio_setting` |
+
+### Text to Video
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "happyhorse-1.0-t2v",
+    "prompt": "A miniature city lights up at night as the camera slowly moves forward",
+    "size": "720P",
+    "seconds": "5",
+    "metadata": {
+      "ratio": "16:9",
+      "watermark": false,
+      "seed": 7
+    }
+  }'
+```
+
+### Image to Video
+
+```json
+{
+  "model": "happyhorse-1.0-i2v",
+  "prompt": "Make the cat run forward across the grass",
+  "image": "https://example.com/first-frame.png",
+  "size": "720P",
+  "duration": 5
+}
+```
+
+### Multi-Image Reference Video
+
+```json
+{
+  "model": "happyhorse-1.0-r2v",
+  "prompt": "The person in [Image 1] picks up the fan from [Image 2]",
+  "images": [
+    "https://example.com/character.jpg",
+    "https://example.com/fan.jpg"
+  ],
+  "duration": 5,
+  "metadata": {
+    "ratio": "4:3"
+  }
+}
+```
+
+ModelSell converts `images[]` to `reference_image` items in the same order. Prompts can refer to them as `[Image 1]`, `[Image 2]`, and so on.
+
+### Video Editing
+
+```json
+{
+  "model": "happyhorse-1.0-video-edit",
+  "prompt": "Dress the character in the sweater from the reference image",
+  "images": [
+    "https://example.com/sweater.webp"
+  ],
+  "duration": 5,
+  "metadata": {
+    "video_url": "https://example.com/input.mp4",
+    "audio_setting": "origin"
+  }
+}
+```
+
+`happyhorse-1.0-video-edit` requires at least one publicly reachable video in `metadata.video_url`. Without it, the upstream API returns `At least one video item is required in media list`.
+
+## Poll a Generic Task
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/video/generations/task_xxxxxxxxxxxxxxxx" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+ModelSell maps `PENDING` to queued, `RUNNING` to processing, `SUCCEEDED` to succeeded, and `FAILED` or `CANCELED` to failed. On success, read the final URL from `metadata.url`; on failure, inspect the error information.
+
+```json
+{
+  "id": "task_xxxxxxxxxxxxxxxx",
+  "task_id": "task_xxxxxxxxxxxxxxxx",
+  "object": "video.generation",
+  "status": "succeeded",
+  "model": "happyhorse-1.0-r2v",
+  "seconds": "5",
+  "metadata": {
+    "url": "https://example.com/happyhorse-result.mp4",
+    "request_id": "request_xxxxxxxxxxxxxxxx",
+    "usage": {
+      "duration": 5,
+      "ratio": "16:9"
+    }
+  }
+}
+```
+
+## DashScope-Compatible Native Format
+
+Existing DashScope HappyHorse clients can switch their base URL and API key to ModelSell. ModelSell adds the asynchronous upstream request header automatically.
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/api/v1/services/aigc/video-generation/video-synthesis" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "happyhorse-1.0-i2v",
+    "input": {
+      "prompt": "A cat runs across the grass",
+      "media": [
+        {
+          "type": "first_frame",
+          "url": "https://example.com/first-frame.png"
+        }
+      ]
+    },
+    "parameters": {
+      "resolution": "720P",
+      "duration": 5,
+      "ratio": "16:9",
+      "watermark": false,
+      "seed": 7
+    }
+  }'
+```
+
+The native response preserves DashScope fields such as `output.task_status`, while `output.task_id` contains the public ModelSell task ID:
+
+```json
+{
+  "request_id": "request_xxxxxxxxxxxxxxxx",
+  "output": {
+    "task_id": "task_xxxxxxxxxxxxxxxx",
+    "task_status": "PENDING"
+  }
+}
+```
+
+Poll with the same public task ID:
+
+```bash
+curl "$MODELSELL_BASE_URL/api/v1/tasks/task_xxxxxxxxxxxxxxxx" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+On success, `output.video_url` in the native response contains the final video URL:
+
+```json
+{
+  "request_id": "request_xxxxxxxxxxxxxxxx",
+  "output": {
+    "task_id": "task_xxxxxxxxxxxxxxxx",
+    "task_status": "SUCCEEDED",
+    "video_url": "https://example.com/happyhorse-result.mp4"
+  },
+  "usage": {
+    "duration": 5,
+    "ratio": "16:9"
+  }
+}
+```
+
+Video generation is asynchronous. Poll every 5 to 10 seconds. Every reference image and video URL must be directly reachable by the upstream service.

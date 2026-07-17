@@ -264,6 +264,17 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
+              name: 'HappyHorse 视频',
+              children: [
+                {
+                  type: 'page',
+                  name: 'HappyHorse 视频对接',
+                  url: '/zh/docs/api-reference/happyhorse/video-generation',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'Omni 视频',
               children: [
                 {

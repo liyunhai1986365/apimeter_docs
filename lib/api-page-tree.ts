@@ -183,6 +183,21 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
+        title: { zh: 'HappyHorse 视频', en: 'HappyHorse Video' },
+        items: [
+          {
+            title: { zh: 'HappyHorse 视频对接', en: 'HappyHorse Video Integration' },
+            visibleWhenOperationIds: ['createVideoGeneration'],
+            pages: [
+              {
+                title: { zh: 'HappyHorse 视频对接', en: 'HappyHorse Video Integration' },
+                href: '/docs/api-reference/happyhorse/video-generation',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'Omni 视频', en: 'Omni Video' },
         items: [
           {

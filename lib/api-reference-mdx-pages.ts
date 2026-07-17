@@ -38,6 +38,10 @@ export const omniApiReferenceMdxSlugs = [
   ['omni', 'omni-fast-v2v'],
 ] as const satisfies readonly ApiReferenceMdxSlug[];
 
+export const happyHorseApiReferenceMdxSlugs = [
+  ['happyhorse', 'video-generation'],
+] as const satisfies readonly ApiReferenceMdxSlug[];
+
 export const apiReferenceMdxSlugs = [
   ...imageApiReferenceMdxSlugs,
   ['midjourney', 'integration'],
@@ -45,6 +49,7 @@ export const apiReferenceMdxSlugs = [
   ...seedance2ApiReferenceMdxSlugs,
   ...klingApiReferenceMdxSlugs,
   ['grok', 'video-generation'],
+  ...happyHorseApiReferenceMdxSlugs,
   ...omniApiReferenceMdxSlugs,
 ] as const;
 
@@ -146,6 +151,10 @@ const titles: Record<string, Record<Locale, string>> = {
   'grok/video-generation': {
     en: 'Grok Video Generation',
     zh: 'Grok 视频生成',
+  },
+  'happyhorse/video-generation': {
+    en: 'HappyHorse Video Integration',
+    zh: 'HappyHorse 视频对接',
   },
   'omni/overview': {
     en: 'Omni Video Model Overview',

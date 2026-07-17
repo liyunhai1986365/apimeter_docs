@@ -35,6 +35,7 @@ describe('API reference MDX pages', () => {
       ['kling', 'elements-voices'],
       ['kling', 'image-recognition'],
       ['grok', 'video-generation'],
+      ['happyhorse', 'video-generation'],
       ['omni', 'overview'],
       ['omni', 'omni-fast'],
       ['omni', 'omni-fast-v2v'],
@@ -48,9 +49,33 @@ describe('API reference MDX pages', () => {
     expect(getApiReferenceMdxTitle(['kling', 'video-overview'], 'zh')).toBe('可灵视频接口概览');
     expect(getApiReferenceMdxTitle(['kling', 'turbo-tasks'], 'zh')).toBe('Kling 3.0 Turbo 任务接口');
     expect(getApiReferenceMdxTitle(['grok', 'video-generation'], 'zh')).toBe('Grok 视频生成');
+    expect(getApiReferenceMdxTitle(['happyhorse', 'video-generation'], 'zh')).toBe('HappyHorse 视频对接');
     expect(getApiReferenceMdxTitle(['omni', 'overview'], 'zh')).toBe('Omni 视频模型概览');
     expect(getApiReferenceMdxTitle(['midjourney', 'integration'], 'zh')).toBe('对接说明');
     expect(getApiReferenceMdxTitle(['suno', 'integration'], 'en')).toBe('Integration Guide');
+  });
+
+  it('documents HappyHorse generic and native video task integrations', () => {
+    const happyHorse = readFileSync(
+      resolve(process.cwd(), 'content/docs/zh/api-reference/happyhorse/video-generation.mdx'),
+      'utf8',
+    );
+
+    for (const snippet of [
+      'happyhorse-1.0-t2v',
+      'happyhorse-1.0-i2v',
+      'happyhorse-1.0-r2v',
+      'happyhorse-1.0-video-edit',
+      '/v1/video/generations',
+      '/api/v1/services/aigc/video-generation/video-synthesis',
+      '/api/v1/tasks/{task_id}',
+      'first_frame',
+      'reference_image',
+      'metadata.video_url',
+      'output.video_url',
+    ]) {
+      expect(happyHorse).toContain(snippet);
+    }
   });
 
   it('keeps supplemental API reference page files in sync with the declared slugs', () => {

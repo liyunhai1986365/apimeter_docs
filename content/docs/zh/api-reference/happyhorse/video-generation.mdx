@@ -1,0 +1,211 @@
+---
+title: HappyHorse 视频对接
+description: 使用 ModelSell 通用视频接口或 DashScope 原生格式调用 HappyHorse，并查询异步任务结果。
+---
+
+HappyHorse 是异步视频任务接口。ModelSell 同时提供通用视频格式和 DashScope 原生兼容格式；两种格式最终使用相同的 HappyHorse 任务能力。
+
+## 支持模型
+
+| 模型 | 用途 | 素材字段 |
+| --- | --- | --- |
+| `happyhorse-1.0-t2v` | 文生视频 | 不需要素材 |
+| `happyhorse-1.0-i2v` | 图生视频 | `image`，或原生格式中的 `first_frame` |
+| `happyhorse-1.0-r2v` | 多图参考生视频 | `images[]`，或原生格式中的 `reference_image` |
+| `happyhorse-1.0-video-edit` | 视频编辑 | `metadata.video_url`，可同时传入 `images[]` 作为参考图 |
+
+## 接口选择
+
+| 格式 | 创建任务 | 查询任务 |
+| --- | --- | --- |
+| ModelSell 通用格式 | `POST /v1/video/generations` | `GET /v1/video/generations/{task_id}` |
+| DashScope 原生兼容格式 | `POST /api/v1/services/aigc/video-generation/video-synthesis` | `GET /api/v1/tasks/{task_id}` |
+
+所有请求都使用 ModelSell API Key：
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+```
+
+创建任务后请保存 ModelSell 返回的公共 `id` 或 `task_id`。查询时应使用这个公共任务 ID，不要使用上游任务 ID。
+
+## 通用格式
+
+通用格式使用 JSON 请求。ModelSell 会根据模型把素材转换为 HappyHorse 的 `input.media`：
+
+| 通用字段 | HappyHorse 上游字段 |
+| --- | --- |
+| `prompt` | `input.prompt` |
+| `size` | `parameters.resolution` |
+| `seconds` 或 `duration` | `parameters.duration` |
+| `image` | `input.media[]` 中的 `first_frame`，仅取第一张图 |
+| `images[]` | `input.media[]` 中的 `reference_image` |
+| `metadata.video_url` | `input.media[]` 中的 `video` |
+| `metadata.ratio` | `parameters.ratio` |
+| `metadata.watermark` | `parameters.watermark` |
+| `metadata.seed` | `parameters.seed` |
+| `metadata.audio_setting` | `parameters.audio_setting` |
+
+### 文生视频
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "happyhorse-1.0-t2v",
+    "prompt": "一座微型城市在夜晚亮起灯光，镜头缓慢向前移动",
+    "size": "720P",
+    "seconds": "5",
+    "metadata": {
+      "ratio": "16:9",
+      "watermark": false,
+      "seed": 7
+    }
+  }'
+```
+
+### 图生视频
+
+```json
+{
+  "model": "happyhorse-1.0-i2v",
+  "prompt": "让图片中的猫在草地上向前奔跑",
+  "image": "https://example.com/first-frame.png",
+  "size": "720P",
+  "duration": 5
+}
+```
+
+### 多图参考生视频
+
+```json
+{
+  "model": "happyhorse-1.0-r2v",
+  "prompt": "[Image 1]中的人物拿起[Image 2]中的折扇",
+  "images": [
+    "https://example.com/character.jpg",
+    "https://example.com/fan.jpg"
+  ],
+  "duration": 5,
+  "metadata": {
+    "ratio": "4:3"
+  }
+}
+```
+
+`images[]` 会按传入顺序转换为 `reference_image`。提示词可以通过 `[Image 1]`、`[Image 2]` 引用对应图片。
+
+### 视频编辑
+
+```json
+{
+  "model": "happyhorse-1.0-video-edit",
+  "prompt": "让视频中的角色穿上参考图中的毛衣",
+  "images": [
+    "https://example.com/sweater.webp"
+  ],
+  "duration": 5,
+  "metadata": {
+    "video_url": "https://example.com/input.mp4",
+    "audio_setting": "origin"
+  }
+}
+```
+
+`happyhorse-1.0-video-edit` 必须通过 `metadata.video_url` 提供至少一个公网可访问的视频。缺少视频时，上游会返回 `At least one video item is required in media list`。
+
+## 查询通用任务
+
+```bash
+curl "$MODELSELL_BASE_URL/v1/video/generations/task_xxxxxxxxxxxxxxxx" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+任务状态会映射为通用状态：`PENDING` 对应排队中，`RUNNING` 对应处理中，`SUCCEEDED` 对应成功，`FAILED` 或 `CANCELED` 对应失败。成功后从 `metadata.url` 读取视频地址；失败时读取错误信息。
+
+```json
+{
+  "id": "task_xxxxxxxxxxxxxxxx",
+  "task_id": "task_xxxxxxxxxxxxxxxx",
+  "object": "video.generation",
+  "status": "succeeded",
+  "model": "happyhorse-1.0-r2v",
+  "seconds": "5",
+  "metadata": {
+    "url": "https://example.com/happyhorse-result.mp4",
+    "request_id": "request_xxxxxxxxxxxxxxxx",
+    "usage": {
+      "duration": 5,
+      "ratio": "16:9"
+    }
+  }
+}
+```
+
+## DashScope 原生兼容格式
+
+已有 DashScope HappyHorse 客户端可以直接切换 Base URL 和 API Key。ModelSell 会自动为上游请求添加异步任务头。
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/api/v1/services/aigc/video-generation/video-synthesis" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "happyhorse-1.0-i2v",
+    "input": {
+      "prompt": "一只猫在草地上奔跑",
+      "media": [
+        {
+          "type": "first_frame",
+          "url": "https://example.com/first-frame.png"
+        }
+      ]
+    },
+    "parameters": {
+      "resolution": "720P",
+      "duration": 5,
+      "ratio": "16:9",
+      "watermark": false,
+      "seed": 7
+    }
+  }'
+```
+
+原生兼容响应保留 `output.task_status` 等 DashScope 字段，但 `output.task_id` 是 ModelSell 公共任务 ID：
+
+```json
+{
+  "request_id": "request_xxxxxxxxxxxxxxxx",
+  "output": {
+    "task_id": "task_xxxxxxxxxxxxxxxx",
+    "task_status": "PENDING"
+  }
+}
+```
+
+使用相同的公共任务 ID 查询：
+
+```bash
+curl "$MODELSELL_BASE_URL/api/v1/tasks/task_xxxxxxxxxxxxxxxx" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY"
+```
+
+成功时原生兼容响应中的 `output.video_url` 是最终视频地址：
+
+```json
+{
+  "request_id": "request_xxxxxxxxxxxxxxxx",
+  "output": {
+    "task_id": "task_xxxxxxxxxxxxxxxx",
+    "task_status": "SUCCEEDED",
+    "video_url": "https://example.com/happyhorse-result.mp4"
+  },
+  "usage": {
+    "duration": 5,
+    "ratio": "16:9"
+  }
+}
+```
+
+视频生成是异步任务，建议每 5 到 10 秒查询一次。所有参考图片和视频 URL 都必须能被上游服务直接访问。
