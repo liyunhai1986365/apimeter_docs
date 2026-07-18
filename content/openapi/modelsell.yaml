@@ -345,6 +345,37 @@ paths:
                   model: gpt-image-1
                   prompt: 一张未来感 API 网关控制台截图
                   size: 1024x1024
+              seedream5Pro:
+                summary: Seedream 5.0 Pro 文生图
+                value:
+                  model: doubao-seedream-5-0-pro-260628
+                  prompt: 生成一张 16:9 未来感 API 控制台产品海报
+                  size: 2K
+                  output_format: png
+                  response_format: url
+                  watermark: false
+              seedream5LiteSequence:
+                summary: Seedream 5.0 Lite 文生组图
+                value:
+                  model: doubao-seedream-5-0-260128
+                  prompt: 生成一组 4 张连贯插画，表现同一庭院春夏秋冬的变化
+                  size: 2K
+                  sequential_image_generation: auto
+                  sequential_image_generation_options:
+                    max_images: 4
+                  stream: false
+                  output_format: png
+                  watermark: false
+              seedream5LiteWebSearch:
+                summary: Seedream 5.0 Lite 联网搜索
+                value:
+                  model: doubao-seedream-5-0-lite-260128
+                  prompt: 制作一张上海未来 5 日天气预报信息图
+                  size: 3K
+                  tools:
+                    - type: web_search
+                  output_format: png
+                  watermark: false
               async:
                 summary: 异步提交
                 value:
@@ -3298,6 +3329,10 @@ components:
         size:
           type: string
           enum:
+            - 1K
+            - 2K
+            - 3K
+            - 4K
             - 1024x1024
             - 1536x1024
             - 1024x1536
@@ -3330,6 +3365,76 @@ components:
         user:
           type: string
           description: 终端用户标识，用于安全审计或滥用检测。
+        image:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: |
+            Seedream 等模型的参考图片。支持单个 URL/Base64 Data URL，或多个图片组成的数组。
+            Seedream 5.0 Pro 最多 10 张；Seedream 5.0 Lite 最多 14 张。
+        output_format:
+          type: string
+          enum:
+            - png
+            - jpeg
+          description: Seedream 5.0 输出文件格式。
+        watermark:
+          type: boolean
+          default: true
+          description: 是否在图片右下角添加“AI 生成”水印。
+        optimize_prompt_options:
+          type: object
+          description: Seedream 提示词优化配置。Lite 仅支持 standard，Pro 支持 standard 与 fast。
+          properties:
+            mode:
+              type: string
+              enum:
+                - standard
+                - fast
+              default: standard
+        sequential_image_generation:
+          type: string
+          enum:
+            - auto
+            - disabled
+          default: disabled
+          description: Seedream 5.0 Lite 组图开关；Pro 不支持。
+        sequential_image_generation_options:
+          type: object
+          description: Seedream 5.0 Lite 组图配置，仅在 sequential_image_generation=auto 时生效。
+          properties:
+            max_images:
+              type: integer
+              minimum: 1
+              maximum: 15
+              default: 15
+              description: 最大输出图片数；输入参考图数与最终输出图数合计不得超过 15。
+        stream:
+          type: boolean
+          default: false
+          description: Seedream 5.0 Lite SSE 流式输出开关；Pro 不支持。
+        tools:
+          type: array
+          description: Seedream 5.0 Lite 工具列表。
+          items:
+            type: object
+            required:
+              - type
+            properties:
+              type:
+                type: string
+                enum:
+                  - web_search
+                description: 联网搜索工具。
+    Seedream5ImageGenerationRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateImageGenerationRequest'
+      description: |
+        Seedream 5.0 系列使用 CreateImageGenerationRequest 的扩展字段。支持模型：
+        `doubao-seedream-5-0-pro-260628`、`doubao-seedream-5-0-260128`、
+        `doubao-seedream-5-0-lite-260128`。
     EditImageRequest:
       type: object
       required:

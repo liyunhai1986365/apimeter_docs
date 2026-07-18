@@ -133,6 +133,17 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
+              name: 'Seedream 5.0',
+              children: [
+                {
+                  type: 'page',
+                  name: 'Seedream 5.0 图片生成',
+                  url: '/zh/docs/api-reference/image/seedream-5',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'Gemini',
               children: [
                 {
@@ -658,6 +669,17 @@ describe('getLocalizedApiPageTree', () => {
                   type: 'page',
                   name: '图像生成',
                   url: '/zh/docs/api-reference/createImageGeneration',
+                },
+              ],
+            },
+            {
+              type: 'folder',
+              name: 'Seedream 5.0',
+              children: [
+                {
+                  type: 'page',
+                  name: 'Seedream 5.0 图片生成',
+                  url: '/zh/docs/api-reference/image/seedream-5',
                 },
               ],
             },

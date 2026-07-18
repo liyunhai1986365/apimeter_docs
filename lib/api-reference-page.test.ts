@@ -12,6 +12,7 @@ describe('API reference MDX pages', () => {
   it('declares supplemental API reference pages under the API reference route', () => {
     expect(apiReferenceMdxSlugs).toEqual([
       ['image', 'generic-image'],
+      ['image', 'seedream-5'],
       ['image', 'gemini-native-image'],
       ['midjourney', 'integration'],
       ['suno', 'integration'],
@@ -42,6 +43,8 @@ describe('API reference MDX pages', () => {
     ]);
     expect(apiReferenceMdxSlugKey(['image', 'generic-image'])).toBe('image/generic-image');
     expect(getApiReferenceMdxTitle(['image', 'generic-image'], 'zh')).toBe('通用图片生成');
+    expect(apiReferenceMdxSlugKey(['image', 'seedream-5'])).toBe('image/seedream-5');
+    expect(getApiReferenceMdxTitle(['image', 'seedream-5'], 'zh')).toBe('Seedream 5.0 图片生成');
     expect(apiReferenceMdxSlugKey(['image', 'gemini-native-image'])).toBe('image/gemini-native-image');
     expect(getApiReferenceMdxTitle(['image', 'gemini-native-image'], 'zh')).toBe('Gemini 原生图像生成');
     expect(apiReferenceMdxSlugKey(['seedance-2', 'overview'])).toBe('seedance-2/overview');
@@ -213,6 +216,39 @@ describe('API reference MDX pages', () => {
       'interactions',
     ]) {
       expect(geminiNativeImage).toContain(snippet);
+    }
+  });
+
+  it('documents every supported Seedream 5.0 request mode and parameter', () => {
+    const seedream = readFileSync(
+      resolve(process.cwd(), 'content/docs/zh/api-reference/image/seedream-5.mdx'),
+      'utf8',
+    );
+
+    for (const snippet of [
+      'doubao-seedream-5-0-pro-260628',
+      'doubao-seedream-5-0-260128',
+      'doubao-seedream-5-0-lite-260128',
+      '文生图',
+      '单参考图生图',
+      '多参考图生图',
+      '文生组图',
+      '单参考图生组图',
+      '多参考图生组图',
+      '交互编辑',
+      '联网搜索',
+      '流式输出',
+      'Base64 返回',
+      'optimize_prompt_options',
+      'sequential_image_generation_options',
+      'max_images',
+      'response_format',
+      'output_format',
+      'watermark',
+      'tools',
+      'stream',
+    ]) {
+      expect(seedream).toContain(snippet);
     }
   });
 });

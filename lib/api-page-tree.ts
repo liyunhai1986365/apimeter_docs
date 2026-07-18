@@ -85,6 +85,21 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
+        title: { zh: 'Seedream 5.0', en: 'Seedream 5.0' },
+        items: [
+          {
+            title: { zh: 'Seedream 5.0 图片生成', en: 'Seedream 5.0 Image Generation' },
+            visibleWhenOperationIds: ['createImageGeneration'],
+            pages: [
+              {
+                title: { zh: 'Seedream 5.0 图片生成', en: 'Seedream 5.0 Image Generation' },
+                href: '/docs/api-reference/image/seedream-5',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'Gemini', en: 'Gemini' },
         items: [
           {

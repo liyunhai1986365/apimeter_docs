@@ -1,0 +1,377 @@
+---
+title: Seedream 5.0 图片生成
+description: Seedream 5.0 Pro 与 Lite 的完整参数、能力差异，以及文生图、参考图、组图、联网搜索、流式和交互编辑示例。
+---
+
+Seedream 5.0 系列通过 ModelSell 的 OpenAI Images 兼容入口调用：
+
+```text
+POST https://api.modelsell.com/v1/images/generations
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+本文按火山方舟 2026-07-15 版图片生成 API 契约整理。所有模式都调用同一个路径，具体能力由 `model` 和请求参数决定。
+
+## 支持模型
+
+| 模型 | Model ID | 主要能力 |
+|---|---|---|
+| Seedream 5.0 Pro | `doubao-seedream-5-0-pro-260628` | 文生单图、单/多参考图生单图、交互编辑；最多 10 张参考图；支持 1K/2K |
+| Seedream 5.0 Lite | `doubao-seedream-5-0-260128` | 文生图、单/多参考图生图、组图、联网搜索、流式输出；最多 14 张参考图；支持 2K/3K/4K |
+| Seedream 5.0 Lite 别名 | `doubao-seedream-5-0-lite-260128` | 与上面的 Lite 主 ID 使用相同能力 |
+
+Pro 暂不支持组图、联网搜索和流式输出。Lite 不支持 Pro 专属的坐标/标记交互编辑。
+
+## 所有请求参数
+
+| 参数 | 类型 | 必选 | 默认值 | 说明 |
+|---|---|---|---|---|
+| `model` | string | 是 | - | 上表中的模型 ID |
+| `prompt` | string | 是 | - | 中英文提示词；建议不超过 300 个汉字或 600 个英文单词 |
+| `image` | string / string[] | 否 | - | 单张或多张参考图，支持公网 URL 或 `data:image/<格式>;base64,<数据>` |
+| `size` | string | 否 | 模型相关 | 分辨率档位或 `宽x高`；两种形式不可混用 |
+| `optimize_prompt_options` | object | 否 | `{"mode":"standard"}` | 提示词优化配置 |
+| `optimize_prompt_options.mode` | string | 否 | `standard` | `standard` 或 `fast`；Lite 仅支持 `standard`，Pro 两者都支持 |
+| `output_format` | string | 否 | `jpeg` | `png` 或 `jpeg` |
+| `response_format` | string | 否 | `url` | `url` 或 `b64_json`；URL 仅保留 24 小时 |
+| `sequential_image_generation` | string | 否 | `disabled` | Lite 组图开关：`auto` 或 `disabled`；Pro 不支持 |
+| `sequential_image_generation_options` | object | 否 | - | Lite 组图配置，仅在组图模式为 `auto` 时生效 |
+| `sequential_image_generation_options.max_images` | integer | 否 | `15` | Lite 最大输出数，范围 1-15；参考图数 + 输出图数不得超过 15 |
+| `stream` | boolean | 否 | `false` | Lite SSE 流式输出开关；Pro 不支持 |
+| `tools` | object[] | 否 | - | Lite 工具列表；当前只支持联网搜索 |
+| `tools[].type` | string | 使用工具时是 | - | 当前唯一值为 `web_search` |
+| `watermark` | boolean | 否 | `true` | 是否在右下角添加“AI 生成”水印 |
+
+### 尺寸约束
+
+| 模型 | 分辨率档位 | 自定义尺寸总像素范围 | 宽高比范围 |
+|---|---|---|---|
+| Pro | `1K`, `2K`（默认 2K） | 921,600 至 4,624,220 像素 | 1:16 至 16:1 |
+| Lite | `2K`, `3K`, `4K` | 3,686,400 至 16,777,216 像素 | 1:16 至 16:1 |
+
+使用档位时，在 `prompt` 中描述“16:9 横图”“9:16 竖图”等比例。使用自定义尺寸时传入如 `2048x1024`；请使用小写字母 `x`，不要使用乘号 `×`。
+
+### 参考图限制
+
+- 支持 jpeg、png、webp、bmp、tiff、gif、heic、heif。
+- 单张不超过 30 MB，总像素不超过 36,000,000，宽和高都必须大于 14 px。
+- Pro 最多 10 张参考图；Lite 最多 14 张。参考图片 URL 必须能被上游直接访问。
+
+## 文生图
+
+### Pro 文生单图
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-pro-260628",
+    "prompt": "生成一张 16:9 横向产品海报，未来感玻璃材质 API 网关置于画面中心，蓝紫色体积光，中文标题清晰可读",
+    "size": "2K",
+    "output_format": "png",
+    "response_format": "url",
+    "watermark": false
+  }'
+```
+
+### Lite 文生单图
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "生成一张 3:2 横向 editorial 摄影，雨后的上海街角，霓虹倒影，电影感自然光",
+    "size": "3K",
+    "sequential_image_generation": "disabled",
+    "output_format": "jpeg",
+    "watermark": false
+  }'
+```
+
+## 单参考图生图
+
+`image` 可使用单个字符串。Pro 和 Lite 都支持。
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-pro-260628",
+    "prompt": "保持人物姿态和构图不变，将银色服装材质替换为透明玻璃，光影从反射改为折射",
+    "image": "https://example.com/model.png",
+    "size": "2K",
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+也可以传 Base64 Data URL：
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "把背景改成日落海滩，保留主体外观",
+  "image": "data:image/png;base64,BASE64_IMAGE_DATA",
+  "size": "2K"
+}
+```
+
+## 多参考图生图
+
+`image` 改为数组，并在提示词中按“图 1”“图 2”说明各图用途。
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-pro-260628",
+    "prompt": "保持图 1 人物身份、姿态与背景，将图 1 的服装替换为图 2 的服装，保持写实摄影风格",
+    "image": [
+      "https://example.com/person.png",
+      "https://example.com/clothes.png"
+    ],
+    "size": "2K",
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+## Lite 文生组图
+
+组图仅 Lite 支持。`auto` 表示模型根据提示词判断实际输出数，`max_images` 是上限而不是保证数量。
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "生成一组 4 张连贯插画，表现同一庭院春夏秋冬的变化，角色、构图和画风保持一致",
+    "size": "2K",
+    "sequential_image_generation": "auto",
+    "sequential_image_generation_options": {
+      "max_images": 4
+    },
+    "stream": false,
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+## Lite 单参考图生组图
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-lite-260128",
+    "prompt": "参考图中同一人物依次完成四个动作：戴墨镜、骑摩托、戴帽子、拿棒棒糖；生成 4 张风格一致的图片",
+    "image": "https://example.com/character.png",
+    "size": "2K",
+    "sequential_image_generation": "auto",
+    "sequential_image_generation_options": {
+      "max_images": 4
+    },
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+## Lite 多参考图生组图
+
+本例输入 2 张参考图，因此输出与输入合计不得超过 15；将 `max_images` 设为 3。
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "融合图 1 的人物与图 2 的服装，生成 3 张连续时尚大片，分别为全景、半身和特写，人物一致",
+    "image": [
+      "https://example.com/person.png",
+      "https://example.com/clothes.png"
+    ],
+    "size": "3K",
+    "sequential_image_generation": "auto",
+    "sequential_image_generation_options": {
+      "max_images": 3
+    },
+    "output_format": "jpeg",
+    "watermark": false
+  }'
+```
+
+## Pro 交互编辑
+
+交互编辑仍使用 `image` + `prompt`，定位信息写在提示词中。可直接上传带手绘、涂鸦、圈选或箭头标记的图片，也可使用 `<point>` / `<bbox>` 坐标标签。坐标采用 0-1000 归一化坐标系。
+
+### 任意标记编辑
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "在左下角手绘标记区域添加一叠真实杂志，在右侧标记区域添加一杯带杯碟的咖啡；移除所有草图线条，保持原构图",
+  "image": "https://example.com/marked-room.png",
+  "size": "2K",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+### 坐标定位编辑
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "将图 1 <bbox>179 283 796 986</bbox> 的主体放到图 2 <bbox>118 331 933 871</bbox> 位置",
+  "image": [
+    "https://example.com/subject.png",
+    "https://example.com/background.png"
+  ],
+  "size": "2K",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Lite 联网搜索
+
+当前只有 Lite 支持 `web_search`。模型会自行判断是否需要检索；可从响应的 `usage.tool_usage.web_search` 查看实际搜索次数，`0` 表示未搜索。
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "制作一张上海未来 5 日天气预报信息图，展示每天的天气、温度和穿搭建议，横向现代扁平插画风",
+    "size": "3K",
+    "tools": [
+      {"type": "web_search"}
+    ],
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+## Lite 流式输出
+
+设置 `stream: true` 后，响应为 SSE。成功图片事件为 `image_generation.partial_succeeded`，单图失败为 `image_generation.partial_failed`，最后一条为 `image_generation.completed`。
+
+```bash
+curl -N https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "生成 4 张连续分镜：机器人从清晨出发、穿越森林、登上雪山、在日落时抵达天文台",
+    "size": "2K",
+    "sequential_image_generation": "auto",
+    "sequential_image_generation_options": {
+      "max_images": 4
+    },
+    "stream": true,
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+典型事件：
+
+```text
+data: {"type":"image_generation.partial_succeeded","image_index":0,"url":"https://...","size":"2048x2048"}
+
+data: {"type":"image_generation.completed","usage":{"generated_images":4,"output_tokens":65536,"total_tokens":65536}}
+```
+
+## Base64 返回
+
+设置 `response_format: "b64_json"`，结果位于 `data[].b64_json`。该字段可能很大，不建议直接写入普通文本日志。
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "极简风格的蓝色机械鲸鱼图标，白色背景",
+  "size": "1K",
+  "response_format": "b64_json",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## 提示词优化
+
+Pro 支持 `standard` 和 `fast`；Lite 当前仅支持 `standard`。
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "未来城市夜景",
+  "size": "2K",
+  "optimize_prompt_options": {
+    "mode": "fast"
+  },
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## 非流式响应
+
+```json
+{
+  "created": 1784347200,
+  "model": "doubao-seedream-5-0-pro-260628",
+  "data": [
+    {
+      "url": "https://example.com/generated.png",
+      "size": "2048x2048",
+      "output_format": "png"
+    }
+  ],
+  "usage": {
+    "generated_images": 1,
+    "input_images": 0,
+    "output_tokens": 16384,
+    "total_tokens": 16384
+  }
+}
+```
+
+组图时 `data` 中的每一项对应一张图片或一条单图错误。审核导致某张图失败时，其他图片仍可能成功；请逐项检查 `data[].error`，不要只判断 HTTP 状态码。
+
+## Python SDK 示例
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.modelsell.com/v1",
+    api_key=os.environ["MODELSELL_API_KEY"],
+)
+
+response = client.images.generate(
+    model="doubao-seedream-5-0-pro-260628",
+    prompt="生成一张 16:9 未来感 API 控制台产品海报",
+    size="2K",
+    response_format="url",
+    extra_body={
+        "output_format": "png",
+        "watermark": False,
+        "optimize_prompt_options": {"mode": "standard"},
+    },
+)
+
+print(response.data[0].url)
+```
+
+需要组图、联网或流式时，使用 Lite 模型，并通过 `extra_body` 传入对应的 `sequential_image_generation`、`tools` 和 `stream` 字段。

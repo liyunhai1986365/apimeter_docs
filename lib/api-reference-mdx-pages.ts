@@ -4,6 +4,7 @@ type ApiReferenceMdxSlug = readonly [string, string];
 
 export const imageApiReferenceMdxSlugs = [
   ['image', 'generic-image'],
+  ['image', 'seedream-5'],
   ['image', 'gemini-native-image'],
 ] as const satisfies readonly ApiReferenceMdxSlug[];
 
@@ -63,6 +64,10 @@ const titles: Record<string, Record<Locale, string>> = {
   'image/gemini-native-image': {
     en: 'Gemini Native Image Generation',
     zh: 'Gemini 原生图像生成',
+  },
+  'image/seedream-5': {
+    en: 'Seedream 5.0 Image Generation',
+    zh: 'Seedream 5.0 图片生成',
   },
   'midjourney/integration': {
     en: 'Integration Guide',

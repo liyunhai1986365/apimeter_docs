@@ -1,0 +1,219 @@
+---
+title: Seedream 5.0 Image Generation
+description: Complete Seedream 5.0 Pro and Lite parameters with text, reference-image, sequence, web search, streaming, and interactive-editing examples.
+---
+
+Use the ModelSell OpenAI Images-compatible endpoint for the Seedream 5.0 family:
+
+```text
+POST https://api.modelsell.com/v1/images/generations
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+## Supported Models
+
+| Model | Model ID | Capabilities |
+|---|---|---|
+| Seedream 5.0 Pro | `doubao-seedream-5-0-pro-260628` | Text-to-single-image, one or multiple references, and interactive editing; up to 10 references; 1K/2K |
+| Seedream 5.0 Lite | `doubao-seedream-5-0-260128` | Text/reference generation, image sequences, web search, and streaming; up to 14 references; 2K/3K/4K |
+| Seedream 5.0 Lite alias | `doubao-seedream-5-0-lite-260128` | Same Lite capabilities |
+
+Pro does not support image sequences, web search, or streaming. Lite does not support Pro's coordinate and marker-based interactive editing.
+
+## All Request Parameters
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `model` | string | Yes | - | A model ID from the table above |
+| `prompt` | string | Yes | - | Chinese or English prompt; keep it within about 300 Chinese characters or 600 English words |
+| `image` | string / string[] | No | - | One or more public URLs or `data:image/<format>;base64,<data>` values |
+| `size` | string | No | Model-specific | Resolution tier or `widthxheight` |
+| `optimize_prompt_options.mode` | string | No | `standard` | `standard` or `fast`; Lite currently supports only `standard` |
+| `output_format` | string | No | `jpeg` | `png` or `jpeg` |
+| `response_format` | string | No | `url` | `url` or `b64_json`; URLs expire after 24 hours |
+| `sequential_image_generation` | string | No | `disabled` | Lite only: `auto` or `disabled` |
+| `sequential_image_generation_options.max_images` | integer | No | `15` | Lite only, range 1-15; input references plus outputs must not exceed 15 |
+| `stream` | boolean | No | `false` | Lite-only SSE streaming switch |
+| `tools[].type` | string | When tools are used | - | Lite only; currently `web_search` |
+| `watermark` | boolean | No | `true` | Adds or removes the AI-generated watermark |
+
+Pro accepts `1K` and `2K`; Lite accepts `2K`, `3K`, and `4K`. Both also accept valid custom dimensions. Pro supports up to 10 reference images and Lite supports up to 14. Each reference must be directly reachable, no larger than 30 MB, and use jpeg, png, webp, bmp, tiff, gif, heic, or heif.
+
+## Text To Image
+
+```bash
+curl https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-pro-260628",
+    "prompt": "A 16:9 product poster featuring a futuristic glass API gateway, blue and violet volumetric lighting",
+    "size": "2K",
+    "output_format": "png",
+    "response_format": "url",
+    "watermark": false
+  }'
+```
+
+## Single-Reference Image Generation
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "Keep the pose and composition, but replace the silver garment with transparent glass",
+  "image": "https://example.com/model.png",
+  "size": "2K",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Multi-Reference Image Generation
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "Keep the person from image 1 and replace their outfit with the clothes from image 2",
+  "image": [
+    "https://example.com/person.png",
+    "https://example.com/clothes.png"
+  ],
+  "size": "2K",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Lite Text Sequence
+
+```json
+{
+  "model": "doubao-seedream-5-0-260128",
+  "prompt": "Create four connected illustrations of the same courtyard across all four seasons",
+  "size": "2K",
+  "sequential_image_generation": "auto",
+  "sequential_image_generation_options": {
+    "max_images": 4
+  },
+  "stream": false,
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Lite Single-Reference Sequence
+
+```json
+{
+  "model": "doubao-seedream-5-0-lite-260128",
+  "prompt": "Generate four consistent images of this character wearing sunglasses, riding a motorcycle, wearing a hat, and holding a lollipop",
+  "image": "https://example.com/character.png",
+  "size": "2K",
+  "sequential_image_generation": "auto",
+  "sequential_image_generation_options": {"max_images": 4},
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Lite Multi-Reference Sequence
+
+```json
+{
+  "model": "doubao-seedream-5-0-260128",
+  "prompt": "Combine the person in image 1 with the clothing in image 2 and create wide, medium, and close-up fashion shots",
+  "image": [
+    "https://example.com/person.png",
+    "https://example.com/clothes.png"
+  ],
+  "size": "3K",
+  "sequential_image_generation": "auto",
+  "sequential_image_generation_options": {"max_images": 3},
+  "output_format": "jpeg",
+  "watermark": false
+}
+```
+
+## Pro Interactive Editing
+
+Provide a marked-up reference or use normalized `<point>` and `<bbox>` coordinates in the prompt.
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "Move the subject from image 1 <bbox>179 283 796 986</bbox> into image 2 <bbox>118 331 933 871</bbox>",
+  "image": [
+    "https://example.com/subject.png",
+    "https://example.com/background.png"
+  ],
+  "size": "2K",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Lite Web Search
+
+```json
+{
+  "model": "doubao-seedream-5-0-260128",
+  "prompt": "Create a modern five-day Shanghai weather infographic with temperatures and outfit suggestions",
+  "size": "3K",
+  "tools": [{"type": "web_search"}],
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+Read the actual search count from `usage.tool_usage.web_search`; zero means the model did not search.
+
+## Lite Streaming
+
+```bash
+curl -N https://api.modelsell.com/v1/images/generations \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-5-0-260128",
+    "prompt": "Create four connected storyboard frames of a robot traveling from sunrise to a mountain observatory at sunset",
+    "size": "2K",
+    "sequential_image_generation": "auto",
+    "sequential_image_generation_options": {"max_images": 4},
+    "stream": true,
+    "output_format": "png",
+    "watermark": false
+  }'
+```
+
+SSE event types are `image_generation.partial_succeeded`, `image_generation.partial_failed`, and the final `image_generation.completed` event.
+
+## Base64 Response
+
+Set `response_format` to `b64_json`; read the result from `data[].b64_json`.
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "A minimalist blue mechanical whale icon on a white background",
+  "size": "1K",
+  "response_format": "b64_json",
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+## Prompt Optimization
+
+```json
+{
+  "model": "doubao-seedream-5-0-pro-260628",
+  "prompt": "A futuristic city at night",
+  "size": "2K",
+  "optimize_prompt_options": {"mode": "fast"},
+  "output_format": "png",
+  "watermark": false
+}
+```
+
+For non-streaming calls, images are returned in `data[]` through either `url` or `b64_json`. Sequence responses may contain a per-item `error`; inspect every item instead of relying only on the HTTP status.
