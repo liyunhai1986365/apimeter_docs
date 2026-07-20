@@ -1,0 +1,160 @@
+---
+title: MiMo Speech Synthesis
+description: Use the MiMo-V2.5-TTS series through the ModelSell OpenAI-compatible Chat Completions endpoint for built-in voices, voice design, and voice cloning.
+---
+
+The MiMo-V2.5-TTS series expresses the target speech and voice instructions as Chat Completions messages. Generated audio is returned as Base64.
+
+## Endpoint
+
+```http
+POST /v1/chat/completions
+```
+
+Authenticate every request with your ModelSell API key:
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+<Callout type="warn" title="Do not use the text-to-speech path">
+The MiMo-V2.5-TTS series does not use `/v1/audio/speech`. Always submit JSON to `/v1/chat/completions` and read the Base64 audio from the Chat Completions response.
+</Callout>
+
+## Supported Models
+
+| Model | Use case | `audio.voice` |
+| --- | --- | --- |
+| `mimo-v2.5-tts` | Synthesize with a built-in voice | Optional; defaults to `mimo_default` |
+| `mimo-v2.5-tts-voicedesign` | Design a voice from a text description | Not supported; describe the voice in a `user` message |
+| `mimo-v2.5-tts-voiceclone` | Clone a voice from an audio sample | Required; pass Base64 from an MP3 or WAV sample |
+
+## Message Rules
+
+- Put the target text to speak in an `assistant` message, not a `user` message.
+- A `user` message can describe tone, style, or context. It is required for `mimo-v2.5-tts-voicedesign`.
+- You may omit the `assistant` message only when the voice-design model uses `audio.optimize_text_preview: true`, allowing the model to optimize or generate broadcast-ready text.
+
+## Audio Fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `audio.format` | string | No | `wav`, `mp3`, `pcm`, or `pcm16`; non-streaming defaults to `wav`, while streaming should use `pcm16` |
+| `audio.voice` | string | Model-dependent | A built-in voice name or Base64 voice sample for voice cloning |
+| `audio.optimize_text_preview` | boolean | No | Voice-design model only; optimizes the target speech text; defaults to `false` |
+| `stream` | boolean | No | Return audio chunks over SSE when `true`; defaults to `false` |
+
+Built-in voices include `mimo_default`, `冰糖`, `茉莉`, `苏打`, `白桦`, `Mia`, `Chloe`, `Milo`, and `Dean`.
+
+## Built-in Voice
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "mimo-v2.5-tts",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Use a natural and warm tone."
+      },
+      {
+        "role": "assistant",
+        "content": "Welcome to the ModelSell speech synthesis service."
+      }
+    ],
+    "audio": {
+      "format": "wav",
+      "voice": "Chloe"
+    }
+  }'
+```
+
+## Voice Design
+
+Voice design does not require an audio sample. Describe the voice in the `user` message and provide the target speech in the `assistant` message:
+
+```json
+{
+  "model": "mimo-v2.5-tts-voicedesign",
+  "messages": [
+    {
+      "role": "user",
+      "content": "A young male voice, clear and composed, with a moderate pace for a technology presentation."
+    },
+    {
+      "role": "assistant",
+      "content": "Explore an intelligent world where every conversation feels natural."
+    }
+  ],
+  "audio": {
+    "format": "wav"
+  }
+}
+```
+
+When `"optimize_text_preview": true` is set, the response also includes `final_text_preview` with the optimized target speech.
+
+## Voice Cloning
+
+For voice cloning, pass Base64 from an MP3 or WAV sample in `audio.voice`:
+
+```json
+{
+  "model": "mimo-v2.5-tts-voiceclone",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "This sentence is generated with a cloned voice."
+    }
+  ],
+  "audio": {
+    "format": "wav",
+    "voice": "BASE64_VOICE_SAMPLE"
+  }
+}
+```
+
+## Read the Audio Response
+
+For a non-streaming response, read the audio from `choices[0].message.audio.data`:
+
+```json
+{
+  "id": "chatcmpl_xxxxxxxxxxxxxxxx",
+  "object": "chat.completion",
+  "model": "mimo-v2.5-tts",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "audio": {
+          "id": "audio_xxxxxxxxxxxxxxxx",
+          "data": "BASE64_AUDIO_DATA",
+          "expires_at": null,
+          "transcript": null
+        }
+      }
+    }
+  ]
+}
+```
+
+Decode the Base64 into the requested format:
+
+```bash
+jq -r '.choices[0].message.audio.data' response.json | base64 --decode > output.wav
+```
+
+## Streaming Audio
+
+For streaming, set `"stream": true` and `"audio": {"format": "pcm16"}`. Each SSE chunk contains audio in `choices[0].delta.audio.data`. Base64-decode and concatenate the chunks in order to produce 24 kHz, PCM16LE, mono audio.
+
+`mimo-v2.5-tts` supports low-latency streaming. Voice-design and voice-cloning models may return their streaming-formatted result only after inference finishes, so do not rely on them for real-time playback.
+
+Model availability depends on the models enabled for your group on the current ModelSell site.

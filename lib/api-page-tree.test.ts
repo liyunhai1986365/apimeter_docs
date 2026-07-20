@@ -472,6 +472,22 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
+              name: 'MiMo',
+              children: [
+                {
+                  type: 'page',
+                  name: '语音识别',
+                  url: '/zh/docs/api-reference/mimo/speech-recognition',
+                },
+                {
+                  type: 'page',
+                  name: '语音合成',
+                  url: '/zh/docs/api-reference/mimo/speech-synthesis',
+                },
+              ],
+            },
+            {
+              type: 'folder',
               name: 'Suno',
               children: [
                 {

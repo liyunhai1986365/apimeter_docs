@@ -1,0 +1,131 @@
+---
+title: MiMo Speech Recognition
+description: Transcribe MP3 or WAV audio with MiMo-V2.5-ASR through the ModelSell OpenAI-compatible Chat Completions endpoint.
+---
+
+MiMo-V2.5-ASR accepts Base64 audio through the OpenAI-compatible Chat Completions format and returns the transcript in the assistant message `content`.
+
+## Endpoint
+
+```http
+POST /v1/chat/completions
+```
+
+Authenticate every request with your ModelSell API key:
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+<Callout type="warn" title="Do not use the audio transcription path">
+MiMo-V2.5-ASR does not use `/v1/audio/transcriptions`. Always submit its JSON request to `/v1/chat/completions`.
+</Callout>
+
+## Supported Model
+
+| Model | Input | Output |
+| --- | --- | --- |
+| `mimo-v2.5-asr` | One MP3 or WAV audio file | Transcript text |
+
+## Request Fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `model` | string | Yes | Must be `mimo-v2.5-asr` |
+| `messages` | array | Yes | Supports one audio input in a `user` message |
+| `messages[].content[].type` | string | Yes | Must be `input_audio` |
+| `messages[].content[].input_audio.data` | string | Yes | A data URL or Base64 audio without a prefix |
+| `messages[].content[].input_audio.format` | string | Conditional | Required for raw Base64; accepts `mp3` or `wav`. It may be omitted when the data URL declares a MIME type |
+| `asr_options.language` | string | No | `auto`, `zh`, or `en`; defaults to `auto` |
+| `stream` | boolean | No | Return SSE chunks when `true`; defaults to `false` |
+
+If both a data URL MIME type and `format` are provided, they must match. MP3 accepts `audio/mpeg` or `audio/mp3`; WAV uses `audio/wav`.
+
+## Request Example
+
+Encode the audio as single-line Base64:
+
+```bash
+BASE64_AUDIO=$(base64 < speech.mp3 | tr -d '\n')
+```
+
+Submit the transcription request:
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"model\": \"mimo-v2.5-asr\",
+    \"messages\": [
+      {
+        \"role\": \"user\",
+        \"content\": [
+          {
+            \"type\": \"input_audio\",
+            \"input_audio\": {
+              \"data\": \"data:audio/mpeg;base64,$BASE64_AUDIO\"
+            }
+          }
+        ]
+      }
+    ],
+    \"asr_options\": {
+      \"language\": \"auto\"
+    }
+  }"
+```
+
+When passing raw Base64, declare the audio format:
+
+```json
+{
+  "type": "input_audio",
+  "input_audio": {
+    "data": "BASE64_AUDIO_DATA",
+    "format": "mp3"
+  }
+}
+```
+
+## Response Example
+
+The non-streaming response uses the Chat Completions structure. Read the transcript from `choices[0].message.content`:
+
+```json
+{
+  "id": "chatcmpl_xxxxxxxxxxxxxxxx",
+  "object": "chat.completion",
+  "created": 1780398283,
+  "model": "mimo-v2.5-asr",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "Good morning. What will the weather be like today?"
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 126,
+    "completion_tokens": 14,
+    "total_tokens": 140,
+    "prompt_tokens_details": {
+      "audio_tokens": 118
+    },
+    "seconds": 7
+  }
+}
+```
+
+For streaming, set `"stream": true` and concatenate `choices[0].delta.content` from the SSE chunks.
+
+## Limits
+
+- Each request supports one audio input.
+- Input audio must be MP3 or WAV.
+- Base64 significantly increases request size; make sure the client and network accept the resulting payload.
+- Model availability depends on the models enabled for your group on the current ModelSell site.

@@ -43,10 +43,16 @@ export const happyHorseApiReferenceMdxSlugs = [
   ['happyhorse', 'video-generation'],
 ] as const satisfies readonly ApiReferenceMdxSlug[];
 
+export const mimoApiReferenceMdxSlugs = [
+  ['mimo', 'speech-recognition'],
+  ['mimo', 'speech-synthesis'],
+] as const satisfies readonly ApiReferenceMdxSlug[];
+
 export const apiReferenceMdxSlugs = [
   ...imageApiReferenceMdxSlugs,
   ['midjourney', 'integration'],
   ['suno', 'integration'],
+  ...mimoApiReferenceMdxSlugs,
   ...seedance2ApiReferenceMdxSlugs,
   ...klingApiReferenceMdxSlugs,
   ['grok', 'video-generation'],
@@ -76,6 +82,14 @@ const titles: Record<string, Record<Locale, string>> = {
   'suno/integration': {
     en: 'Integration Guide',
     zh: '对接说明',
+  },
+  'mimo/speech-recognition': {
+    en: 'MiMo Speech Recognition',
+    zh: 'MiMo 语音识别',
+  },
+  'mimo/speech-synthesis': {
+    en: 'MiMo Speech Synthesis',
+    zh: 'MiMo 语音合成',
   },
   'seedance-2/overview': {
     en: 'Overview and Formats',

@@ -16,6 +16,8 @@ describe('API reference MDX pages', () => {
       ['image', 'gemini-native-image'],
       ['midjourney', 'integration'],
       ['suno', 'integration'],
+      ['mimo', 'speech-recognition'],
+      ['mimo', 'speech-synthesis'],
       ['seedance-2', 'overview'],
       ['seedance-2', 'assets'],
       ['seedance-2', 'generic-video'],
@@ -56,6 +58,42 @@ describe('API reference MDX pages', () => {
     expect(getApiReferenceMdxTitle(['omni', 'overview'], 'zh')).toBe('Omni 视频模型概览');
     expect(getApiReferenceMdxTitle(['midjourney', 'integration'], 'zh')).toBe('对接说明');
     expect(getApiReferenceMdxTitle(['suno', 'integration'], 'en')).toBe('Integration Guide');
+    expect(getApiReferenceMdxTitle(['mimo', 'speech-recognition'], 'zh')).toBe('MiMo 语音识别');
+    expect(getApiReferenceMdxTitle(['mimo', 'speech-synthesis'], 'en')).toBe('MiMo Speech Synthesis');
+  });
+
+  it('documents MiMo ASR and TTS through Chat Completions', () => {
+    const speechRecognition = readFileSync(
+      resolve(process.cwd(), 'content/docs/zh/api-reference/mimo/speech-recognition.mdx'),
+      'utf8',
+    );
+    const speechSynthesis = readFileSync(
+      resolve(process.cwd(), 'content/docs/zh/api-reference/mimo/speech-synthesis.mdx'),
+      'utf8',
+    );
+
+    for (const snippet of [
+      '/v1/chat/completions',
+      'mimo-v2.5-asr',
+      'input_audio',
+      'asr_options',
+      'data:audio/mpeg;base64',
+      'audio_tokens',
+    ]) {
+      expect(speechRecognition).toContain(snippet);
+    }
+
+    for (const snippet of [
+      '/v1/chat/completions',
+      'mimo-v2.5-tts',
+      'mimo-v2.5-tts-voicedesign',
+      'mimo-v2.5-tts-voiceclone',
+      'optimize_text_preview',
+      'message.audio.data',
+      'pcm16',
+    ]) {
+      expect(speechSynthesis).toContain(snippet);
+    }
   });
 
   it('documents HappyHorse generic and native video task integrations', () => {

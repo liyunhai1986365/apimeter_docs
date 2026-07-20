@@ -1,0 +1,160 @@
+---
+title: MiMo 语音合成
+description: 通过 ModelSell 的 OpenAI Chat Completions 兼容接口调用 MiMo-V2.5-TTS 系列，完成预置音色、音色设计和音色克隆。
+---
+
+MiMo-V2.5-TTS 系列通过 Chat Completions 消息表达朗读内容和音色要求，生成的音频以 Base64 返回。
+
+## 接口地址
+
+```http
+POST /v1/chat/completions
+```
+
+所有请求都使用 ModelSell API Key：
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+<Callout type="warn" title="不要使用文本转语音路径">
+MiMo-V2.5-TTS 系列不使用 `/v1/audio/speech`。请始终通过 `/v1/chat/completions` 提交 JSON 请求，并从 Chat Completions 响应中读取 Base64 音频。
+</Callout>
+
+## 支持模型
+
+| 模型 | 用途 | `audio.voice` |
+| --- | --- | --- |
+| `mimo-v2.5-tts` | 使用内置音色合成语音 | 可选，默认 `mimo_default` |
+| `mimo-v2.5-tts-voicedesign` | 通过文字描述设计音色 | 不支持；使用 `user` 消息描述音色 |
+| `mimo-v2.5-tts-voiceclone` | 通过音频样本克隆音色 | 必填，传入 MP3 或 WAV 样本的 Base64 数据 |
+
+## 消息规则
+
+- 需要朗读的目标文本必须放在 `assistant` 消息中，不能放在 `user` 消息中。
+- `user` 消息可用于描述语气、风格或上下文；使用 `mimo-v2.5-tts-voicedesign` 时必须提供。
+- 仅当音色设计模型设置 `audio.optimize_text_preview: true` 时，可以省略 `assistant` 消息，由模型优化或生成适合播报的文本。
+
+## 音频参数
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `audio.format` | string | 否 | `wav`、`mp3`、`pcm` 或 `pcm16`；非流式默认 `wav`，流式建议 `pcm16` |
+| `audio.voice` | string | 视模型而定 | 内置音色名称，或音色克隆所需的音频样本 Base64 |
+| `audio.optimize_text_preview` | boolean | 否 | 仅音色设计模型支持；优化目标播报文本，默认 `false` |
+| `stream` | boolean | 否 | 是否以 SSE 返回音频分片，默认 `false` |
+
+内置音色包括 `mimo_default`、`冰糖`、`茉莉`、`苏打`、`白桦`、`Mia`、`Chloe`、`Milo` 和 `Dean`。
+
+## 使用内置音色
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "mimo-v2.5-tts",
+    "messages": [
+      {
+        "role": "user",
+        "content": "请使用自然、温暖的语气。"
+      },
+      {
+        "role": "assistant",
+        "content": "欢迎使用 ModelSell 语音合成服务。"
+      }
+    ],
+    "audio": {
+      "format": "wav",
+      "voice": "冰糖"
+    }
+  }'
+```
+
+## 音色设计
+
+音色设计不需要音频样本。`user` 消息描述目标音色，`assistant` 消息提供朗读文本：
+
+```json
+{
+  "model": "mimo-v2.5-tts-voicedesign",
+  "messages": [
+    {
+      "role": "user",
+      "content": "年轻男性，声音清澈沉稳，语速适中，适合科技产品介绍。"
+    },
+    {
+      "role": "assistant",
+      "content": "探索智能世界，让每一次交流都更加自然。"
+    }
+  ],
+  "audio": {
+    "format": "wav"
+  }
+}
+```
+
+如果设置 `"optimize_text_preview": true`，响应还会返回 `final_text_preview`，表示优化后的最终播报文本。
+
+## 音色克隆
+
+音色克隆通过 `audio.voice` 传入 MP3 或 WAV 音频样本的 Base64 数据：
+
+```json
+{
+  "model": "mimo-v2.5-tts-voiceclone",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "这是一段使用克隆音色生成的语音。"
+    }
+  ],
+  "audio": {
+    "format": "wav",
+    "voice": "BASE64_VOICE_SAMPLE"
+  }
+}
+```
+
+## 读取响应音频
+
+非流式响应中的音频位于 `choices[0].message.audio.data`：
+
+```json
+{
+  "id": "chatcmpl_xxxxxxxxxxxxxxxx",
+  "object": "chat.completion",
+  "model": "mimo-v2.5-tts",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "audio": {
+          "id": "audio_xxxxxxxxxxxxxxxx",
+          "data": "BASE64_AUDIO_DATA",
+          "expires_at": null,
+          "transcript": null
+        }
+      }
+    }
+  ]
+}
+```
+
+将 Base64 解码为请求中指定的格式：
+
+```bash
+jq -r '.choices[0].message.audio.data' response.json | base64 --decode > output.wav
+```
+
+## 流式音频
+
+流式请求应设置 `"stream": true` 和 `"audio": {"format": "pcm16"}`。每个 SSE 分片的音频位于 `choices[0].delta.audio.data`，按顺序 Base64 解码并拼接即可得到 24 kHz、PCM16LE、单声道音频。
+
+`mimo-v2.5-tts` 支持低延迟流式输出。音色设计与音色克隆模型可能在完成推理后才以流式格式一次性返回结果，不应依赖它们实现实时播放。
+
+模型是否可用取决于当前 ModelSell 站点为你的分组开放的模型列表。

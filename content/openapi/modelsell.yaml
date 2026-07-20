@@ -118,6 +118,30 @@ paths:
                         - type: image_url
                           image_url:
                             url: https://example.com/image.png
+              mimo_asr:
+                summary: MiMo 语音识别
+                value:
+                  model: mimo-v2.5-asr
+                  messages:
+                    - role: user
+                      content:
+                        - type: input_audio
+                          input_audio:
+                            data: data:audio/mpeg;base64,BASE64_AUDIO_DATA
+                  asr_options:
+                    language: auto
+              mimo_tts:
+                summary: MiMo 语音合成
+                value:
+                  model: mimo-v2.5-tts
+                  messages:
+                    - role: user
+                      content: 请使用自然、温暖的语气。
+                    - role: assistant
+                      content: 欢迎使用 ModelSell 语音合成服务。
+                  audio:
+                    format: wav
+                    voice: 冰糖
       responses:
         '200':
           description: Chat Completions 响应。
@@ -2897,6 +2921,37 @@ components:
           type: object
           description: 响应格式约束，例如 JSON Object 或 JSON Schema。
           additionalProperties: true
+        asr_options:
+          type: object
+          description: MiMo-V2.5-ASR 语音识别参数。
+          properties:
+            language:
+              type: string
+              description: 输入音频语言；`auto` 表示自动检测。
+              enum:
+                - auto
+                - zh
+                - en
+              default: auto
+        audio:
+          type: object
+          description: MiMo-V2.5-TTS 系列的音频生成参数。
+          properties:
+            format:
+              type: string
+              description: 输出音频格式；流式请求建议使用 `pcm16`。
+              enum:
+                - wav
+                - mp3
+                - pcm
+                - pcm16
+            voice:
+              type: string
+              description: 内置音色名称，或音色克隆所需的 MP3/WAV 样本 Base64 数据。
+            optimize_text_preview:
+              type: boolean
+              description: 是否优化目标播报文本；仅 `mimo-v2.5-tts-voicedesign` 支持。
+              default: false
     ChatMessage:
       type: object
       required:
@@ -2930,6 +2985,27 @@ components:
           items:
             type: object
             additionalProperties: true
+        audio:
+          type: object
+          description: MiMo TTS 返回的音频对象。
+          properties:
+            id:
+              type: string
+              description: 音频响应 ID。
+            data:
+              type: string
+              description: 按请求格式编码的 Base64 音频数据。
+            expires_at:
+              type: integer
+              nullable: true
+              description: 音频过期时间；当前可能为 `null`。
+            transcript:
+              type: string
+              nullable: true
+              description: 音频转录文本；当前可能为 `null`。
+        final_text_preview:
+          type: string
+          description: 启用 `audio.optimize_text_preview` 后返回的最终播报文本。
     ChatCompletion:
       type: object
       required:
@@ -5057,6 +5133,21 @@ components:
           type: object
           description: Base64 内联媒体内容块。
           additionalProperties: true
+        input_audio:
+          type: object
+          description: MiMo ASR 的 Base64 音频输入；仅支持 MP3 和 WAV。
+          required:
+            - data
+          properties:
+            data:
+              type: string
+              description: Data URL 或不带前缀的 Base64 音频数据。
+            format:
+              type: string
+              description: 仅传 Base64 数据时必填；Data URL 已声明 MIME 类型时可省略。
+              enum:
+                - mp3
+                - wav
     Usage:
       type: object
       properties:

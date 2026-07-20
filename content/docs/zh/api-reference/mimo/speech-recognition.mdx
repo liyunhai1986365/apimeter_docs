@@ -1,0 +1,131 @@
+---
+title: MiMo 语音识别
+description: 通过 ModelSell 的 OpenAI Chat Completions 兼容接口调用 MiMo-V2.5-ASR，将 MP3 或 WAV 音频转写为文本。
+---
+
+MiMo-V2.5-ASR 使用 OpenAI Chat Completions 兼容格式接收 Base64 音频，并在助手消息的 `content` 中返回转写文本。
+
+## 接口地址
+
+```http
+POST /v1/chat/completions
+```
+
+所有请求都使用 ModelSell API Key：
+
+```http
+Authorization: Bearer $MODELSELL_API_KEY
+Content-Type: application/json
+```
+
+<Callout type="warn" title="不要使用音频转录路径">
+MiMo-V2.5-ASR 不使用 `/v1/audio/transcriptions`。请始终通过 `/v1/chat/completions` 提交 JSON 请求。
+</Callout>
+
+## 支持模型
+
+| 模型 | 输入格式 | 输出 |
+| --- | --- | --- |
+| `mimo-v2.5-asr` | 单条 MP3 或 WAV 音频 | 转写文本 |
+
+## 请求参数
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `model` | string | 是 | 固定为 `mimo-v2.5-asr` |
+| `messages` | array | 是 | 仅支持单条音频输入；消息角色为 `user` |
+| `messages[].content[].type` | string | 是 | 固定为 `input_audio` |
+| `messages[].content[].input_audio.data` | string | 是 | Data URL 或不带前缀的 Base64 音频数据 |
+| `messages[].content[].input_audio.format` | string | 条件必填 | 仅传 Base64 数据时必填，可选 `mp3`、`wav`；Data URL 已声明 MIME 类型时可省略 |
+| `asr_options.language` | string | 否 | `auto`、`zh` 或 `en`，默认 `auto` |
+| `stream` | boolean | 否 | 是否通过 SSE 流式返回，默认 `false` |
+
+如果同时提供 Data URL MIME 类型和 `format`，两者必须匹配。MP3 可使用 `audio/mpeg` 或 `audio/mp3`，WAV 使用 `audio/wav`。
+
+## 请求示例
+
+先把音频编码为单行 Base64：
+
+```bash
+BASE64_AUDIO=$(base64 < speech.mp3 | tr -d '\n')
+```
+
+然后提交识别请求：
+
+```bash
+curl -X POST "$MODELSELL_BASE_URL/v1/chat/completions" \
+  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"model\": \"mimo-v2.5-asr\",
+    \"messages\": [
+      {
+        \"role\": \"user\",
+        \"content\": [
+          {
+            \"type\": \"input_audio\",
+            \"input_audio\": {
+              \"data\": \"data:audio/mpeg;base64,$BASE64_AUDIO\"
+            }
+          }
+        ]
+      }
+    ],
+    \"asr_options\": {
+      \"language\": \"auto\"
+    }
+  }"
+```
+
+如果只传递 Base64 数据，需要同时声明格式：
+
+```json
+{
+  "type": "input_audio",
+  "input_audio": {
+    "data": "BASE64_AUDIO_DATA",
+    "format": "mp3"
+  }
+}
+```
+
+## 响应示例
+
+非流式响应沿用 Chat Completions 结构，识别结果位于 `choices[0].message.content`：
+
+```json
+{
+  "id": "chatcmpl_xxxxxxxxxxxxxxxx",
+  "object": "chat.completion",
+  "created": 1780398283,
+  "model": "mimo-v2.5-asr",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "早上好，请问今天的天气怎么样？"
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 126,
+    "completion_tokens": 14,
+    "total_tokens": 140,
+    "prompt_tokens_details": {
+      "audio_tokens": 118
+    },
+    "seconds": 7
+  }
+}
+```
+
+流式请求设置 `"stream": true`，逐条读取 `choices[0].delta.content` 并拼接即可得到完整转写文本。
+
+## 使用限制
+
+- 每次请求仅支持一条音频。
+- 输入音频仅支持 MP3 和 WAV。
+- 大文件会显著增大 Base64 请求体；请确保客户端和网络允许对应的请求大小。
+- 模型是否可用取决于当前 ModelSell 站点为你的分组开放的模型列表。

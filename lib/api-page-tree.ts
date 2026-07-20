@@ -402,6 +402,31 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
+        title: { zh: 'MiMo', en: 'MiMo' },
+        items: [
+          {
+            title: { zh: '语音识别', en: 'Speech Recognition' },
+            visibleWhenOperationIds: ['createChatCompletion'],
+            pages: [
+              {
+                title: { zh: '语音识别', en: 'Speech Recognition' },
+                href: '/docs/api-reference/mimo/speech-recognition',
+              },
+            ],
+          },
+          {
+            title: { zh: '语音合成', en: 'Speech Synthesis' },
+            visibleWhenOperationIds: ['createChatCompletion'],
+            pages: [
+              {
+                title: { zh: '语音合成', en: 'Speech Synthesis' },
+                href: '/docs/api-reference/mimo/speech-synthesis',
+              },
+            ],
+          },
+        ],
+      },
+      {
         title: { zh: 'Suno', en: 'Suno' },
         items: [
           {
