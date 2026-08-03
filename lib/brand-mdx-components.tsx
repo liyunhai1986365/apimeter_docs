@@ -7,7 +7,7 @@ import { brandText } from '@/lib/docs-brand';
 type MdxComponentProps = Record<string, unknown> & {
   children?: ReactNode;
 };
-type MdxComponentMap = Record<string, ComponentType<MdxComponentProps>>;
+type MdxComponentMap = Record<string, ComponentType<never>>;
 
 function brandChildren(children: ReactNode, brand: DocsBrand): ReactNode {
   if (typeof children === 'string') return brandText(children, brand);
@@ -26,7 +26,7 @@ function brandChildren(children: ReactNode, brand: DocsBrand): ReactNode {
 
 type BrandableTag = 'p' | 'li' | 'td' | 'th' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-function brandStringProps<T extends Record<string, unknown>>(props: T, brand: DocsBrand): T {
+function brandStringProps<T extends object>(props: T, brand: DocsBrand): T {
   return Object.fromEntries(
     Object.entries(props).map(([key, value]) => [
       key,
@@ -45,7 +45,7 @@ function createBrandedComponent(tag: BrandableTag, brand: DocsBrand) {
   };
 }
 
-function createBrandedMdxComponent(Component: ComponentType<MdxComponentProps>, brand: DocsBrand) {
+function createBrandedMdxComponent(Component: ComponentType<unknown>, brand: DocsBrand) {
   return function BrandedMdxComponent(props: MdxComponentProps) {
     const { children, ...rest } = props;
 
@@ -64,13 +64,13 @@ export function getBrandedMdxComponents(
   const brandedDefaults = Object.fromEntries(
     Object.entries(defaultMdxComponents).map(([name, Component]) => [
       name,
-      createBrandedMdxComponent(Component as ComponentType<MdxComponentProps>, brand),
+      createBrandedMdxComponent(Component as ComponentType<unknown>, brand),
     ]),
   );
   const brandedExtra = Object.fromEntries(
     Object.entries(extra).map(([name, Component]) => [
       name,
-      createBrandedMdxComponent(Component, brand),
+      createBrandedMdxComponent(Component as ComponentType<unknown>, brand),
     ]),
   );
 

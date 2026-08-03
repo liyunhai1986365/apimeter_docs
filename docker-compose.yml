@@ -1,0 +1,17 @@
+services:
+  apimeter-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: apimeter-docs:local
+    container_name: apimeter-docs
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      NODE_ENV: production
+      PORT: "3030"
+      DOCS_BRAND_NAME: apimeter
+      DOCS_PUBLIC_BASE_URL: https://alex.apimeter.net
+      DOCS_API_BASE_URL: https://alex.apimeter.net/v1
+      DOCS_API_KEY_NAME: apimeter_apikey

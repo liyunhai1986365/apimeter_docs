@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+.git
+.github
+.next
+.source
+build
+coverage
+dist
+node_modules
+*.log
+*.tsbuildinfo
+.vscode
