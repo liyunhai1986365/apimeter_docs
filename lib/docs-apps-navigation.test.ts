@@ -4,51 +4,55 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = process.cwd();
 const zhAppsDir = path.join(repoRoot, 'content/docs/zh/apps');
+const enAppsDir = path.join(repoRoot, 'content/docs/en/apps');
 
 describe('agent apps documentation navigation', () => {
-  it('keeps ModelSell CLI as the first agent tools page', () => {
+  it('uses the original CLI route for the CC Switch integration page', () => {
     const meta = JSON.parse(
       readFileSync(path.join(zhAppsDir, 'meta.json'), 'utf8'),
     ) as { pages: string[] };
-
-    expect(meta.pages[0]).toBe('modelsell-cli');
-  });
-
-  it('links from the ModelSell CLI page to existing agent detail pages', () => {
-    const content = readFileSync(
-      path.join(zhAppsDir, 'modelsell-cli.mdx'),
+    const appsIndex = readFileSync(
+      path.join(repoRoot, 'content/docs/zh/apps.mdx'),
       'utf8',
     );
-    const links = [...content.matchAll(/href="\/zh\/docs\/apps\/([^"]+)"/g)].map(
+    const page = readFileSync(path.join(zhAppsDir, 'cc-switch-setup.mdx'), 'utf8');
+
+    expect(meta.pages[0]).toBe('cc-switch-setup');
+    expect(page).toContain('title: CC Switch 接入文档');
+    expect(appsIndex).toContain('/zh/docs/apps/cc-switch-setup');
+  });
+
+  it('links every app card to an existing agent detail page', () => {
+    const appsIndex = readFileSync(
+      path.join(repoRoot, 'content/docs/zh/apps.mdx'),
+      'utf8',
+    );
+    const links = [...appsIndex.matchAll(/href="\/zh\/docs\/apps\/([^"]+)"/g)].map(
       ([, slug]) => slug,
     );
 
-    expect(links).toEqual(
-      expect.arrayContaining(['claude-code', 'codex-cli', 'gemini-cli', 'openclaw']),
-    );
-
+    expect(links.length).toBeGreaterThan(0);
     for (const slug of links) {
       expect(existsSync(path.join(zhAppsDir, `${slug}.mdx`))).toBe(true);
     }
   });
 
-  it('repeats every apps page card on the ModelSell CLI page', () => {
+  it('adds the CC Switch setup page to English docs navigation', () => {
+    const meta = JSON.parse(
+      readFileSync(path.join(enAppsDir, 'meta.json'), 'utf8'),
+    ) as { pages: string[] };
+    const docsMeta = JSON.parse(
+      readFileSync(path.join(repoRoot, 'content/docs/en/meta.json'), 'utf8'),
+    ) as { pages: string[] };
     const appsIndex = readFileSync(
-      path.join(repoRoot, 'content/docs/zh/apps.mdx'),
+      path.join(repoRoot, 'content/docs/en/apps.mdx'),
       'utf8',
     );
-    const cliPage = readFileSync(
-      path.join(zhAppsDir, 'modelsell-cli.mdx'),
-      'utf8',
-    );
+    const page = readFileSync(path.join(enAppsDir, 'cc-switch-setup.mdx'), 'utf8');
 
-    const appCards = [
-      ...appsIndex.matchAll(/<Card title="([^"]+)" href="\/zh\/docs\/apps\/([^"]+)">/g),
-    ].map(([, title, slug]) => ({ title, slug }));
-    const cliCards = [
-      ...cliPage.matchAll(/<Card title="([^"]+)" href="\/zh\/docs\/apps\/([^"]+)">/g),
-    ].map(([, title, slug]) => ({ title, slug }));
-
-    expect(cliCards).toEqual(appCards);
+    expect(docsMeta.pages).toContain('apps');
+    expect(meta.pages[0]).toBe('cc-switch-setup');
+    expect(page).toContain('title: CC Switch Setup');
+    expect(appsIndex).toContain('/docs/apps/cc-switch-setup');
   });
 });

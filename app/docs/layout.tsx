@@ -12,7 +12,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/docs`,
   );
 
   return (

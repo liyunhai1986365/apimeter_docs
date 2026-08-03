@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import {
   ArrowRight,
   Bot,
   CheckCircle2,
-  ClipboardCheck,
   Code2,
   Cpu,
   FilePenLine,
@@ -13,19 +12,19 @@ import {
   TerminalSquare,
   Zap,
 } from 'lucide-react';
-import { InstallCommandSwitcher } from '@/components/install-command-switcher';
 import { SiteHeader } from '@/components/site-header';
+import { brandText, getDocsBrandFromHeaders } from '@/lib/docs-brand';
 
 const targets = ['Claude Code', 'Codex CLI', 'Gemini CLI', 'OpenClaw'];
 
 const setupPaths = [
   {
-    title: '推荐先用 ModelSell CLI',
+    title: 'CC Switch 接入文档',
     description:
-      '自动写入 API Key、Base URL 和默认模型，适合 Claude Code、Codex CLI、Gemini CLI、OpenClaw 这类本地 Agent 工具。',
-    icon: ClipboardCheck,
-    action: '查看自动配置指南',
-    href: '/zh/docs/apps/modelsell-cli',
+      '通过 CC Switch 配置 Codex、Gemini CLI、OpenClaw 和 Hermes 等工具。',
+    icon: Settings2,
+    action: '查看 CC Switch 文档',
+    href: '/zh/docs/apps/cc-switch-setup',
   },
   {
     title: '手动配置入口',
@@ -76,40 +75,46 @@ const docs = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const requestHeaders = await headers();
+  const brand = getDocsBrandFromHeaders(
+    new Headers(requestHeaders),
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/`,
+  );
+  const t = (text: string) => brandText(text, brand);
+
   return (
     <main className="min-h-screen bg-fd-background text-fd-foreground">
-      <SiteHeader />
-      <section className="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-12 px-6 py-12 lg:grid-cols-[minmax(0,0.96fr)_minmax(420px,1.04fr)] lg:px-10">
+      <SiteHeader publicOrigin={brand.publicOrigin} />
+      <section className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-6 py-12 lg:px-10">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border bg-fd-card px-3 py-1 text-sm text-fd-muted-foreground">
             <TerminalSquare className="size-4 text-fd-primary" />
-            ModelSell CLI
+            Agent 工具
           </div>
 
           <h1 className="mt-6 text-balance text-5xl font-semibold tracking-tight md:text-7xl">
-            一键配置主流 Agent 平台
+            Agent 工具接入
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-fd-muted-foreground">
-            ModelSell CLI 会把 API Key、API 地址和默认模型自动写入 Claude
-            Code、Codex CLI、Gemini CLI 和 OpenClaw，省掉逐个编辑配置文件的重复工作。
+            {t(
+              '查看 Claude Code、Codex CLI、Gemini CLI、OpenClaw、Cursor、Cherry Studio 等客户端接入指南。',
+            )}
           </p>
-
-          <InstallCommandSwitcher />
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/zh/docs/apps/modelsell-cli"
+              href="/zh/docs/apps/cc-switch-setup"
               className="inline-flex items-center gap-2 rounded-md bg-fd-primary px-4 py-2.5 text-sm font-medium text-fd-primary-foreground transition hover:opacity-90"
             >
-              查看 CLI 文档
+              查看 CC Switch 文档
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href="/zh/docs/apps"
+              href="/zh/docs/api-reference"
               className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition hover:bg-fd-accent"
             >
-              浏览 Agent 工具
+              查看 API Reference
               <Sparkles className="size-4" />
             </Link>
           </div>
@@ -126,18 +131,6 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-
-        <div className="relative">
-          <div className="absolute -inset-4 rounded-2xl border bg-fd-card/50" />
-          <Image
-            src="/assets/docs/apps/modelsell/modelsell-cli.png"
-            alt="ModelSell CLI interactive configuration screen"
-            width={1440}
-            height={976}
-            priority
-            className="relative rounded-lg border bg-fd-card shadow-2xl"
-          />
-        </div>
       </section>
 
       <section className="border-y bg-fd-card/20 px-6 py-16 lg:px-10">
@@ -147,10 +140,12 @@ export default function HomePage() {
               接入方式
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-              自动配置优先，手动配置也随时可用
+              按工具选择接入方式
             </h2>
             <p className="mt-4 text-sm leading-6 text-fd-muted-foreground">
-              主流 Agent 推荐直接用 CLI 自动写入配置。其它工具只要能填写 OpenAI 兼容接口，也可以用同一套 ModelSell 参数手动接入。
+              {t(
+                '选择对应工具的接入指南。如果工具支持 OpenAI 兼容接口，可以用同一套 ModelSell 参数手动接入。',
+              )}
             </p>
           </div>
 
@@ -168,9 +163,9 @@ export default function HomePage() {
                     <Icon className="size-5 text-fd-primary" />
                     <ArrowRight className="size-4 text-fd-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-fd-primary" />
                   </div>
-                  <h3 className="mt-6 text-base font-semibold">{path.title}</h3>
+                  <h3 className="mt-6 text-base font-semibold">{t(path.title)}</h3>
                   <p className="mt-2 text-sm leading-6 text-fd-muted-foreground">
-                    {path.description}
+                    {t(path.description)}
                   </p>
                   <p className="mt-4 text-sm font-medium text-fd-primary">
                     {path.action}
@@ -193,7 +188,9 @@ export default function HomePage() {
                 更多 Agent 配置入口
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-fd-muted-foreground">
-                当前文档已经整理了更多 Agent 和客户端配置方式；如果你的工具支持自定义 API Key 和 Base URL，通常也能按 OpenAI 兼容参数接入 ModelSell。
+                {t(
+                  '当前文档已经整理了更多 Agent 和客户端配置方式；如果你的工具支持自定义 API Key 和 Base URL，通常也能按 OpenAI 兼容参数接入 ModelSell。',
+                )}
               </p>
             </div>
             <Link
@@ -231,7 +228,9 @@ export default function HomePage() {
           <div className="mt-8 flex items-start gap-3 rounded-md border bg-fd-card/50 p-4 text-sm leading-6 text-fd-muted-foreground">
             <Code2 className="mt-0.5 size-4 shrink-0 text-fd-primary" />
             <p>
-              通用接入信息通常只有三项：ModelSell API Key、Base URL 和模型名称。无法自动配置的 Agent，可在对应工具的 Provider、模型或 OpenAI Compatible 设置里手动填写。
+              {t(
+                '通用接入信息通常只有三项：ModelSell API Key、Base URL 和模型名称。无法自动配置的 Agent，可在对应工具的 Provider、模型或 OpenAI Compatible 设置里手动填写。',
+              )}
             </p>
           </div>
         </div>

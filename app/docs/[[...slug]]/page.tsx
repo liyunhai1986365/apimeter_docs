@@ -23,7 +23,7 @@ export default async function Page(props: {
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/docs`,
   );
   if (isAgentAppsSlug(params.slug) && !isOfficialDocsBrand(brand)) notFound();
 
@@ -63,7 +63,7 @@ export async function generateMetadata(props: {
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/docs`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/docs`,
   );
   if (isAgentAppsSlug(params.slug) && !isOfficialDocsBrand(brand)) notFound();
 

@@ -31,8 +31,8 @@ describe('page tree brand helper', () => {
           description: '已支持对接 aiiqq.com 的工具。',
         },
         {
-          name: 'ModelSell CLI',
-          description: '使用 ModelSell CLI 自动配置。',
+          name: 'aiiqq.com CLI',
+          description: '使用 aiiqq.com CLI 自动配置。',
         },
       ],
     });
@@ -77,8 +77,8 @@ describe('page tree brand helper', () => {
           children: [
             {
               type: 'page',
-              name: 'ModelSell CLI',
-              url: '/zh/docs/apps/modelsell-cli',
+              name: 'AionUi',
+              url: '/zh/docs/apps/aionui',
             },
           ],
         },
@@ -119,6 +119,26 @@ describe('page tree brand helper', () => {
           name: 'API 参考',
         },
       ],
+    });
+
+    expect(
+      getBrandedPageTree(tree, {
+        name: '云心',
+        publicOrigin: 'http://127.0.0.1:3030',
+      }),
+    ).toMatchObject({
+      children: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Agent 工具',
+          url: '/zh/docs/apps',
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'AionUi',
+              url: '/zh/docs/apps/aionui',
+            }),
+          ]),
+        }),
+      ]),
     });
   });
 });

@@ -3,12 +3,11 @@ import { baseOptions } from '@/lib/layout.shared';
 import { getSiteNavigation, siteNavigation } from '@/lib/site-navigation';
 
 describe('site navigation', () => {
-  it('contains the shared ModelSell top-level links', () => {
+  it('contains the shared local default top-level links', () => {
     expect(siteNavigation).toEqual([
-      { text: '首页', url: 'https://modelsell.com/' },
-      { text: '控制台', url: 'https://modelsell.com/dashboard/overview' },
-      { text: '模型广场', url: 'https://modelsell.com/pricing' },
-      { text: 'Agent 工具接入', url: 'https://modelsell.com/docs' },
+      { text: '首页', url: 'http://localhost:3030/' },
+      { text: '控制台', url: 'http://localhost:3030/dashboard/overview' },
+      { text: '模型广场', url: 'http://localhost:3030/pricing' },
     ]);
   });
 
@@ -17,7 +16,6 @@ describe('site navigation', () => {
       { text: '首页', url: 'https://tenant.example.com/' },
       { text: '控制台', url: 'https://tenant.example.com/dashboard/overview' },
       { text: '模型广场', url: 'https://tenant.example.com/pricing' },
-      { text: 'Agent 工具接入', url: 'https://tenant.example.com/docs' },
     ]);
   });
 

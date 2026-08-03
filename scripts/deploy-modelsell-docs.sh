@@ -87,6 +87,10 @@ init_context() {
   DEPLOY_REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/www/wwwroot/modelsell-docs}"
   DEPLOY_SERVICE_NAME="${DEPLOY_SERVICE_NAME:-modelsell-docs}"
   DEPLOY_APP_PORT="${DEPLOY_APP_PORT:-3030}"
+  DOCS_BRAND_NAME="${DOCS_BRAND_NAME:-${MODELSELL_DOCS_BRAND_NAME:-}}"
+  DOCS_PUBLIC_BASE_URL="${DOCS_PUBLIC_BASE_URL:-${MODELSELL_PUBLIC_BASE_URL:-${NEXT_PUBLIC_MODELSELL_BASE_URL:-}}}"
+  DOCS_API_BASE_URL="${DOCS_API_BASE_URL:-${MODELSELL_DOCS_API_BASE_URL:-}}"
+  DOCS_API_KEY_NAME="${DOCS_API_KEY_NAME:-${MODELSELL_DOCS_API_KEY_NAME:-}}"
 
   require_var DEPLOY_HOST
   require_var DEPLOY_REMOTE_DIR
@@ -140,6 +144,12 @@ build_package() {
   log "Collect standalone files"
   cp -R "$ROOT_DIR/.next/standalone/." "$PACKAGE_DIR/"
   cp -R "$ROOT_DIR/.next/static" "$PACKAGE_DIR/.next/static"
+  if [[ -d "$ROOT_DIR/.source" ]]; then
+    cp -R "$ROOT_DIR/.source" "$PACKAGE_DIR/.source"
+  fi
+  if [[ -d "$ROOT_DIR/content" ]]; then
+    cp -R "$ROOT_DIR/content" "$PACKAGE_DIR/content"
+  fi
   if [[ -d "$ROOT_DIR/public" ]]; then
     cp -R "$ROOT_DIR/public" "$PACKAGE_DIR/public"
   fi
@@ -181,7 +191,7 @@ REMOTE_SCRIPT
 install_remote_service() {
   log "Install systemd config and restart service: $DEPLOY_SERVICE_NAME"
   require_remote_node
-  remote_ssh "REMOTE_DIR='$DEPLOY_REMOTE_DIR' SERVICE_NAME='$DEPLOY_SERVICE_NAME' APP_PORT='$DEPLOY_APP_PORT' bash -s" <<'REMOTE_SCRIPT'
+  remote_ssh "REMOTE_DIR='$DEPLOY_REMOTE_DIR' SERVICE_NAME='$DEPLOY_SERVICE_NAME' APP_PORT='$DEPLOY_APP_PORT' DOCS_BRAND_NAME='$DOCS_BRAND_NAME' DOCS_PUBLIC_BASE_URL='$DOCS_PUBLIC_BASE_URL' DOCS_API_BASE_URL='$DOCS_API_BASE_URL' DOCS_API_KEY_NAME='$DOCS_API_KEY_NAME' bash -s" <<'REMOTE_SCRIPT'
 set -Eeuo pipefail
 
 mkdir -p "$REMOTE_DIR" "$REMOTE_DIR/logs"
@@ -198,6 +208,10 @@ User=root
 WorkingDirectory=${REMOTE_DIR}
 Environment=NODE_ENV=production
 Environment=PORT=${APP_PORT}
+Environment=DOCS_BRAND_NAME=${DOCS_BRAND_NAME}
+Environment=DOCS_PUBLIC_BASE_URL=${DOCS_PUBLIC_BASE_URL}
+Environment=DOCS_API_BASE_URL=${DOCS_API_BASE_URL}
+Environment=DOCS_API_KEY_NAME=${DOCS_API_KEY_NAME}
 ExecStart=/usr/bin/env node ${REMOTE_DIR}/server.js
 Restart=always
 RestartSec=5
@@ -231,6 +245,7 @@ upload_artifact() {
 set -Eeuo pipefail
 
 mkdir -p "$REMOTE_DIR" "$REMOTE_DIR/logs"
+find "$REMOTE_DIR" -mindepth 1 -maxdepth 1 ! -name logs -exec rm -rf {} +
 tar -xzf "$ARCHIVE_PATH" -C "$REMOTE_DIR"
 chmod +x "$REMOTE_DIR/server.js"
 REMOTE_SCRIPT

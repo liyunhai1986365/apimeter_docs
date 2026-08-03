@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const repoRoot = process.cwd();
 const zhAppsDir = path.join(repoRoot, 'content/docs/zh/apps');
+const enAppsDir = path.join(repoRoot, 'content/docs/en/apps');
 
 function listMdxFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -17,7 +18,9 @@ describe('docs app image assets', () => {
   it('uses local public assets for synced app images', () => {
     const files = [
       path.join(repoRoot, 'content/docs/zh/apps.mdx'),
+      path.join(repoRoot, 'content/docs/en/apps.mdx'),
       ...listMdxFiles(zhAppsDir),
+      ...listMdxFiles(enAppsDir),
     ];
 
     for (const file of files) {

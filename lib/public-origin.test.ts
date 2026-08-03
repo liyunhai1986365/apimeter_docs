@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getConfiguredPublicOrigin,
+  getExplicitConfiguredPublicOrigin,
   getPublicOriginFromHeaders,
   normalizePublicOrigin,
 } from '@/lib/public-origin';
@@ -12,14 +13,24 @@ describe('public origin helpers', () => {
     );
   });
 
-  it('falls back to the canonical ModelSell origin when no config is set', () => {
-    expect(getConfiguredPublicOrigin({})).toBe('https://modelsell.com');
+  it('accepts bare domains in configured origins', () => {
+    expect(normalizePublicOrigin(' apimeter.net ')).toBe('https://apimeter.net');
+    expect(normalizePublicOrigin('localhost:3030')).toBe('http://localhost:3030');
+  });
+
+  it('falls back to the local docs origin when no config is set', () => {
+    expect(getConfiguredPublicOrigin({})).toBe('http://localhost:3030');
   });
 
   it('reads the configured public origin from server env', () => {
     expect(
       getConfiguredPublicOrigin({
-        MODELSELL_PUBLIC_BASE_URL: 'https://tenant.example.com/',
+        DOCS_PUBLIC_BASE_URL: 'https://tenant.example.com/',
+      }),
+    ).toBe('https://tenant.example.com');
+    expect(
+      getExplicitConfiguredPublicOrigin({
+        DOCS_PUBLIC_BASE_URL: 'tenant.example.com',
       }),
     ).toBe('https://tenant.example.com');
   });

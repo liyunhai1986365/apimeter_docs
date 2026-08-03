@@ -19,7 +19,7 @@ export default async function Layout({
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/${locale}/docs`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/${locale}/docs`,
   );
 
   return (

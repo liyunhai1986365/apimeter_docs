@@ -6,7 +6,7 @@ import { getSiteNavigation } from '@/lib/site-navigation';
 export function SiteHeader({ publicOrigin }: { publicOrigin?: string }) {
   const brand = getDocsBrandFromOrigin(publicOrigin);
   const siteNavigation = getSiteNavigation(publicOrigin);
-  const homeUrl = siteNavigation[0]?.url ?? 'https://modelsell.com/';
+  const homeUrl = siteNavigation[0]?.url ?? brand.publicOrigin;
 
   return (
     <header className="border-b bg-fd-background/95 px-6 py-3 backdrop-blur lg:px-10">

@@ -1,26 +1,36 @@
-const defaultPublicOrigin = 'https://modelsell.com';
+const defaultPublicOrigin = 'http://localhost:3030';
 
 type EnvLike = Record<string, string | undefined>;
 
 export function normalizePublicOrigin(origin?: string | null) {
-  if (!origin) return undefined;
+  const value = origin?.trim();
+  if (!value) return undefined;
 
   try {
-    const url = new URL(origin);
+    const candidate = value.includes('://')
+      ? value
+      : `${value.startsWith('localhost') || value.startsWith('127.0.0.1') ? 'http' : 'https'}://${value}`;
+    const url = new URL(candidate);
     return url.origin;
   } catch {
     return undefined;
   }
 }
 
-export function getConfiguredPublicOrigin(
+export function getExplicitConfiguredPublicOrigin(
   env: EnvLike = process.env,
 ) {
   return (
+    normalizePublicOrigin(env.DOCS_PUBLIC_BASE_URL) ??
     normalizePublicOrigin(env.MODELSELL_PUBLIC_BASE_URL) ??
-    normalizePublicOrigin(env.NEXT_PUBLIC_MODELSELL_BASE_URL) ??
-    defaultPublicOrigin
+    normalizePublicOrigin(env.NEXT_PUBLIC_MODELSELL_BASE_URL)
   );
+}
+
+export function getConfiguredPublicOrigin(
+  env: EnvLike = process.env,
+) {
+  return getExplicitConfiguredPublicOrigin(env) ?? defaultPublicOrigin;
 }
 
 export function getPublicOriginFromHeaders(

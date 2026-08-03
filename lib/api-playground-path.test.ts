@@ -35,6 +35,6 @@ describe('getApiPlaygroundSlugs', () => {
   });
 
   it('rejects non API reference links', () => {
-    expect(getApiPlaygroundSlugs('/docs/apps/modelsell-cli')).toBeNull();
+    expect(getApiPlaygroundSlugs('/docs/apps/cc-switch-setup')).toBeNull();
   });
 });

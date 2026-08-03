@@ -1,6 +1,6 @@
 import { isValidElement } from 'react';
 import type { DocsBrand } from '@/lib/docs-brand';
-import { brandText } from '@/lib/docs-brand';
+import { brandText, isOfficialDocsBrand } from '@/lib/docs-brand';
 
 function isAgentAppsItem(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
@@ -46,7 +46,8 @@ export function brandPageTree<T>(value: T, brand: DocsBrand): T {
 }
 
 export function getBrandedPageTree<T>(value: T, brand: DocsBrand): T {
-  const tree =
-    brand.name === 'ModelSell' ? value : (filterAgentAppsPageTree(value) as T);
+  const tree = isOfficialDocsBrand(brand)
+    ? value
+    : (filterAgentAppsPageTree(value) as T);
   return brandPageTree(tree, brand);
 }

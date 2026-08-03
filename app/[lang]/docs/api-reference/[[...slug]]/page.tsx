@@ -27,7 +27,7 @@ export default async function Page(props: {
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/${locale}/docs/api-reference`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/${locale}/docs/api-reference`,
   );
 
   if (!params.slug || params.slug.length === 0) {
@@ -94,7 +94,7 @@ export async function generateMetadata(props: {
   const requestHeaders = await headers();
   const brand = getDocsBrandFromHeaders(
     new Headers(requestHeaders),
-    `https://${requestHeaders.get('host') ?? 'modelsell.com'}/${locale}/docs/api-reference`,
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/${locale}/docs/api-reference`,
   );
 
   if (mdxPage) {

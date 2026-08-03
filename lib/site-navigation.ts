@@ -18,10 +18,6 @@ export function getSiteNavigation(origin = getConfiguredPublicOrigin()) {
       text: '模型广场',
       url: withPath(origin, '/pricing'),
     },
-    {
-      text: 'Agent 工具接入',
-      url: withPath(origin, '/docs'),
-    },
   ] as const;
 }
 

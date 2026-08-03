@@ -8,17 +8,18 @@ const homePage = readFileSync(
 );
 
 describe('root home page', () => {
-  it('positions ModelSell CLI as the primary entry', () => {
-    expect(homePage).toContain('ModelSell CLI');
-    expect(homePage).toContain('一键配置主流 Agent 平台');
-    expect(homePage).toContain('InstallCommandSwitcher');
-    expect(homePage).toContain('/zh/docs/apps/modelsell-cli');
+  it('positions agent docs as the primary entry', () => {
+    expect(homePage).toContain('Agent 工具接入');
+    expect(homePage).toContain('CC Switch 接入文档');
     expect(homePage).toContain('/zh/docs/apps');
+    expect(homePage).toContain('/zh/docs/api-reference');
+    expect(homePage).toContain('/zh/docs/apps/cc-switch-setup');
+    expect(homePage).not.toContain('InstallCommandSwitcher');
   });
 
   it('presents automatic and manual configuration paths', () => {
-    expect(homePage).toContain('自动配置优先，手动配置也随时可用');
-    expect(homePage).toContain('推荐先用 ModelSell CLI');
+    expect(homePage).toContain('按工具选择接入方式');
+    expect(homePage).toContain('Agent 工具接入');
     expect(homePage).toContain('手动配置入口');
     expect(homePage).toContain('如果你的工具支持自定义 API Key 和 Base URL');
     expect(homePage).not.toContain('配置流程');

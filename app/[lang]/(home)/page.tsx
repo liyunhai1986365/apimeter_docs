@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import {
   ArrowRight,
   Bot,
@@ -13,27 +14,28 @@ import {
 } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { getLocaleFromParams, getLocalizedHref } from '@/lib/i18n-path';
+import { brandText, getDocsBrandFromHeaders } from '@/lib/docs-brand';
 
 const content = {
   en: {
     eyebrow: 'ModelSell Developer Docs',
-    title: 'Configure agent tools with ModelSell CLI.',
+    title: 'Connect agent tools.',
     description:
-      'ModelSell CLI writes API keys, base URLs, and default models into local agent tool configs, so you can connect tools without editing every file by hand.',
-    primary: 'Open CLI guide',
-    secondary: 'Agent tools',
+      'Browse client and agent integration guides for OpenAI-compatible API key, base URL, and model settings.',
+    primary: 'Agent tools',
+    secondary: 'API Reference',
     setupLabel: 'Setup paths',
-    setupTitle: 'Use automatic setup first, with manual setup available anytime.',
+    setupTitle: 'Choose the setup path for each tool.',
     setupDescription:
-      'Use the CLI for mainstream agent tools. For anything else, reuse the same ModelSell API key, base URL, and model name in an OpenAI-compatible provider form.',
+      'Select the guide for your tool. If it supports custom API key, base URL, and model settings, it can usually connect through OpenAI-compatible configuration.',
     setupPaths: [
       {
-        href: '/docs/apps/modelsell-cli',
-        title: 'Start with ModelSell CLI',
+        href: '/docs/apps/cc-switch-setup',
+        title: 'CC Switch integration',
         description:
-          'Automatically write the API key, base URL, and default model for Claude Code, Codex CLI, Gemini CLI, and OpenClaw.',
-        action: 'Open automatic setup guide',
-        icon: ClipboardCheck,
+          'Configure Codex, Gemini CLI, OpenClaw, and Hermes through CC Switch.',
+        action: 'Open CC Switch guide',
+        icon: Settings2,
       },
       {
         href: '/docs/apps',
@@ -90,24 +92,24 @@ const content = {
     ],
   },
   zh: {
-    eyebrow: 'ModelSell CLI',
-    title: '一键配置主流 Agent 平台',
+    eyebrow: 'Agent 工具',
+    title: 'Agent 工具接入',
     description:
-      'ModelSell CLI 会把 API Key、API 地址和默认模型自动写入 Claude Code、Codex CLI、Gemini CLI 和 OpenClaw，省掉逐个编辑配置文件的重复工作。',
-    primary: '查看 CLI 文档',
-    secondary: '浏览 Agent 工具',
+      '查看 Claude Code、Codex CLI、Gemini CLI、OpenClaw、Cursor、Cherry Studio 等客户端接入指南。',
+    primary: '浏览 Agent 工具',
+    secondary: '查看 API Reference',
     setupLabel: '接入方式',
-    setupTitle: '自动配置优先，手动配置也随时可用',
+    setupTitle: '按工具选择接入方式',
     setupDescription:
-      '主流 Agent 推荐直接用 CLI 自动写入配置。其它工具只要能填写 OpenAI 兼容接口，也可以用同一套 ModelSell 参数手动接入。',
+      '选择对应工具的接入指南。如果工具支持 OpenAI 兼容接口，可以用同一套 ModelSell 参数手动接入。',
     setupPaths: [
       {
-        href: '/docs/apps/modelsell-cli',
-        title: '推荐先用 ModelSell CLI',
+        href: '/docs/apps/cc-switch-setup',
+        title: 'CC Switch 接入文档',
         description:
-          '自动写入 API Key、Base URL 和默认模型，适合 Claude Code、Codex CLI、Gemini CLI、OpenClaw 这类本地 Agent 工具。',
-        action: '查看自动配置指南',
-        icon: ClipboardCheck,
+          '通过 CC Switch 配置 Codex、Gemini CLI、OpenClaw 和 Hermes 等工具。',
+        action: '查看 CC Switch 文档',
+        icon: Settings2,
       },
       {
         href: '/docs/apps',
@@ -169,32 +171,38 @@ export default async function LocalizedHomePage(props: {
   params: Promise<{ lang?: string }>;
 }) {
   const locale = getLocaleFromParams((await props.params).lang);
+  const requestHeaders = await headers();
+  const brand = getDocsBrandFromHeaders(
+    new Headers(requestHeaders),
+    `https://${requestHeaders.get('host') ?? 'localhost:3030'}/${locale}`,
+  );
+  const t = (text: string) => brandText(text, brand);
   const copy = content[locale];
 
   return (
     <main className="flex min-h-screen flex-col">
-      <SiteHeader />
+      <SiteHeader publicOrigin={brand.publicOrigin} />
       <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center gap-10 px-6 py-14">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.18em] text-fd-muted-foreground">
-            {copy.eyebrow}
+            {t(copy.eyebrow)}
           </p>
           <h1 className="text-balance text-5xl font-semibold tracking-tight md:text-7xl">
-            {copy.title}
+            {t(copy.title)}
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-fd-muted-foreground">
-            {copy.description}
+            {t(copy.description)}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href={getLocalizedHref('/docs/apps/modelsell-cli', locale)}
+              href={getLocalizedHref('/docs/apps/cc-switch-setup', locale)}
               className="inline-flex items-center gap-2 rounded-md bg-fd-primary px-4 py-2.5 text-sm font-medium text-fd-primary-foreground transition hover:opacity-90"
             >
               {copy.primary}
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href={getLocalizedHref('/docs/apps', locale)}
+              href={getLocalizedHref('/docs/api-reference', locale)}
               className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition hover:bg-fd-accent"
             >
               {copy.secondary}
@@ -222,10 +230,10 @@ export default async function LocalizedHomePage(props: {
               {copy.setupLabel}
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-              {copy.setupTitle}
+              {t(copy.setupTitle)}
             </h2>
             <p className="mt-4 text-sm leading-6 text-fd-muted-foreground">
-              {copy.setupDescription}
+              {t(copy.setupDescription)}
             </p>
           </div>
 
@@ -243,9 +251,9 @@ export default async function LocalizedHomePage(props: {
                     <Icon className="size-5 text-fd-primary" />
                     <ArrowRight className="size-4 text-fd-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-fd-primary" />
                   </div>
-                  <h3 className="mt-6 text-base font-semibold">{item.title}</h3>
+                  <h3 className="mt-6 text-base font-semibold">{t(item.title)}</h3>
                   <p className="mt-2 text-sm leading-6 text-fd-muted-foreground">
-                    {item.description}
+                    {t(item.description)}
                   </p>
                   <p className="mt-4 text-sm font-medium text-fd-primary">
                     {item.action}
@@ -263,10 +271,10 @@ export default async function LocalizedHomePage(props: {
                 Recommended guides
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-                {copy.docsTitle}
+                {t(copy.docsTitle)}
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-fd-muted-foreground">
-                {copy.docsDescription}
+                {t(copy.docsDescription)}
               </p>
             </div>
             <Link
@@ -290,11 +298,11 @@ export default async function LocalizedHomePage(props: {
                 >
                   <Icon className="mb-8 size-5 text-fd-primary" />
                   <h3 className="flex items-center gap-2 text-base font-semibold">
-                    {item.title}
+                    {t(item.title)}
                     <ArrowRight className="size-4 opacity-0 transition group-hover:opacity-100" />
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-fd-muted-foreground">
-                    {item.description}
+                    {t(item.description)}
                   </p>
                 </Link>
               );
@@ -303,7 +311,7 @@ export default async function LocalizedHomePage(props: {
 
           <div className="mt-8 flex items-start gap-3 rounded-md border bg-fd-card/50 p-4 text-sm leading-6 text-fd-muted-foreground">
             <Code2 className="mt-0.5 size-4 shrink-0 text-fd-primary" />
-            <p>{copy.genericNote}</p>
+            <p>{t(copy.genericNote)}</p>
           </div>
         </section>
       </section>

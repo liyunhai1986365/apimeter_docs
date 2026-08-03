@@ -1,0 +1,214 @@
+---
+title: CC Switch 接入文档
+description: 通过 CC Switch 接入 OpenAI-compatible API、Codex、Gemini CLI、OpenClaw 和 Hermes。
+icon: WandSparkles
+---
+
+CC Switch 可以统一管理 Claude Code、Codex、Gemini CLI、OpenClaw、Hermes 等 AI 工具的 Provider、Base URL、API Key 和模型配置。接入时通常只需要把 `BASE_URL` 指向可用的 OpenAI-compatible API 地址，并使用当前站点生成的 API Key。
+
+## 三步接入
+
+1. 登录控制台，创建或领取你的 API Key。
+2. 为不同用户或项目使用独立 Key，便于统计、停用和排查。
+3. 将客户端或脚本中的 `BASE_URL` 改为当前站点的 API 地址，例如 `MODELSELL_API_BASE_URL`。
+
+## 控制台导入配置
+
+如果控制台已经接入 CC Switch Deep Link，可以在令牌管理页选择 CC Switch 快捷入口，系统会唤起 CC Switch 并打开配置弹窗。
+
+![填入 CC Switch 弹窗](/assets/docs/apps/cc_switch/fill_dialog_zh.png)
+
+确认应用类型、配置名称、默认模型和 API Key 后，点击打开 CC Switch，客户端会显示导入确认弹窗。
+
+![确认导入 CC Switch](/assets/docs/apps/cc_switch/confirm_import_zh.png)
+
+点击导入后，配置会写入 CC Switch。后续可在 CC Switch 中切换 Claude、Codex、Gemini 等应用的 Provider。
+
+## Node.js 环境
+
+Codex、Gemini CLI、OpenClaw 和 Hermes 通常依赖 Node.js。开始配置前先检查本机环境：
+
+```bash
+node --version
+npm --version
+```
+
+macOS：
+
+```bash
+brew install node
+```
+
+Windows：
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+
+Linux / WSL：
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+## 配置脚本
+
+脚本会在本机提示输入 API Key，并生成对应工具的 CC Switch 配置。复制命令本身不包含密钥。
+
+### Codex Windows
+
+写入 `~/.codex/config.toml`，Base URL 使用 OpenAI-compatible `/v1` 地址。
+
+```powershell
+irm https://ccswitch.cc/install/codex.ps1 | iex
+```
+
+### Codex macOS / Linux / WSL
+
+检测 Node.js 和 Codex CLI，缺失时会提示安装。
+
+```bash
+curl -fsSL https://ccswitch.cc/install/codex.sh | bash
+```
+
+### OpenClaw
+
+按提示选择 Claude 或 OpenAI/Codex 通道，并生成 CC Switch 配置参考。
+
+```bash
+curl -fsSL https://ccswitch.cc/install/openclaw.sh | bash
+```
+
+### Hermes
+
+按提示选择通道，生成可复用的 CC Switch 配置文件。
+
+```bash
+curl -fsSL https://ccswitch.cc/install/hermes.sh | bash
+```
+
+## Python 示例
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-your-api-key",
+    base_url="MODELSELL_API_BASE_URL",
+)
+
+response = client.chat.completions.create(
+    model="gpt-5.3-codex",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+## curl 示例
+
+```bash
+curl MODELSELL_API_BASE_URL/chat/completions \
+  -H "Authorization: Bearer sk-your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-5.3-codex",
+    "messages": [
+      { "role": "user", "content": "Hello!" }
+    ]
+  }'
+```
+
+## Node.js 示例
+
+官方 OpenAI SDK 的字段名是 `baseURL`：
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-your-api-key",
+  baseURL: "MODELSELL_API_BASE_URL",
+});
+
+const response = await client.chat.completions.create({
+  model: "gpt-5.3-codex",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+## 支持的工具集成
+
+### OpenClaw
+
+Claude / Anthropic 通道使用不带 `/v1` 的 API 地址，OpenAI / Codex 通道使用带 `/v1` 的 OpenAI-compatible 地址。
+
+### Claude Code
+
+如当前账户已开通 Claude 或兼容上游，按控制台提供的配置接入。
+
+### OpenAI Codex
+
+支持自定义入口的客户端更换 `BASE_URL` 即可。
+
+### Gemini CLI
+
+设置 `GOOGLE_GEMINI_BASE_URL`、`GEMINI_API_KEY` 和 `GEMINI_MODEL`。
+
+### Cursor
+
+在设置中填写自定义 API 地址、API Key 和可用模型名。
+
+### Hermes
+
+使用配置脚本生成地址、Key 和模型名，再按 Hermes 当前版本的 provider 设置填入。
+
+## Gemini CLI 环境变量
+
+macOS / Linux / WSL：
+
+```bash
+export GOOGLE_GEMINI_BASE_URL="MODELSELL_API_ORIGIN"
+export GEMINI_API_KEY="sk-your-api-key"
+export GEMINI_MODEL="gemini-3-pro-preview"
+
+gemini -p "你好"
+```
+
+Windows PowerShell：
+
+```powershell
+$env:GOOGLE_GEMINI_BASE_URL = "MODELSELL_API_ORIGIN"
+$env:GEMINI_API_KEY = "sk-your-api-key"
+$env:GEMINI_MODEL = "gemini-3-pro-preview"
+
+gemini -p "你好"
+```
+
+## Codex 配置片段
+
+一键脚本会写入同等配置。手动配置时保留你自己的 API Key 和可用模型名。
+
+```toml
+model_provider = "ccswitch"
+model = "gpt-5.3-codex"
+preferred_auth_method = "apikey"
+
+[model_providers.ccswitch]
+name = "CC Switch"
+base_url = "MODELSELL_API_BASE_URL"
+wire_api = "responses"
+experimental_bearer_token = "sk-your-api-key"
+requires_openai_auth = true
+```
+
+## 接入注意
+
+| 项目 | 说明 |
+| --- | --- |
+| Base URL | OpenAI-compatible 客户端填写带 `/v1` 的 API 地址。后台入口不作为 API Base URL。 |
+| API Key | 使用当前站点控制台生成的用户令牌，不要填写 OpenAI、Claude、Gemini 或其他上游平台密钥。 |
+| 模型名 | 优先使用 `GET /v1/models` 返回的真实模型名。不同 Key 可见模型可能不同。 |
