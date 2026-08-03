@@ -7,6 +7,11 @@ RUN bun install --frozen-lockfile
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
+ARG DOCS_BASE_PATH=""
+ARG DOCS_ASSET_PREFIX=""
+ENV DOCS_BASE_PATH=$DOCS_BASE_PATH
+ENV DOCS_ASSET_PREFIX=$DOCS_ASSET_PREFIX
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN bun run build
@@ -17,6 +22,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3030
 ENV HOSTNAME=0.0.0.0
+ENV DOCS_BASE_PATH=""
+ENV DOCS_ASSET_PREFIX=""
 
 RUN addgroup -S nodejs -g 1001 \
   && adduser -S nextjs -u 1001

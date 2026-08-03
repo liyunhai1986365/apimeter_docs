@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        DOCS_ASSET_PREFIX: /docs-assets
     image: apimeter-docs:local
     container_name: apimeter-docs
     restart: unless-stopped
@@ -11,6 +13,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3030"
+      DOCS_ASSET_PREFIX: /docs-assets
       DOCS_BRAND_NAME: apimeter
       DOCS_PUBLIC_BASE_URL: https://alex.apimeter.net
       DOCS_API_BASE_URL: https://alex.apimeter.net/v1
