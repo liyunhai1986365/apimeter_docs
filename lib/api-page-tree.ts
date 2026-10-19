@@ -239,36 +239,26 @@ const apiMenuGroups: ApiMenuGroup[] = [
         ],
       },
       {
-        title: { zh: 'Seedance 2.0', en: 'Seedance 2.0' },
+        title: { zh: 'Seedance（官方格式）', en: 'Seedance (Official Format)' },
         items: [
           {
-            title: { zh: '接口概览与格式选择', en: 'Overview and Formats' },
+            title: { zh: '官方格式接口概览', en: 'Official Format Overview' },
             visibleWhenOperationIds: ['createSeedance2VideoTask'],
             pages: [
               {
-                title: { zh: '接口概览与格式选择', en: 'Overview and Formats' },
+                title: { zh: '官方格式接口概览', en: 'Official Format Overview' },
                 href: '/docs/api-reference/seedance-2/overview',
               },
             ],
           },
           {
-            title: { zh: '素材管理', en: 'Asset Management' },
-            visibleWhenOperationIds: ['uploadSeedanceAsset', 'getSeedanceAsset'],
-            embeddedOperationIds: ['uploadSeedanceAsset', 'getSeedanceAsset'],
+            title: { zh: '素材库（官方格式）', en: 'Assets (Official Format)' },
+            visibleWhenOperationIds: ['seedanceAssetAction'],
+            embeddedOperationIds: ['seedanceAssetAction', 'uploadSeedanceAsset', 'getSeedanceAsset'],
             pages: [
               {
-                title: { zh: '素材管理', en: 'Asset Management' },
+                title: { zh: '素材库（官方格式）', en: 'Assets (Official Format)' },
                 href: '/docs/api-reference/seedance-2/assets',
-              },
-            ],
-          },
-          {
-            title: { zh: '通用视频格式调用', en: 'Generic Video Format' },
-            visibleWhenOperationIds: ['createVideoGeneration'],
-            pages: [
-              {
-                title: { zh: '通用视频格式调用', en: 'Generic Video Format' },
-                href: '/docs/api-reference/seedance-2/generic-video',
               },
             ],
           },

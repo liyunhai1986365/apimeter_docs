@@ -1,9 +1,8 @@
 {
-  "title": "Seedance 2.0",
+  "title": "Seedance (Official Format)",
   "pages": [
     "overview",
     "assets",
-    "generic-video",
     "modes",
     "python-polling"
   ]

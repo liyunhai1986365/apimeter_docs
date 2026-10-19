@@ -949,13 +949,13 @@ paths:
   /api/v3/contents/generations/tasks:
     post:
       operationId: createSeedance2VideoTask
-      summary: Seedance 2.0 视频生成
+      summary: Seedance 视频生成（官方格式）
       description: |
-        使用 Seedance 2.0 原生 `content[]` 格式创建异步任务。支持文生视频、首帧、首尾帧和全模态参考；首帧/首尾帧与全模态参考不能混用。音频必须搭配图片或视频。图片参考、视频编辑与延长通过对应参考角色及提示词表达。
+        兼容字节／火山方舟官方视频任务格式，使用原生 `content[]` 创建异步任务。请求发送到平台，使用平台 Bearer API Key。下面的基础生成模式示例使用 Seedance 2.0。支持文生视频、首帧、首尾帧和全模态参考；首帧/首尾帧与全模态参考不能混用。音频必须搭配图片或视频。图片参考、视频编辑与延长通过对应参考角色及提示词表达。
 
-        若希望使用 ModelSell 的通用视频格式，也可以调用 `/v1/video/generations`，通过 `prompt`、`image`、`images`、`metadata.video_url`、`metadata.audio_url` 等字段提交。
+        model 填写账户可用的 Seedance 模型 ID 或模型别名。请求参数放在 JSON 顶层，按所选模型规格填写。创建后保存 id，通过 GET /api/v3/contents/generations/tasks/{task_id} 查询状态、结果与 usage 用量。
 
-        普通非人像参考素材可直接使用公网 URL，无需全部入库。需要使用私域虚拟人像素材时，按素材管理流程上传并查询至 `Active` 后，在 `content[].*_url.url` 中传入 `asset://<asset_id>`；真人素材需另走授权流程。`/api/assets/upload` 是平台封装，不是官方 CreateAsset。
+        普通非人像参考素材可直接使用公网 URL。私域虚拟人像素材使用统一素材库入口 `POST /?Action=CreateAsset&Version=2024-01-01` 创建，保存 Result.Id，查询 GetAsset 至 Result.Status=Active 后，在 `content[].*_url.url` 中传入 `asset://<asset_id>`。真人素材需完成授权；完整流程见 Seedance 素材库页面。
       tags:
         - 视频系列
       requestBody:
@@ -1126,7 +1126,7 @@ paths:
                   watermark: false
       responses:
         '200':
-          description: Seedance 2.0 视频任务提交响应。
+          description: 兼容字节官方格式的 Seedance 视频任务提交响应。
           content:
             application/json:
               schema:
@@ -1138,16 +1138,16 @@ paths:
   /api/v3/contents/generations/tasks/{task_id}:
     get:
       operationId: getSeedance2VideoTask
-      summary: 查询 Seedance 2.0 视频任务
+      summary: 查询 Seedance 视频任务（官方格式）
       description: |
-        查询 Seedance 2.0 异步视频任务。queued/running 继续轮询，succeeded 读取 content.video_url，failed/expired 停止轮询并检查 error，cancelled 表示已取消并停止轮询。官方仅支持查询最近 7 天任务，取消记录 24 小时后自动删除，视频 URL 有效期为 24 小时；平台渠道行为可能不同，应及时下载或转存。客户端停止轮询不会取消服务端任务。
+        兼容字节／火山方舟官方格式，查询 Seedance 异步视频任务。queued/running 继续轮询，succeeded 读取 content.video_url，failed/expired 停止轮询并检查 error，cancelled/canceled 表示已取消并停止轮询。请在任务创建后 7 天内查询，生成成功后及时下载或转存；视频 URL 通常在 24 小时后失效。客户端停止轮询不会取消服务端任务。
       tags:
         - 视频系列
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
-          description: Seedance 2.0 视频任务状态响应。
+          description: Seedance 视频任务状态响应。
           content:
             application/json:
               schema:
@@ -1173,6 +1173,158 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /:
+    post:
+      operationId: seedanceAssetAction
+      summary: Seedance 素材库（官方格式）
+      description: |
+        Seedance 素材库统一 API，兼容字节／火山方舟官方格式。所有操作均为 POST，通过查询参数 Action 选择，Version 固定为 2024-01-01。与视频任务使用相同的 API 根地址和 Bearer API Key。
+
+        成功读取 Result，错误读取 ResponseMetadata.Error；HTTP 200 也可能包含业务错误。GetAsset 返回 Result.Status=Failed 表示素材处理失败，具体原因位于 Result.Error，不能与请求失败混淆。保存返回的素材 ID，Active 后使用 asset://<asset_id> 引用。
+
+        先选择 Action，再选择对应请求体示例。创建/查询/删除等操作的字段要求见各请求体分支。列表每页最多 100 条，MaxResults/NextToken 与 PageNumber/PageSize 不能混用；仅使用平台返回的 NextToken，列表仅含当前用户有权访问的资源。
+      tags:
+        - 视频系列
+      parameters:
+        - name: Action
+          in: query
+          required: true
+          description: 操作名，必须与请求体示例对应；切换请求体示例不会自动修改 Action。
+          schema:
+            type: string
+            enum:
+              - CreateAssetGroup
+              - GetAssetGroup
+              - ListAssetGroups
+              - UpdateAssetGroup
+              - DeleteAssetGroup
+              - CreateAsset
+              - GetAsset
+              - ListAssets
+              - UpdateAsset
+              - DeleteAsset
+              - CreateVisualValidateSession
+              - GetVisualValidateResult
+          example: CreateAssetGroup
+        - name: Version
+          in: query
+          required: true
+          description: 官方素材接口版本。
+          schema:
+            type: string
+            enum: ['2024-01-01']
+            default: '2024-01-01'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/SeedanceOfficialAssetGroupCreateRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialAssetCreateRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialAssetIdRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialAssetUpdateRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialAssetListRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialVerificationCreateRequest'
+                - $ref: '#/components/schemas/SeedanceOfficialVerificationResultRequest'
+            examples:
+              CreateAssetGroup:
+                summary: CreateAssetGroup — 创建素材组
+                value: {Name: 视频参考素材, Description: 虚拟角色参考, GroupType: AIGC}
+              GetAssetGroup:
+                summary: GetAssetGroup — 查询素材组
+                value: {Id: group-example}
+              ListAssetGroups:
+                summary: ListAssetGroups — 素材组列表
+                value: {Filter: {GroupType: AIGC}, MaxResults: 20}
+              UpdateAssetGroup:
+                summary: UpdateAssetGroup — 更新素材组
+                value: {Id: group-example, Name: 新组名, Description: 新描述}
+              DeleteAssetGroup:
+                summary: DeleteAssetGroup — 删除素材组
+                value: {Id: group-example}
+              CreateAsset:
+                summary: CreateAsset — 创建素材
+                value:
+                  GroupId: group-example
+                  URL: https://example.com/reference.png
+                  AssetType: Image
+                  Name: 虚拟角色参考图
+              GetAsset:
+                summary: GetAsset — 查询素材状态
+                value: {Id: asset-example}
+              ListAssets:
+                summary: ListAssets — 素材列表
+                value: {Filter: {GroupType: AIGC, GroupIds: [group-example]}, MaxResults: 20}
+              UpdateAsset:
+                summary: UpdateAsset — 更新素材名称
+                value: {Id: asset-example, Name: 新素材名}
+              DeleteAsset:
+                summary: DeleteAsset — 删除素材
+                value: {Id: asset-example}
+              CreateVisualValidateSession:
+                summary: CreateVisualValidateSession — 创建真人认证会话
+                value: {CallbackURL: 'https://example.com/callback'}
+              GetVisualValidateResult:
+                summary: GetVisualValidateResult — 获取真人认证结果
+                value: {BytedToken: '<认证会话凭证>'}
+      responses:
+        '200':
+          description: 官方格式响应。检查 ResponseMetadata.Error；成功时按 Action 读取 Result。素材就绪须检查 Result.Status。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceOfficialAssetResponse'
+              examples:
+                created:
+                  summary: 创建素材成功
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: CreateAsset, Version: '2024-01-01', Service: ark, Region: cn-beijing}
+                    Result: {Id: asset-example}
+                active:
+                  summary: 查询到可用素材
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: GetAsset, Version: '2024-01-01'}
+                    Result: {Id: asset-example, GroupId: group-example, AssetType: Image, Status: Active, URL: 'https://example.com/reference.png'}
+                list:
+                  summary: 素材列表
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: ListAssets, Version: '2024-01-01'}
+                    Result: {Items: [{Id: asset-example, Status: Active}], TotalCount: 1, NextToken: ''}
+                deleted:
+                  summary: 删除成功
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: DeleteAsset, Version: '2024-01-01'}
+                    Result: {}
+                assetFailed:
+                  summary: 查询成功，素材处理失败
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: GetAsset, Version: '2024-01-01'}
+                    Result: {Id: asset-example, Status: Failed, Error: {Code: InputImageSensitiveContentDetected, Message: 素材审核未通过}}
+                requestFailed:
+                  summary: 请求业务错误（HTTP 200 也可能出现）
+                  value:
+                    ResponseMetadata: {RequestId: request-example, Action: GetAsset, Version: '2024-01-01', Error: {Code: asset_not_found, Message: asset not found}}
+        '201':
+          description: 创建成功，读取 Result 获取资源信息。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceOfficialAssetResponse'
+        '202':
+          description: 请求已受理，查询 Result.Status 确认素材是否就绪。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceOfficialAssetResponse'
+        '204':
+          description: 删除成功，无响应体。
+        default:
+          description: 请求失败，读取 ResponseMetadata.Error.Code 和 Message。遇到 429/503 时按 Retry-After 等待后重试查询。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeedanceOfficialAssetResponse'
   /api/assets/upload:
     post:
       operationId: uploadSeedanceAsset
@@ -4598,34 +4750,29 @@ components:
       properties:
         model:
           type: string
-          description: Seedance 2.0 模型 ID。
-          enum:
-            - doubao-seedance-2-0-260128
-            - doubao-seedance-2-0-fast-260128
+          description: 当前账户可用的 Seedance 模型 ID 或模型别名。
           example: doubao-seedance-2-0-260128
         content:
           type: array
-          description: Seedance 2.0 官方格式的内容数组。
+          description: 兼容字节官方格式的 content 数组；下述基础媒体规则以 Seedance 2.0 为例。
           minItems: 1
           items:
             $ref: '#/components/schemas/Seedance2ContentItem'
         generate_audio:
           type: boolean
-          description: 是否生成与画面同步的声音，默认 true。
-          default: true
+          description: 是否生成同步声音；Seedance 2.0 默认 true，其他型号使用对应模型默认值。
         resolution:
           type: string
-          description: 输出分辨率，默认 720p。标准版官方支持 480p、720p、1080p、4k；Fast 仅支持 480p、720p。4k 需确认平台渠道已开放。
+          description: 输出分辨率，Seedance 2.0 默认 720p。2.0 标准版支持 480p、720p、1080p、4k；Fast 支持 480p、720p。
           enum:
             - 480p
             - 720p
             - 1080p
             - 4k
-          default: 720p
           example: 480p
         ratio:
           type: string
-          description: 输出宽高比，adaptive 根据输入与任务自动选择。
+          description: 输出宽高比；Seedance 2.0 官方默认 adaptive，根据输入与任务自动选择。
           enum:
             - '16:9'
             - '9:16'
@@ -4634,20 +4781,71 @@ components:
             - '4:3'
             - '21:9'
             - adaptive
-          default: adaptive
           example: '16:9'
         duration:
           type: integer
-          description: 生成视频时长，整数 4 到 15 秒；-1 表示模型智能选择。示例显式指定 5 秒。
+          description: 输出整数秒数。Seedance 2.0 使用 4–15 秒；其他型号按模型规格填写，最大 30 秒。支持自动时长的模型可传 -1。
           anyOf:
-            - minimum: 4
-              maximum: 15
+            - minimum: 1
+              maximum: 30
             - const: -1
           example: 5
         watermark:
           type: boolean
-          description: 是否添加水印，默认 false。
-          default: false
+          description: 是否添加水印；Seedance 2.0 默认 false。
+        return_last_frame:
+          type: boolean
+          description: 请求返回末帧，在查询响应 content.last_frame_url 中读取末帧地址。
+        callback_url:
+          type: string
+          format: uri
+          description: 任务回调 URL，需可公网访问。
+        execution_expires_after:
+          type: integer
+          minimum: 3600
+          maximum: 259200
+          description: 服务端任务过期时间，单位秒。
+        priority:
+          type: integer
+          description: 任务优先级，允许值按所选模型规格填写。
+        safety_identifier:
+          type: string
+          maxLength: 64
+          description: 稳定的用户安全标识，最长 64 个字符；不传用户明文隐私信息。
+        tools:
+          type: array
+          description: 工具配置，支持联网搜索的模型可使用 web_search。
+          items:
+            type: object
+            required: [type]
+            properties:
+              type:
+                type: string
+                example: web_search
+            additionalProperties: true
+        output_format:
+          type: string
+          enum: [mp4, mov]
+          description: 视频输出格式；MOV 适用于 Seedance 2.5，2.0 使用 MP4。
+        omni_reference_task_type:
+          type: string
+          enum: [auto, reference, edit, extend]
+          description: 支持该能力的 2.5 模型任务类型。edit 必须 duration=-1、ratio=adaptive 且有 reference_video；extend 必须 ratio=adaptive 且有参考视频。
+        seed:
+          type: integer
+          description: 随机种子，按所选模型规格填写；Seedance 2.0 请省略。
+        frames:
+          type: integer
+          description: 生成帧数，按所选模型规格填写；Seedance 2.0 请省略。
+        camera_fixed:
+          type: boolean
+          description: 是否固定镜头，按所选模型规格填写；Seedance 2.0 请省略。
+        draft:
+          type: boolean
+          description: 样片模式，Seedance 2.0 不支持；仅对支持该能力的模型使用。
+        service_tier:
+          type: string
+          description: 推理服务等级，Seedance 2.0 不支持 flex；以具体模型为准。
       allOf:
         - if:
             properties:
@@ -4714,7 +4912,7 @@ components:
             - reference_audio
     Seedance2VideoTaskCreated:
       type: object
-      description: 创建任务的响应。创建为异步操作，此时仅返回任务 ID，需另行查询任务状态和结果。
+      description: 创建任务的响应，包含任务 ID。创建为异步操作，需另行查询任务状态和结果。
       required: [id]
       properties:
         id:
@@ -4723,7 +4921,7 @@ components:
           example: cgt-2026xxxx-xxxx
     Seedance2VideoTask:
       type: object
-      description: Seedance 2.0 视频任务对象。
+      description: 兼容字节官方格式的 Seedance 视频任务对象，包含任务状态、生成结果及 usage 用量。
       properties:
         id:
           type: string
@@ -4739,10 +4937,11 @@ components:
             - failed
             - expired
             - cancelled
+            - canceled
           example: queued
         model:
           type: string
-          description: 使用的 Seedance 2.0 模型。
+          description: 使用的 Seedance 模型。
           example: doubao-seedance-2-0-260128
         created_at:
           type: integer
@@ -4772,8 +4971,12 @@ components:
             video_url:
               type: string
               format: uri
-              description: 生成视频下载 URL，官方有效期为 24 小时，应及时下载或转存；平台渠道行为以实际返回为准。
+              description: 生成视频下载 URL，通常在 24 小时后失效，应及时下载或转存。
               example: https://example.com/doubao-seedance-2-0/result.mp4
+            last_frame_url:
+              type: string
+              format: uri
+              description: 末帧地址，创建时设置 return_last_frame 后在此读取。
         usage:
           type: object
           description: 本次任务用量。
@@ -4784,7 +4987,17 @@ components:
               example: 100858
             total_tokens:
               type: integer
-              description: 总 token 数；官方视频生成不统计输入 token，因此与 completion_tokens 相同。平台计费以渠道规则为准。
+              description: 总 token 数；视频生成不统计输入 token，因此与 completion_tokens 相同。
+            tool_usage:
+              type: object
+              description: 本次任务的工具调用用量。
+              additionalProperties: true
+              properties:
+                web_search:
+                  type: integer
+                  description: 联网搜索调用次数。
+                  example: 0
+          additionalProperties: true
         error:
           type: [object, 'null']
           description: 任务失败时的错误信息；任务成功时可返回 null。
@@ -4797,6 +5010,250 @@ components:
               type: string
               description: 错误信息。
               example: 视频格式不支持
+    SeedanceOfficialAssetProject:
+      type: object
+      properties:
+        ProjectName:
+          type: string
+          description: 素材项目名，省略时使用默认项目；请使用当前账户有权访问的项目。
+          example: your-project-name
+    SeedanceOfficialAssetGroupCreateRequest:
+      title: CreateAssetGroup — 创建素材组
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          required: [Name]
+          properties:
+            Name:
+              type: string
+              description: 素材组名称。
+            Description:
+              type: string
+              description: 素材组描述。
+            GroupType:
+              type: string
+              description: 普通虚拟素材组使用 AIGC；真人素材组需完成授权流程。
+              example: AIGC
+    SeedanceOfficialAssetCreateRequest:
+      title: CreateAsset — 创建素材
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          required: [GroupId, URL, AssetType]
+          properties:
+            GroupId:
+              type: string
+              description: 创建素材组返回的 Result.Id。
+            URL:
+              type: string
+              format: uri
+              description: 素材公网 URL，需在异步处理期间可访问，不接受 Base64。
+            AssetType:
+              type: string
+              enum: [Image, Video, Audio]
+              description: 素材类型，使用 Image、Video 或 Audio，区分大小写。
+            Name:
+              type: string
+              description: 素材名称。
+    SeedanceOfficialAssetIdRequest:
+      title: Get / Delete — 查询或删除素材、素材组
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          required: [Id]
+          properties:
+            Id:
+              type: string
+              description: 对应素材或素材组的 Result.Id，原样传入。
+    SeedanceOfficialAssetUpdateRequest:
+      title: UpdateAsset / UpdateAssetGroup — 更新
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetIdRequest'
+        - type: object
+          description: 至少提供要更新的名称或描述；素材仅更新 Name，素材组可更新 Name/Description。
+          properties:
+            Name:
+              type: string
+              description: 新名称。
+            Description:
+              type: string
+              description: 新描述，仅适用于 UpdateAssetGroup。
+    SeedanceOfficialAssetListRequest:
+      title: ListAssets / ListAssetGroups — 列表
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          description: 每页最多 100 条。MaxResults/NextToken 与 PageNumber/PageSize 两组参数互斥；列表仅含当前用户有权访问的资源。
+          properties:
+            Filter:
+              type: object
+              description: 按素材组类型或素材组 ID 筛选。
+              properties:
+                GroupType:
+                  type: string
+                  description: 素材组类型，普通虚拟素材示例使用 AIGC。
+                  example: AIGC
+                GroupIds:
+                  type: array
+                  description: 按素材组 ID 筛选素材。
+                  items:
+                    type: string
+              additionalProperties: true
+            MaxResults:
+              type: integer
+              minimum: 1
+              maximum: 100
+              description: 游标分页每页数量。
+            NextToken:
+              type: string
+              description: 原样使用上次响应的 Result.NextToken，首次请求省略。
+            PageNumber:
+              type: integer
+              minimum: 1
+              description: 页码分页，从 1 开始。
+            PageSize:
+              type: integer
+              minimum: 1
+              maximum: 100
+              description: 页码分页每页数量。
+    SeedanceOfficialVerificationCreateRequest:
+      title: CreateVisualValidateSession — 创建真人认证会话
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          required: [CallbackURL]
+          properties:
+            CallbackURL:
+              type: string
+              format: uri
+              description: 客户自己的公网认证回调页面；由用户完成 H5 认证。
+    SeedanceOfficialVerificationResultRequest:
+      title: GetVisualValidateResult — 获取真人认证结果
+      allOf:
+        - $ref: '#/components/schemas/SeedanceOfficialAssetProject'
+        - type: object
+          required: [BytedToken]
+          properties:
+            BytedToken:
+              type: string
+              description: 创建认证会话返回的 Result.BytedToken，须在有效期内使用。
+    SeedanceOfficialAssetError:
+      type: object
+      properties:
+        Code:
+          type: string
+          description: 错误码。
+        Message:
+          type: string
+          description: 错误说明。
+      additionalProperties: true
+    SeedanceOfficialAssetObject:
+      type: object
+      description: 素材或素材组对象，按所调用的 Action 返回对应资源信息。
+      properties:
+        Id:
+          type: string
+          description: 素材或素材组 ID，原样保存；素材 ID 用于 asset:// 引用。
+        GroupId:
+          type: string
+          description: 所属素材组 ID。
+        Name:
+          type: string
+          description: 素材或素材组名称。
+        Description:
+          type: string
+          description: 素材组描述。
+        GroupType:
+          type: string
+          description: 素材组类型。
+        AssetType:
+          type: string
+          description: 素材类型。
+          enum: [Image, Video, Audio]
+        Status:
+          type: string
+          description: Processing 继续等待，Active 可用，Failed 检查 Error；Expired 表示已过期。
+          examples: [Processing, Active, Failed, Expired]
+        URL:
+          type: string
+          format: uri
+          description: 素材访问 URL，可能有时效性，不保证与上传源 URL 相同。
+        ProjectName:
+          type: string
+          description: 素材项目。
+        CreateTime:
+          type: string
+          description: 资源创建时间。
+        UpdateTime:
+          type: string
+          description: 资源更新时间。
+        Error:
+          $ref: '#/components/schemas/SeedanceOfficialAssetError'
+      additionalProperties: true
+    SeedanceOfficialAssetResponse:
+      type: object
+      required: [ResponseMetadata]
+      description: 兼容字节官方格式；成功包含 Result，请求错误包含 ResponseMetadata.Error。HTTP 200 也需检查错误。
+      properties:
+        ResponseMetadata:
+          type: object
+          required: [RequestId, Action, Version]
+          properties:
+            RequestId:
+              type: string
+              description: 请求 ID，用于排查异常。
+            Action:
+              type: string
+              description: 本次操作名。
+            Version:
+              type: string
+              description: 接口版本。
+              example: '2024-01-01'
+            Service:
+              type: string
+              description: 服务名。
+              example: ark
+            Region:
+              type: string
+              description: 服务区域。
+              example: cn-beijing
+            Error:
+              $ref: '#/components/schemas/SeedanceOfficialAssetError'
+          additionalProperties: true
+        Result:
+          allOf:
+            - $ref: '#/components/schemas/SeedanceOfficialAssetObject'
+            - type: object
+              description: 创建/详情返回资源字段；列表返回 Items 与分页；删除成功为 {}；真人认证返回会话或素材组信息。
+              properties:
+                Items:
+                  type: array
+                  description: 当前用户可访问的素材或素材组。
+                  items:
+                    $ref: '#/components/schemas/SeedanceOfficialAssetObject'
+                TotalCount:
+                  type: integer
+                  description: 当前用户筛选后的总数（如返回）。
+                NextToken:
+                  type: string
+                  description: 下一页游标，空值表示无下一页。
+                PageNumber:
+                  type: integer
+                  description: 页码（如返回）。
+                PageSize:
+                  type: integer
+                  description: 每页数量（如返回）。
+                H5Link:
+                  type: string
+                  format: uri
+                  description: 真人认证页面地址。
+                BytedToken:
+                  type: string
+                  description: 真人认证会话凭证。
+                CallbackURL:
+                  type: string
+                  format: uri
+                  description: 真人认证回调页面。
     SeedanceAssetUploadRequest:
       type: object
       required:

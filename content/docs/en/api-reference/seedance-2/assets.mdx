@@ -1,50 +1,153 @@
 ---
-title: Asset Management
-description: Media input limits, private virtual portraits, platform asset wrappers, and asset URI usage.
+title: Assets — Official Format
+description: Unified Seedance asset API using official Actions for assets, asset groups and real-person verification.
 ---
 
-Reviewed on **2026-10-19** against the [official private virtual portrait guide](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh).
+Use this unified Seedance asset endpoint, **compatible with ByteDance / Volcengine Ark official formats**:
 
-Follow **upload → wait for Active → reference in a video task**. Both API references and live debugging are available on this page.
+```text
+POST /?Action=<operation>&Version=2024-01-01
+```
 
-## Choose the media workflow
+Every operation uses **POST**, including queries, lists and deletion. JSON field names are case-sensitive: `GroupId`, `URL`, `AssetType`, `Name`, `ProjectName`. Read successful results from `Result` and request errors from `ResponseMetadata.Error`.
 
-Ordinary non-portrait references may use public URLs directly; not all media needs to enter the private library. The private virtual portrait library is for virtual portraits. Real-person portraits require a separate authorization process. Preset portraits and trusted model outputs follow the [official portrait guide](https://docs.volcengine.com/docs/ark/seedance-portrait-asset-guide?lang=zh).
+## Authentication
 
-## Upload an asset
+Send requests to `APIMETER_BASE_URL` with `Authorization: Bearer $APIMETER_API_KEY`. Use the same API base URL and API key as video tasks.
 
-Only public URLs are supported here, not Base64. Keep the source accessible throughout asynchronous processing. Type values are case-sensitive: `Image`, `Video`, `Audio`.
+## Create an asset group
 
-For the existing overseas channel, append `?model=dreamina-seedance-2-0-fast-260128` to both upload and detail requests. Domestic routes omit it under the platform's existing contract. This is platform channel selection, not an official CreateAsset parameter.
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=CreateAssetGroup&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"Name":"Video references","Description":"Virtual character references","GroupType":"AIGC"}'
+```
 
-Check business `code` and save `data.Id`; upload success does not mean the asset is ready. Parameters, examples and live debugging:
-
-<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/uploadSeedanceAsset" title="Upload asset · POST /api/assets/upload" />
-
-## Query asset status
-
-Use the returned `data.Id` as path parameter `id`. Use the same `model` query parameter for overseas upload and lookup.
-
-<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/getSeedanceAsset" title="Get asset · GET /api/assets/{id}" />
-
-| `data.Status` | Action |
-| --- | --- |
-| `Processing` | Keep polling |
-| `Active` | Ready for video generation |
-| `Failed` | Stop and inspect the result |
-
-HTTP success is not business success or readiness. Ingestion has no official processing-time SLA; bound polling and preserve the ID to resume.
-
-## Reference an active asset
-
-Use `asset://<asset_id>`, not the GroupId, in the matching `image_url.url`, `video_url.url`, or `audio_url.url` field.
+Save `Result.Id` as the `GroupId`:
 
 ```json
 {
-  "model": "doubao-seedance-2-0-260128",
-  "content": [
+  "ResponseMetadata":{"RequestId":"request-example","Action":"CreateAssetGroup","Version":"2024-01-01"},
+  "Result":{"Id":"group-example"}
+}
+```
+
+## Create an asset
+
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=CreateAsset&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "GroupId":"group-example",
+    "URL":"https://example.com/reference.png",
+    "AssetType":"Image",
+    "Name":"Virtual character reference"
+  }'
+```
+
+Use a public `URL` that remains accessible during processing, not Base64. `AssetType` is `Image`, `Video` or `Audio`.
+
+Save the asset's `Result.Id`. Acceptance does not imply readiness. Additional fields such as `Status` depend on the actual response:
+
+```json
+{
+  "ResponseMetadata":{"RequestId":"request-example","Action":"CreateAsset","Version":"2024-01-01"},
+  "Result":{"Id":"asset-example"}
+}
+```
+
+## Query asset status
+
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=GetAsset&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"Id":"asset-example"}'
+```
+
+```json
+{
+  "ResponseMetadata":{"RequestId":"request-example","Action":"GetAsset","Version":"2024-01-01"},
+  "Result":{
+    "Id":"asset-example",
+    "GroupId":"group-example",
+    "AssetType":"Image",
+    "Name":"Virtual character reference",
+    "Status":"Active",
+    "URL":"https://example.com/reference.png"
+  }
+}
+```
+
+| `Result.Status` | Client behavior |
+| --- | --- |
+| `Processing` | Continue polling with an interval and overall timeout |
+| `Active` | Ready for use in a video task |
+| `Failed` | Stop and inspect `Result.Error.Code` / `Result.Error.Message` |
+| `Expired` or other states | Verify availability; do not treat as `Active` |
+
+HTTP 200/202 does not establish readiness. A successful query can report a failed asset. Official access URLs usually expire; preserve asset IDs for long-term references.
+
+## Actions and request bodies
+
+All bodies may include `ProjectName`. Match the `Action` query parameter to the selected body.
+
+| Action | Purpose | Example body |
+| --- | --- | --- |
+| `CreateAssetGroup` | Create group | `{"Name":"References","Description":"","GroupType":"AIGC"}` |
+| `GetAssetGroup` | Get group | `{"Id":"group-example"}` |
+| `ListAssetGroups` | List groups | `{"Filter":{"GroupType":"AIGC"},"MaxResults":20}` |
+| `UpdateAssetGroup` | Update name/description | `{"Id":"group-example","Name":"New name","Description":"New description"}` |
+| `DeleteAssetGroup` | Delete group | `{"Id":"group-example"}` |
+| `CreateAsset` | Create asset | `{"GroupId":"group-example","URL":"https://example.com/reference.png","AssetType":"Image","Name":"Reference"}` |
+| `GetAsset` | Get asset | `{"Id":"asset-example"}` |
+| `ListAssets` | List assets | `{"Filter":{"GroupType":"AIGC","GroupIds":["group-example"]},"MaxResults":20}` |
+| `UpdateAsset` | Rename asset | `{"Id":"asset-example","Name":"New name"}` |
+| `DeleteAsset` | Delete asset | `{"Id":"asset-example"}` |
+| `CreateVisualValidateSession` | Create verification session | `{"CallbackURL":"https://example.com/callback"}` |
+| `GetVisualValidateResult` | Get verification result | `{"BytedToken":"<session-token>"}` |
+
+Verification sessions return `Result.H5Link` and `Result.BytedToken`. The user opens `H5Link` to complete verification. Then query the result with `BytedToken` and save the returned group information.
+
+Lists return `Result.Items` and pagination fields. Use either `MaxResults/NextToken` or `PageNumber/PageSize`, never both, with at most 100 items per page. Pass the previous response's `Result.NextToken` unchanged for the next page. Lists contain only assets accessible to the current user.
+
+Updates and JSON deletion responses use `ResponseMetadata + Result`; successful deletion has `Result: {}`. HTTP 204 indicates success without a body. Check the target ID before deletion; deleting a group may affect its assets.
+
+## Errors
+
+```json
+{
+  "ResponseMetadata":{
+    "RequestId":"request-example",
+    "Action":"GetAsset",
+    "Version":"2024-01-01",
+    "Error":{"Code":"asset_not_found","Message":"asset not found"}
+  }
+}
+```
+
+Check both HTTP status and `ResponseMetadata.Error`, including on HTTP 200. Use `Error.Code` and `Error.Message` to check parameters, resource IDs or access permissions. For 429/503 responses, follow `Retry-After` before retrying queries.
+
+Do not blindly repeat creation after a timeout or malformed response. Keep the request ID for diagnosis and preserve asset IDs to resume queries.
+
+## Reference and playground
+
+Choose `Action`, then the matching request-body example. Switching body examples does not automatically change the query parameter. `Version` is fixed at `2024-01-01`.
+
+<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/seedanceAssetAction" title="Assets · Official Format · POST /?Action=…&Version=2024-01-01" />
+
+## Use an asset in a video
+
+Append the asset's `Result.Id`, not its GroupId, to `asset://`. Use an `Active` asset that your account can access, including its project:
+
+```json
+{
+  "model":"doubao-seedance-2-0-260128",
+  "content":[
     {"type":"text","text":"The virtual character in image 1 walks through a garden"},
-    {"type":"image_url","image_url":{"url":"asset://asset-20260325152211-vcchd"},"role":"reference_image"}
+    {"type":"image_url","image_url":{"url":"asset://asset-example"},"role":"reference_image"}
   ],
   "resolution":"720p",
   "ratio":"16:9",
@@ -54,31 +157,11 @@ Use `asset://<asset_id>`, not the GroupId, in the matching `image_url.url`, `vid
 }
 ```
 
-Prompts reference media by type and order within that type, starting at 1; never put asset IDs in prompts. Generic format uses `image`/`images[]`, `metadata.video_url`, and `metadata.audio_url`. Assets are not guaranteed portable across accounts or channels.
-
-Real-person authorization is separate: this project defines `/api/resource-channel/byteplus/visual-validate/...` operations for verification sessions and portrait management. Ordinary upload does not replace authorization.
-
-If an asset fails, check business code, status, media type, asset versus group ID, matching model route, and project/account permissions.
-
-## Official API versus platform wrapper
-
-| Item | Official Ark control plane | Platform |
-| --- | --- | --- |
-| Upload | CreateAsset after CreateAssetGroup | `POST /api/assets/upload` |
-| Query | GetAsset | `GET /api/assets/{id}` |
-| Authentication | AK/SK signing and IAM | Platform Bearer API key |
-| Fields | `GroupId`, `URL`, `AssetType`, `Name`, `ProjectName` | `url`, `asset_type`, `name` |
-| Returned asset ID | `Result.Id` | `data.Id` |
-
-Official asset APIs use `https://ark.cn-beijing.volcengineapi.com/`, a different host from video generation. CreateAsset uses `POST /?Action=CreateAsset&Version=2024-01-01`. GetAsset also uses **POST**: `POST /?Action=GetAsset&Version=2024-01-01`, with `Id` and optional `ProjectName` in the JSON body. The platform's `GET /api/assets/{id}` is a separate contract.
-
-Official GetAsset `Result.URL` is an access URL valid for 12 hours and need not equal the original upload URL. Preserve the asset ID and reference `asset://<asset_id>` for reuse. HTTP 200 may still describe a failed asset: inspect `Result.Status` and `Result.Error.Code` / `Result.Error.Message`. Platform passthrough of these additional fields depends on its actual response.
-
-Official assets and groups must share a ProjectName, and generation must use an API key in that project. Official library entitlements, capacity and quotas are account-dependent. Platform resources are channel-dependent. Official list/update/delete operations are not established platform REST routes.
+Submit to `POST /api/v3/contents/generations/tasks`. Video and audio assets use `video_url.url` and `audio_url.url`; see [Modes](./modes).
 
 ## Native video-task input limits
 
-These are inference limits, not a guarantee about platform upload limits or overseas channels.
+These limits apply to `content[]` in Seedance 2.0 video tasks. Library image ingestion requirements follow the table.
 
 | Media | Sources and formats | Seedance 2.0 limits |
 | --- | --- | --- |
@@ -88,7 +171,7 @@ These are inference limits, not a guarantee about platform upload limits or over
 
 Reference videos support 480p/720p/1080p/4k. Aspect ratio is [0.4, 2.5], each dimension [300, 6000] px, and pixel count [407696, 8295044]. MP4/MOV support H.264/AVC and H.265/HEVC; see the official API for audio codecs.
 
-The native request body limit is 64 MB. Use URLs for large files; the former 2 MB Base64 rule is obsolete. Private-library ingestion has separate image rules: jpeg/png/webp/tiff/gif/heic/heif, aspect ratio (0.4, 2.5), dimensions (300, 6000) px, and under 30 MB.
+The video-task request body limit is 64 MB. Use URLs for large files. Private-library image ingestion accepts jpeg/png/webp/tiff/gif/heic/heif, with aspect ratio (0.4, 2.5), dimensions (300, 6000) px, and under 30 MB.
 
 ## Official sources
 

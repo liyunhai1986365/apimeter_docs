@@ -92,12 +92,12 @@ const titles: Record<string, Record<Locale, string>> = {
     zh: 'MiMo 语音合成',
   },
   'seedance-2/overview': {
-    en: 'Overview and Formats',
-    zh: '接口概览与格式选择',
+    en: 'Official Format Overview',
+    zh: '官方格式接口概览',
   },
   'seedance-2/assets': {
-    en: 'Asset Management',
-    zh: '素材管理',
+    en: 'Assets (Official Format)',
+    zh: '素材库（官方格式）',
   },
   'seedance-2/generic-video': {
     en: 'Generic Video Format',

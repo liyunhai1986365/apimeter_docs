@@ -3,7 +3,9 @@ title: 生成模式示例
 description: Seedance 2.0 文生视频、首帧、首尾帧、多模态参考、编辑与延长示例。
 ---
 
-以下请求体均提交到 `POST /api/v3/contents/generations/tasks`。所有 URL 为占位示例，请替换为可访问的素材 URL 或同渠道下已为 `Active` 的 `asset://<asset_id>`。
+以下请求体均提交到 `POST /api/v3/contents/generations/tasks`。所有 URL 为占位示例，请替换为可访问的素材 URL 或当前账户有权访问且状态为 `Active` 的 `asset://<asset_id>`。
+
+本页示例使用 Seedance 2.0，兼容字节／火山方舟官方 `content[]` 格式。素材库入库与查询使用[素材库 Action 接口](./assets)，素材就绪后引用 `Result.Id`。
 
 ## 模式与角色规则
 

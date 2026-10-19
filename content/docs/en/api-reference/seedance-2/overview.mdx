@@ -1,54 +1,38 @@
 ---
-title: Overview and Formats
-description: Seedance 2.0 native and platform formats, model capabilities, and task lifecycle.
+title: Seedance API (Official Format)
+description: Unified Seedance video and asset APIs, with authentication, request parameters, responses and examples.
 ---
 
-Reviewed against official Ark documentation on **2026-10-19**. Examples use the platform base URL and platform API key.
+Seedance video generation and asset management use a unified API **compatible with ByteDance / Volcengine Ark official formats**. Use the same API base URL and API key for every request. Video tasks use `content[]`; assets use `Action` requests and `ResponseMetadata + Result` responses.
 
-## Endpoints
+## Endpoints and authentication
 
-| Format | Create | Query |
+| Operation | Method and path | Result fields |
 | --- | --- | --- |
-| Ark-native body | `POST /api/v3/contents/generations/tasks` | `GET /api/v3/contents/generations/tasks/{task_id}` |
-| Platform generic body | `POST /v1/video/generations` | `GET /v1/video/generations/{task_id}` |
+| Create video task | `POST /api/v3/contents/generations/tasks` | `id` |
+| Query video task | `GET /api/v3/contents/generations/tasks/{task_id}` | `status`, `content.video_url` |
+| Manage assets and asset groups | `POST /?Action=<operation>&Version=2024-01-01` | `ResponseMetadata`, `Result` |
 
-Prefer native `content[]` for explicit media roles, first/last frames, or multiple references. See [Modes](./modes) and [Generic format](./generic-video). The OpenAI-compatible `/v1/videos` endpoint has its own field contract; do not reuse generic JSON without checking its reference.
+Use `Authorization: Bearer $APIMETER_API_KEY`. Set `APIMETER_BASE_URL` to the API root, without `/api/v3`. Assets and video tasks use the same Bearer authentication. See [Assets — Official Format](./assets) for creating, managing and referencing assets.
 
-Platform assets use `POST /api/assets/upload` and `GET /api/assets/{id}`. These are wrappers, not Ark control-plane CreateAsset/GetAsset APIs.
+## Models and output
 
-Direct Ark requests use `https://ark.cn-beijing.volces.com` and an Ark API key. Platform requests use `MODELSELL_BASE_URL` and a platform key; these credentials are not interchangeable. Ark calls the query placeholder `{id}` and this project calls it `{task_id}`; both mean the create response's `id`.
+Set `model` to a Seedance model ID or alias available to your account. Models use the same task endpoints; choose parameters according to the selected model's specifications.
 
-This section covers the operations declared in this project. Official task-list and cancel/delete APIs do not establish equivalent platform routes. Generic and asset-wrapper mappings are based on this project's API definitions; official documentation cannot verify the platform channel implementation.
+The basic examples use Seedance 2.0:
 
-## Models and native parameters
+| Model | Example ID | Official 2.0 resolutions |
+| --- | --- | --- |
+| Seedance 2.0 | `doubao-seedance-2-0-260128` | `480p`, `720p`, `1080p`, `4k` |
+| Seedance 2.0 Fast | `doubao-seedance-2-0-fast-260128` | `480p`, `720p` |
 
-| Model declared in this project | Official resolutions |
-| --- | --- |
-| `doubao-seedance-2-0-260128` | `480p`, `720p`, `1080p`, `4k` |
-| `doubao-seedance-2-0-fast-260128` | `480p`, `720p` |
+Standard-model 4k uses 10bit H.265/HEVC. Fast does not support 1080p or 4k. For other models, use their documented resolutions, durations and features.
 
-Official standard-model 4k support does not establish platform channel support. It uses 10bit H.265/HEVC. Fast does not support 1080p or 4k. The official Mini model `doubao-seedance-2-0-mini-260615` is not yet declared by this project and is not advertised here as available.
-
-| Field | Native contract |
-| --- | --- |
-| `model`, `content` | Required |
-| `resolution` | Default `720p`; model-dependent |
-| `ratio` | Default `adaptive`; also `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16` |
-| `duration` | Integer 4–15 seconds, or `-1` for automatic selection; examples explicitly use 5 |
-| `generate_audio` | Default `true` |
-| `watermark` | Default `false` |
-
-Ark also provides last-frame return, callbacks, execution expiry, priority, safety identifiers, and text-only web search. Their full passthrough is not established by this project's schemas; confirm channel support first. Do not invent generic metadata mappings.
-
-Seedance 2.0 does not support draft mode or flex inference. Current official input support for `frames`, `seed`, and `camera_fixed` is limited to older models. `omni_reference_task_type` and selectable MOV output are 2.5 features.
-
-## Native quick start
-
-Set `MODELSELL_BASE_URL` to the platform API root, without `/api/v3`.
+## Create and query a video
 
 ```bash
-curl -X POST "$MODELSELL_BASE_URL/api/v3/contents/generations/tasks" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+curl -X POST "$APIMETER_BASE_URL/api/v3/contents/generations/tasks" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "doubao-seedance-2-0-260128",
@@ -61,17 +45,67 @@ curl -X POST "$MODELSELL_BASE_URL/api/v3/contents/generations/tasks" \
   }'
 ```
 
-Save the returned `id` exactly; do not assume a prefix. Poll the matching query endpoint. `queued` and `running` continue; `succeeded` returns `content.video_url`; `failed`, `expired`, and `cancelled` stop polling. Ark only permits cancelling queued tasks and removes cancelled records after 24 hours.
+Creation returns at least an `id`. Save it exactly, without assuming a prefix, status or video URL:
 
-Creation returns a task `id`; do not require a status or video URL at that stage. Official query responses also include fields such as `updated_at`, `duration`, `resolution`, `ratio`, `framespersecond`, `generate_audio`, and `usage.total_tokens`. A successful task's `error` may be `null`. Returned fields do not imply accepted inputs: a returned `seed` does not establish Seedance 2.0 seed input support.
+```json
+{"id": "<TASK_ID>"}
+```
 
-Ark retains queryable tasks for 7 days and video URLs for 24 hours. Download promptly; platform cache behavior may differ. Client polling timeout does not cancel a server task. Resume with the existing ID rather than creating duplicates. See [Python polling](./python-polling).
+```bash
+curl "$APIMETER_BASE_URL/api/v3/contents/generations/tasks/$TASK_ID" \
+  -H "Authorization: Bearer $APIMETER_API_KEY"
+```
 
-Multimodal limits are 9 images, 3 videos, and 3 audio clips, with video/audio totals each at most 15 seconds. Audio requires an image or video. First-frame, first/last-frame, and reference modes are mutually exclusive. See [Assets](./assets) for source formats and portrait workflows.
+Successful query example:
 
-## Official sources
+```json
+{
+  "id": "<TASK_ID>",
+  "status": "succeeded",
+  "model": "doubao-seedance-2-0-260128",
+  "content": {"video_url": "https://example.com/result.mp4"},
+  "usage": {"completion_tokens": 100858, "total_tokens": 100858},
+  "error": null
+}
+```
 
+## Request parameters
+
+Put options at the JSON top level and media in `content[]`. Values such as `0`, `false` and `-1` follow each parameter's definition. Omitted options use model defaults.
+
+| Field | Meaning |
+| --- | --- |
+| `model`, `content` | Model and content array; basic media types are `text`, `image_url`, `video_url`, `audio_url` |
+| `resolution`, `ratio` | Output resolution and aspect ratio; 2.0 defaults to `720p`, `adaptive` |
+| `duration` | 2.0 uses integer 4–15 seconds; use `-1` for models supporting automatic duration |
+| `generate_audio`, `watermark` | 2.0 defaults to `true`, `false`; examples supply both explicitly |
+| `return_last_frame` | Request a last frame; read `content.last_frame_url` when returned |
+| `callback_url` | Publicly reachable callback URL |
+| `execution_expires_after` | Server execution expiry in seconds, official range 3600–259200 |
+| `priority`, `safety_identifier`, `tools` | Priority, safety identifier and tools; `web_search` support depends on the model |
+| `seed`, `frames`, `camera_fixed`, `draft`, `service_tier` | Random seed, frame count, fixed camera, draft mode and service tier; use according to model specifications |
+| `output_format`, `omni_reference_task_type` | For models supporting these options; 2.5 task types are `auto`, `reference`, `edit`, `extend` |
+
+`edit` requires `duration=-1`, `ratio=adaptive` and a `reference_video`; `extend` requires `ratio=adaptive` and a reference video. The 2.0 examples express editing and extension through prompts instead.
+
+Seedance 2.0 does not support draft mode or flex inference. Omit `seed`, `frames` and `camera_fixed` in 2.0 requests. See the video generation reference for detailed fields.
+
+## Inputs and task lifecycle
+
+For 2.0, first-frame, first/last-frame and multimodal reference modes are mutually exclusive. References allow up to 9 images, 3 videos and 3 audio clips; audio requires an image or video. See [Modes](./modes) and [Assets](./assets).
+
+| `status` | Client behavior |
+| --- | --- |
+| `queued`, `running` | Continue polling |
+| `succeeded` | Read `content.video_url`; save last-frame and usage fields when needed |
+| `failed`, `expired`, `cancelled`, `canceled` | Stop polling and inspect `error`; the last two indicate cancellation |
+
+Query responses include task status, result URLs and `usage` details. Successful `error` may be `null`.
+
+Query results within 7 days of task creation and download promptly after completion; video URLs usually expire after 24 hours. Stopping client polling does not cancel the server task. See [Python polling and download](./python-polling).
+
+## Official references
+
+- [Create video task](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)
+- [Query video task](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)
 - [Seedance 2.0 tutorial](https://docs.volcengine.com/docs/ark/seedance-2-0?lang=zh)
-- [Create task](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)
-- [Query task](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)
-- [Private virtual portrait library](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)

@@ -3,7 +3,7 @@ title: Python Polling and Download
 description: Create and preserve a task ID, handle failure and expiry, and resume bounded polling.
 ---
 
-Use native request bodies with the platform API key. Set `MODELSELL_BASE_URL` to the platform root without `/api/v3`, and set `MODELSELL_API_KEY`. Save the code as `seedance_poll.py`.
+Use native request bodies with the platform API key. Set `APIMETER_BASE_URL` to the platform root without `/api/v3`, and set `APIMETER_API_KEY`. Save the code as `seedance_poll.py`.
 
 Polling uses a monotonic clock, a 30-minute budget and a 10-second interval. Temporary connection errors, 429 and 5xx retry queries; 401/403/404 fail immediately. Creation is not automatically retried, preventing accidental duplicate submissions.
 
@@ -19,8 +19,8 @@ from pathlib import Path
 
 import requests
 
-BASE_URL = os.environ["MODELSELL_BASE_URL"].rstrip("/")
-API_KEY = os.environ["MODELSELL_API_KEY"]
+BASE_URL = os.environ["APIMETER_BASE_URL"].rstrip("/")
+API_KEY = os.environ["APIMETER_API_KEY"]
 MODEL = "doubao-seedance-2-0-260128"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
@@ -119,10 +119,10 @@ python seedance_poll.py
 python seedance_poll.py "<EXISTING_TASK_ID>"
 ```
 
-The second command only polls; persist the printed task ID immediately. Failure, expiry, official `cancelled`, and channel-specific `canceled` states stop polling. Missing result URLs fail explicitly. Downloads write to a `.part` file and replace the target only after completion.
+The second command only polls; persist the printed task ID immediately. The `failed`, `expired`, `cancelled` and `canceled` states stop polling; the last two indicate cancellation. Missing result URLs fail explicitly. Downloads write to a `.part` file and replace the target only after completion.
 
 Client timeout does not cancel the server task. Ark tasks are queryable for 7 days and video URLs last 24 hours. Download promptly. The polling budget controls scheduling and request timeouts; underlying network behavior may slightly exceed it.
 
-This example reads native `content.video_url`, not generic `metadata.url`.
+This example uses the [official-format video query](./overview), reading `status` and `content.video_url`. Asset queries use POST Actions and `Result.Status`; see [Assets](./assets).
 
 [Official query reference](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)

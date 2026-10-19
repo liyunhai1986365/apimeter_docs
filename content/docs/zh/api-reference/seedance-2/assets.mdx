@@ -1,108 +1,167 @@
 ---
-title: 素材管理
-description: 区分普通参考素材、私域虚拟人像与授权真人素材，说明平台上传、状态查询及 asset URI 引用。
+title: 素材库（官方格式）
+description: Seedance 素材库统一 API，使用官方 Action 格式创建、查询、管理素材与素材组，并完成真人认证。
 ---
 
-本页于 **2026-10-19** 对照[私域虚拟人像素材资产库指南](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)和[创建视频生成任务 API](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)复核。
-
-先选择素材来源，再按 **上传 → 查询至 Active → 引用素材生成视频** 完成调用。上传与查询均可在本页查看参数并在线调试。
-
-## 先选择素材来源
-
-| 场景 | 使用方式 |
-| --- | --- |
-| 普通非人像素材 | 可直接传公网 URL；无需为了调用 Seedance 而全部入库 |
-| 私域虚拟人像 | 按官方虚拟人像库流程创建素材组、入库并审核，状态为 `Active` 后使用 `asset://<asset_id>` |
-| 已授权真人人像 | 使用独立的真人授权/认证流程；不能作为虚拟人像直接上传 |
-| 官方预置虚拟人像或可信模型产物 | 按[官方肖像素材指南](https://docs.volcengine.com/docs/ark/seedance-portrait-asset-guide?lang=zh)的来源、账号和有效期规则使用 |
-
-官方私域虚拟人像库中的素材应为虚拟人像，非虚拟人像类素材无需入库。真人素材需走授权流程；获得普通上传成功响应不等于已完成真人授权。
-
-## 上传素材
-
-平台接口只接受公网 URL，不支持 Base64。地址需在服务端拉取和异步处理期间可访问，避免提前过期的签名链接。类型值大小写为 `Image`、`Video`、`Audio`。
-
-本平台原有海外渠道 `dreamina-seedance-2-0-fast-260128` 通过查询参数选择，上传和查询必须使用相同的模型路由：
+Seedance 素材库统一使用以下入口，**兼容字节／火山方舟官方格式**：
 
 ```text
-POST /api/assets/upload?model=dreamina-seedance-2-0-fast-260128
-GET /api/assets/{id}?model=dreamina-seedance-2-0-fast-260128
+POST /?Action=<操作名>&Version=2024-01-01
 ```
 
-国内模型按现有平台约定不传此参数。该参数是平台渠道选择逻辑，不属于方舟官方 CreateAsset 参数；国内规则不能直接推定为海外规则。
+所有操作均为 **POST**，包括查询、列表和删除。JSON 字段区分大小写，使用 `GroupId`、`URL`、`AssetType`、`Name`、`ProjectName`。成功响应读取 `Result`，请求错误读取 `ResponseMetadata.Error`。
 
-上传成功后检查业务 `code` 并保存 `data.Id`，此时仍需等待素材预处理完成。
+## 鉴权
 
-完整参数、请求示例与在线调试：
+请求发送到 `APIMETER_BASE_URL`，使用 `Authorization: Bearer $APIMETER_API_KEY`，与视频任务使用相同的 API 根地址和 API Key。
 
-<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/uploadSeedanceAsset" title="上传素材 · POST /api/assets/upload" />
+## 创建素材组
 
-## 查询状态
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=CreateAssetGroup&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"Name":"视频参考素材","Description":"虚拟角色参考","GroupType":"AIGC"}'
+```
 
-使用上传返回的 `data.Id` 作为路径参数 `id`；海外渠道的 `model` 查询参数需与上传保持一致。
-
-<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/getSeedanceAsset" title="查询素材详情 · GET /api/assets/{id}" />
-
-| `data.Status` | 处理方式 |
-| --- | --- |
-| `Processing` | 继续轮询；上传是异步流程，官方不承诺入库时间 SLA |
-| `Active` | 可以用于视频生成 |
-| `Failed` | 停止轮询，检查素材与审核结果 |
-
-HTTP 成功不等于业务成功，也不等于素材可用。轮询应设置超时；超时后保存资产 ID 以便恢复查询。
-
-## 使用资产 URI
-
-`asset://` 后必须拼接素材 ID，而不是素材组 ID。图片、视频、音频分别放入对应的 `*_url.url`。提示词使用“图片1”“视频1”“音频1”，按每种类型在 `content[]` 中的出现顺序从 1 编号；不要在提示词里使用资产 ID 代指素材。
+保存 `Result.Id` 作为后续的 `GroupId`：
 
 ```json
 {
-  "model": "doubao-seedance-2-0-260128",
-  "content": [
-    {"type": "text", "text": "让图片1中的虚拟角色在花园散步"},
-    {
-      "type": "image_url",
-      "image_url": {"url": "asset://asset-20260325152211-vcchd"},
-      "role": "reference_image"
-    }
-  ],
-  "resolution": "720p",
-  "ratio": "16:9",
-  "duration": 5,
-  "generate_audio": true,
-  "watermark": false
+  "ResponseMetadata": {"RequestId":"request-example","Action":"CreateAssetGroup","Version":"2024-01-01"},
+  "Result": {"Id":"group-example"}
 }
 ```
 
-平台通用格式把图片 URI 放到 `image` 或 `images[]`，视频放到 `metadata.video_url`，音频放到 `metadata.audio_url`。需要首帧/首尾帧控制时，使用[原生格式](./modes)。
+## 创建素材
 
-## 真人授权与排查
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=CreateAsset&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "GroupId":"group-example",
+    "URL":"https://example.com/reference.png",
+    "AssetType":"Image",
+    "Name":"虚拟角色参考图"
+  }'
+```
 
-本项目另有 `/api/resource-channel/byteplus/visual-validate/...` 真人认证与人像管理接口。它们属于独立的授权流程，应按其接口参考创建会话、查询授权结果、管理对应人像素材；不要用普通 `/api/assets/upload` 替代真人认证。
+`URL` 使用处理期间可访问的公网 URL，不使用 Base64。`AssetType` 可为 `Image`、`Video`、`Audio`，分别表示图片、视频和音频。
 
-素材不可用时依次检查：业务 `code`、`Status`、资产类型、是否误用了 GroupId、上传和查询渠道是否一致，以及官方项目/账号权限是否匹配。平台资产 URI 不保证可跨渠道、跨账号直接复用。
+保存素材的 `Result.Id`。创建成功仅表示已受理，不能假定立即可用；`Status` 等附加字段以实际返回为准：
 
-## 方舟 API 与平台封装的区别
+```json
+{
+  "ResponseMetadata": {"RequestId":"request-example","Action":"CreateAsset","Version":"2024-01-01"},
+  "Result": {"Id":"asset-example"}
+}
+```
 
-| 项目 | 方舟官方管控面 | 本平台封装 |
+## 查询素材状态
+
+```bash
+curl -X POST "$APIMETER_BASE_URL/?Action=GetAsset&Version=2024-01-01" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"Id":"asset-example"}'
+```
+
+```json
+{
+  "ResponseMetadata": {"RequestId":"request-example","Action":"GetAsset","Version":"2024-01-01"},
+  "Result": {
+    "Id":"asset-example",
+    "GroupId":"group-example",
+    "AssetType":"Image",
+    "Name":"虚拟角色参考图",
+    "Status":"Active",
+    "URL":"https://example.com/reference.png"
+  }
+}
+```
+
+| `Result.Status` | 处理方式 |
+| --- | --- |
+| `Processing` | 继续轮询，设置间隔和总超时 |
+| `Active` | 可以引用素材生成视频 |
+| `Failed` | 停止轮询，检查 `Result.Error.Code`、`Result.Error.Message` |
+| `Expired` 等其他状态 | 确认素材是否仍可用，不当作 `Active` |
+
+HTTP 200/202 不代表素材已可用。查询返回 `Status=Failed` 可以是一次成功的查询；这与请求本身失败不同。官方素材访问 URL 通常有时效性，长期引用应保存素材 ID。
+
+## 全部操作与请求体
+
+以下 JSON 为各操作的典型请求体；所有请求都可按需携带 `ProjectName`。查询参数 `Action` 必须与所选请求体对应。
+
+| Action | 用途 | 请求体示例 |
 | --- | --- | --- |
-| 上传 | `CreateAsset`，先有 `CreateAssetGroup` 创建的素材组 | `POST /api/assets/upload` |
-| 查询 | `GetAsset` | `GET /api/assets/{id}` |
-| 鉴权 | 火山引擎 AK/SK 签名与 IAM 权限 | 平台 API Key，`Authorization: Bearer ...` |
-| 请求字段 | `GroupId`、`URL`、`AssetType`、`Name`、`ProjectName` | `url`、`asset_type`、`name` |
-| 上传响应 ID | `Result.Id` | `data.Id` |
+| `CreateAssetGroup` | 创建素材组 | `{"Name":"参考组","Description":"","GroupType":"AIGC"}` |
+| `GetAssetGroup` | 查询素材组 | `{"Id":"group-example"}` |
+| `ListAssetGroups` | 素材组列表 | `{"Filter":{"GroupType":"AIGC"},"MaxResults":20}` |
+| `UpdateAssetGroup` | 更新组名或描述 | `{"Id":"group-example","Name":"新组名","Description":"新描述"}` |
+| `DeleteAssetGroup` | 删除素材组 | `{"Id":"group-example"}` |
+| `CreateAsset` | 创建素材 | `{"GroupId":"group-example","URL":"https://example.com/reference.png","AssetType":"Image","Name":"参考图"}` |
+| `GetAsset` | 查询素材 | `{"Id":"asset-example"}` |
+| `ListAssets` | 素材列表 | `{"Filter":{"GroupType":"AIGC","GroupIds":["group-example"]},"MaxResults":20}` |
+| `UpdateAsset` | 更新素材名称 | `{"Id":"asset-example","Name":"新素材名"}` |
+| `DeleteAsset` | 删除素材 | `{"Id":"asset-example"}` |
+| `CreateVisualValidateSession` | 创建真人认证会话 | `{"CallbackURL":"https://example.com/callback"}` |
+| `GetVisualValidateResult` | 获取真人认证结果 | `{"BytedToken":"<认证会话凭证>"}` |
 
-官方素材接口根地址为 `https://ark.cn-beijing.volcengineapi.com/`，与视频生成根地址不同。创建素材使用 `POST /?Action=CreateAsset&Version=2024-01-01`；查询素材也使用 **POST**：`POST /?Action=GetAsset&Version=2024-01-01`，在 JSON 请求体传 `Id` 与可选 `ProjectName`。不要将平台的 `GET /api/assets/{id}` 写成官方 GetAsset 调用方式。
+真人认证会话返回 `Result.H5Link`、`Result.BytedToken`。由用户打开 `H5Link` 完成认证，再使用 `BytedToken` 查询结果并保存返回的素材组信息。
 
-官方 GetAsset 的 `Result.URL` 是有效期为 12 小时的访问地址，不保证与上传的原始 URL 相同；长期引用应保存素材 ID 并使用 `asset://<asset_id>`。素材处理失败时，官方可返回 HTTP 200，需检查 `Result.Status` 和 `Result.Error.Code` / `Result.Error.Message`。平台封装是否透传这些扩展字段，以实际响应为准。
+列表读取 `Result.Items` 和返回的分页信息。`MaxResults/NextToken` 与 `PageNumber/PageSize` 两种分页不能混用；每页最多 100 条。下一页原样传入上一次响应的 `Result.NextToken`。列表只包含当前用户有权访问的素材。
 
-官方还提供素材及素材组的列表、更新和删除接口；本项目仅声明上述平台上传和详情接口，不能将官方接口名当作平台已开放的 REST 路由。
+更新、删除的 JSON 成功响应为 `ResponseMetadata + Result`，删除的 `Result` 为 `{}`；HTTP 204 表示操作成功且无响应体。删除素材组可能影响组内素材，调用前确认目标 ID。
 
-官方素材库按项目隔离：素材组与素材的 `ProjectName` 要一致，视频生成 API Key 也应属于相同项目。完整私域素材库功能涉及高级创作权益包，容量、权限与限流按官方账户规则执行；本平台由渠道配置决定资源范围。
+## 错误处理
+
+```json
+{
+  "ResponseMetadata": {
+    "RequestId":"request-example",
+    "Action":"GetAsset",
+    "Version":"2024-01-01",
+    "Error":{"Code":"asset_not_found","Message":"asset not found"}
+  }
+}
+```
+
+同时检查 HTTP 状态和 `ResponseMetadata.Error`，HTTP 200 也可能包含业务错误。根据 `Error.Code` 和 `Error.Message` 检查参数、资源 ID 或访问权限。遇到 429/503 时，按返回的 `Retry-After` 等待后重试查询。
+
+创建请求超时或响应异常后不要盲目重复创建，应保存请求 ID 排查。查询失败或轮询超时保留原素材 ID，以便恢复。
+
+## 参数参考与在线调试
+
+先选择 `Action`，再选择对应请求体示例；切换示例不会自动替换查询参数。`Version` 固定为 `2024-01-01`。
+
+<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/seedanceAssetAction" title="素材库 · 官方格式 · POST /?Action=…&Version=2024-01-01" />
+
+## 使用素材生成视频
+
+`asset://` 后拼接素材的 `Result.Id`，不要拼接 `GroupId`。素材须为 `Active`，且当前账户拥有该素材及所属项目的访问权限：
+
+```json
+{
+  "model":"doubao-seedance-2-0-260128",
+  "content":[
+    {"type":"text","text":"让图片1中的虚拟角色在花园散步"},
+    {"type":"image_url","image_url":{"url":"asset://asset-example"},"role":"reference_image"}
+  ],
+  "resolution":"720p",
+  "ratio":"16:9",
+  "duration":5,
+  "generate_audio":true,
+  "watermark":false
+}
+```
+
+提交到 `POST /api/v3/contents/generations/tasks`。视频、音频素材分别使用 `video_url.url`、`audio_url.url`；见[生成模式示例](./modes)。
 
 ## 视频任务直接输入规范
 
-以下是官方原生 `content[]` 的输入要求，不代表平台上传接口或任意海外渠道的上传额度。
+以下是 Seedance 2.0 视频任务 `content[]` 的输入要求。素材入库的图片要求见表后说明。
 
 | 类型 | 格式与来源 | Seedance 2.0 限制 |
 | --- | --- | --- |
@@ -112,7 +171,7 @@ HTTP 成功不等于业务成功，也不等于素材可用。轮询应设置超
 
 视频宽高比为 [0.4, 2.5]，宽高各在 [300, 6000] px；宽×高应在 [407696, 8295044] 内。官方参考视频规格覆盖 480p、720p、1080p、4k，不能只按“480p 或 720p”判断。MP4/MOV 支持 H.264/AVC 与 H.265/HEVC，具体音轨编码见官方 API。
 
-官方原生请求体不超过 64 MB，大文件使用 URL，不要再套用“小于 2 MB 才支持 Base64”的旧说明。私域虚拟人像入库有独立规范：官方指南列出的图片格式为 jpeg、png、webp、tiff、gif、heic/heif，宽高比 (0.4, 2.5)、宽高 (300, 6000) px，单张小于 30 MB；不要把推理输入格式表当作入库规则。
+视频任务请求体不超过 64 MB，大文件使用 URL。私域虚拟人像入库的图片格式为 jpeg、png、webp、tiff、gif、heic/heif，宽高比 (0.4, 2.5)、宽高 (300, 6000) px，单张小于 30 MB。
 
 ## 官方参考
 

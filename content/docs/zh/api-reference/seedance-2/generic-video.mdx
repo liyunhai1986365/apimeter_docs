@@ -1,9 +1,9 @@
 ---
 title: 通用视频格式调用
-description: 平台 /v1/video/generations 与 Seedance 2.0 原生格式的字段映射及边界。
+description: 使用通用视频字段调用 Seedance 2.0，包含参数与查询示例。
 ---
 
-`/v1/video/generations` 是平台封装接口，由平台转换为 Seedance 2.0 的 `content[]` 请求，不是火山方舟官方接口。需要首帧、首尾帧或精确多素材角色时，优先使用[原生格式](./modes)。
+本页说明通过 `/v1/video/generations` 调用 Seedance 2.0 的参数和结果读取方式。Seedance 官方格式接入见[统一 API 概览](./overview)。
 
 ## 接口与映射
 
@@ -20,19 +20,19 @@ description: 平台 /v1/video/generations 与 Seedance 2.0 原生格式的字段
 | `image` 或 `images[]` | `image_url`，角色为 `reference_image`；不等同于首帧或首尾帧 |
 | `metadata.video_url` | `video_url`，角色为 `reference_video` |
 | `metadata.audio_url` | `audio_url`，角色为 `reference_audio`；必须搭配图片或视频 |
-| `size` | `resolution`；Fast 仅 `480p` / `720p`，标准版另有 `1080p`；官方标准版 `4k` 需确认平台渠道支持 |
+| `size` | `resolution`；Fast 使用 `480p` / `720p`，标准版还支持 `1080p` / `4k` |
 | `duration` 或 `seconds` | 输出秒数，示例采用整数 4–15；不要同时传两个时长字段 |
 | `metadata.ratio` | `ratio`，包括 `21:9`、`16:9`、`4:3`、`1:1`、`3:4`、`9:16`、`adaptive` |
 | `metadata.generate_audio` | `generate_audio` |
 | `metadata.watermark` | `watermark` |
 
-官方原生 `duration: -1` 表示智能选择时长，平台通用接口是否保留该取值需另行确认。本页不把它作为已确认的通用参数。多段参考视频/音频、回调、尾帧返回及工具调用也不要自行扩展为未经定义的 `metadata` 字段。
+支持自动时长的模型可传 `duration: -1`；`metadata.video_url`、`metadata.audio_url` 可为 URL 数组。`metadata.return_last_frame`、`metadata.callback_url`、`metadata.tools` 等选项按所选模型规格填写。
 
 ## 文生视频
 
 ```bash
-curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+curl -X POST "$APIMETER_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "doubao-seedance-2-0-260128",
@@ -64,30 +64,31 @@ curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
 }
 ```
 
-素材可按本平台约定用同渠道下已为 `Active` 的 `asset://<asset_id>` 替换对应 URL，见[素材管理](./assets)。官方支持的图片/音频 Base64 规则不能直接视为平台通用格式的完整支持承诺，大素材优先使用 URL。
+素材可使用当前账户有权访问且状态为 `Active` 的 `asset://<asset_id>` 替换对应 URL，见[素材库](./assets)。本页示例使用公网 URL 提交参考媒体。
 
 ## 查询与结果
 
 保存创建响应中的 `id` 或 `task_id`，原样用于同一接口族查询：
 
 ```bash
-curl "$MODELSELL_BASE_URL/v1/video/generations/$TASK_ID" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY"
+curl "$APIMETER_BASE_URL/v1/video/generations/$TASK_ID" \
+  -H "Authorization: Bearer $APIMETER_API_KEY"
 ```
 
 平台通用成功响应示例：
 
 ```json
 {
-  "id": "<TASK_ID>",
-  "task_id": "<TASK_ID>",
-  "object": "video.generation",
-  "status": "succeeded",
-  "model": "doubao-seedance-2-0-260128",
-  "metadata": {"url": "https://example.com/result.mp4"}
+  "code": "success",
+  "message": "",
+  "data": {
+    "task_id": "<TASK_ID>",
+    "status": "SUCCESS",
+    "result_url": "https://example.com/result.mp4"
+  }
 }
 ```
 
-此处结果位置是平台示例的 `metadata.url`，原生接口则为 `content.video_url`，不要混读。轮询应设置间隔、总超时并处理失败终态；成功后立即下载或转存。官方输出地址有效期为 24 小时，平台响应与有效期以渠道为准。
+通用查询读取 `data.status` 与 `data.result_url`：`NOT_START`、`SUBMITTED`、`QUEUED`、`IN_PROGRESS` 继续等待，`SUCCESS` 成功，`FAILURE` 失败并检查 `data.fail_reason`。创建响应与查询响应结构不同。轮询应设置间隔、总超时并处理失败终态；成功后立即下载或转存，视频 URL 通常在 24 小时后失效。
 
 更多角色与生成模式见[生成模式示例](./modes)，官方规则见[创建视频生成任务](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)。

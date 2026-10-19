@@ -1,45 +1,40 @@
 ---
-title: 接口概览与格式选择
-description: Seedance 2.0 原生格式、平台通用格式、模型规格与异步任务流程。
+title: Seedance API（官方格式）
+description: Seedance 视频生成与素材库统一 API，包含鉴权、请求参数、响应格式和调用示例。
 ---
 
-Seedance 2.0 通过异步任务生成视频：创建任务取得 `id`，轮询状态，成功后从 `content.video_url` 获取视频。
+Seedance 视频生成与素材库使用统一 API，**兼容字节／火山方舟官方格式**。所有请求使用同一 API 根地址和 API Key；视频采用 `content[]`，素材库采用 `Action` 请求和 `ResponseMetadata + Result` 响应。
 
-本节于 **2026-10-19** 对照火山方舟官方文档复核。示例发送到本平台，使用本平台 API Key。官方新增能力与平台已声明能力分别说明。
+## 接口地址与鉴权
 
-## 接口与格式选择
+| 操作 | 方法与地址 | 结果读取位置 |
+| --- | --- | --- |
+| 创建视频任务 | `POST /api/v3/contents/generations/tasks` | `id` |
+| 查询视频任务 | `GET /api/v3/contents/generations/tasks/{task_id}` | `status`、`content.video_url` |
+| 素材与素材组管理 | `POST /?Action=<操作名>&Version=2024-01-01` | `ResponseMetadata`、`Result` |
 
-| 格式 | 创建任务 | 查询任务 | 适用场景 |
-| --- | --- | --- | --- |
-| 方舟原生 `content[]` | `POST /api/v3/contents/generations/tasks` | `GET /api/v3/contents/generations/tasks/{task_id}` | 精确控制首帧、尾帧、多模态角色及素材顺序，推荐优先使用 |
-| 平台通用视频 | `POST /v1/video/generations` | `GET /v1/video/generations/{task_id}` | 已使用 `prompt`、`image`、`metadata` 的应用，见[通用视频格式调用](./generic-video) |
+所有示例使用 `Authorization: Bearer $APIMETER_API_KEY`。`APIMETER_BASE_URL` 为平台 API 根地址，不含 `/api/v3`。
 
-`/v1/videos` 是另一套 OpenAI 兼容接口，不能直接照搬本节的通用 JSON，应按其自身字段定义接入，并使用对应查询接口。
-
-平台素材封装为 `POST /api/assets/upload` 与 `GET /api/assets/{id}`，见[素材管理](./assets)。它们与方舟管控面 CreateAsset / GetAsset 的地址、鉴权和请求结构不同。
-
-直接调用火山方舟时，生成与查询使用官方根地址 `https://ark.cn-beijing.volces.com` 和方舟 API Key；调用本平台时使用 `MODELSELL_BASE_URL` 和平台 API Key，两套密钥不可混用。官方查询路径写作 `{id}`，本平台文档写作 `{task_id}`，均指创建响应中的 `id`，仅占位符名称不同。
-
-本节仅覆盖本项目已声明的接口。官方另有任务列表、取消/删除等接口，不能据此认定本平台也已开放这些路由。通用视频与素材封装的字段映射依据本项目接口定义，官方文档无法证明平台渠道的实际实现。
+素材库与视频任务使用相同的 Bearer 鉴权。素材创建、管理与引用流程见[素材库（官方格式）](./assets)。
 
 ## 模型与输出规格
 
-| 模型 | 本项目已声明的模型 ID | 方舟官方分辨率 |
+`model` 填写账户可用的 Seedance 模型 ID 或模型别名。不同型号使用相同的任务接口，参数按所选模型的规格填写。
+
+本节基础示例使用 Seedance 2.0：
+
+| 模型 | 示例模型 ID | 2.0 官方输出分辨率 |
 | --- | --- | --- |
 | Seedance 2.0 | `doubao-seedance-2-0-260128` | `480p`、`720p`、`1080p`、`4k` |
 | Seedance 2.0 Fast | `doubao-seedance-2-0-fast-260128` | `480p`、`720p` |
 
-标准版官方已支持 `4k`，平台渠道是否开放需以实际模型能力为准。4k 为 10bit、H.265/HEVC 编码，需要兼容的播放器。Fast 不支持 `1080p` 或 `4k`。
+标准版 4k 视频使用 10bit H.265/HEVC。Fast 不支持 `1080p` 或 `4k`。其他型号请按对应模型规格设置分辨率、时长和功能参数。
 
-官方另有 Mini（`doubao-seedance-2-0-mini-260615`），本项目尚未声明支持，因此不作为平台可用模型加入示例。Seedance 2.5 的参数限制不适用于本节。
-
-## 原生格式快速开始
-
-`MODELSELL_BASE_URL` 为平台 API 根地址（不含 `/api/v3`），`MODELSELL_API_KEY` 为平台密钥。
+## 创建与查询视频任务
 
 ```bash
-curl -X POST "$MODELSELL_BASE_URL/api/v3/contents/generations/tasks" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+curl -X POST "$APIMETER_BASE_URL/api/v3/contents/generations/tasks" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "doubao-seedance-2-0-260128",
@@ -52,55 +47,67 @@ curl -X POST "$MODELSELL_BASE_URL/api/v3/contents/generations/tasks" \
   }'
 ```
 
-创建响应中的 `id` 请原样保存，不要依赖 ID 的固定前缀：
+创建响应至少包含任务 ID。原样保存，不依赖固定前缀；此时不要求已有状态或视频地址：
 
 ```json
 {"id": "<TASK_ID>"}
 ```
 
 ```bash
-curl "$MODELSELL_BASE_URL/api/v3/contents/generations/tasks/$TASK_ID" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY"
+curl "$APIMETER_BASE_URL/api/v3/contents/generations/tasks/$TASK_ID" \
+  -H "Authorization: Bearer $APIMETER_API_KEY"
 ```
 
-## 原生字段速查
+成功查询的结构示例：
+
+```json
+{
+  "id": "<TASK_ID>",
+  "status": "succeeded",
+  "model": "doubao-seedance-2-0-260128",
+  "content": {"video_url": "https://example.com/result.mp4"},
+  "usage": {"completion_tokens": 100858, "total_tokens": 100858},
+  "error": null
+}
+```
+
+## 请求参数
+
+参数放在 JSON 顶层，媒体内容放在 `content[]`。`0`、`false`、`-1` 按参数含义处理；省略可选参数时使用模型默认值。
 
 | 字段 | 说明 |
 | --- | --- |
-| `model`、`content` | 必填；内容类型为 `text`、`image_url`、`video_url`、`audio_url` |
-| `resolution` | 默认 `720p`；可选值受模型限制，见上表 |
-| `ratio` | 默认 `adaptive`；也可指定 `21:9`、`16:9`、`4:3`、`1:1`、`3:4`、`9:16` |
-| `duration` | 整数 `4`–`15` 秒；`-1` 表示由模型智能选择，示例显式指定 `5` |
-| `generate_audio` | 默认 `true`；`false` 输出无声视频，参考音频与此开关是不同概念 |
-| `watermark` | 默认 `false`；`true` 添加 AI 生成水印 |
+| `model`、`content` | 模型与内容数组；基础媒体类型为 `text`、`image_url`、`video_url`、`audio_url` |
+| `resolution`、`ratio` | 分辨率与比例；2.0 默认 `720p`、`adaptive` |
+| `duration` | 2.0 使用整数 4–15 秒；支持自动时长的模型可传 `-1` |
+| `generate_audio`、`watermark` | 2.0 默认分别为 `true`、`false`，示例显式传入 |
+| `return_last_frame` | 请求返回末帧；成功后读取返回的 `content.last_frame_url` |
+| `callback_url` | 任务回调地址，使用可公网访问的 URL |
+| `execution_expires_after` | 服务端任务过期时间，单位秒，官方范围 3600–259200 |
+| `priority`、`safety_identifier`、`tools` | 优先级、安全标识和工具配置；`web_search` 是否可用由模型决定 |
+| `seed`、`frames`、`camera_fixed`、`draft`、`service_tier` | 随机种子、帧数、固定镜头、样片模式和推理等级，按所选模型规格使用 |
+| `output_format`、`omni_reference_task_type` | 供支持这些能力的型号使用；2.5 可用任务类型为 `auto`、`reference`、`edit`、`extend` |
 
-方舟另有 `return_last_frame`、`callback_url`、`execution_expires_after`、`priority`、`safety_identifier`，以及纯文本场景的 `tools: [{"type":"web_search"}]`。本项目尚未声明这些字段的完整平台透传能力，使用前需确认渠道支持，不应直接映射到通用格式的 `metadata`。
+`omni_reference_task_type=edit` 必须搭配 `duration=-1`、`ratio=adaptive` 和 `reference_video`；`extend` 也必须提供 `ratio=adaptive` 和参考视频。2.0 示例通过提示词表达编辑或延长意图，不使用这些 2.5 参数。
 
-Seedance 2.0 不支持 `draft` 样片模式或 `service_tier: "flex"` 离线推理。`frames`、`seed`、`camera_fixed` 也不是当前官方列出的 2.0 输入能力。`omni_reference_task_type` 和可选 `output_format: "mov"` 属于 2.5。
+Seedance 2.0 不支持 `draft` 或 `service_tier: "flex"`；2.0 请求也请省略 `seed`、`frames`、`camera_fixed`。完整字段见本节视频生成接口参考。
 
-## 输入模式与素材
+## 输入与任务状态
 
-首帧、首尾帧、全模态参考是互斥模式：首帧使用 `first_frame`；首尾帧使用 `first_frame` + `last_frame`；全模态参考使用 `reference_image`、`reference_video`、`reference_audio`。见[生成模式示例](./modes)。
+2.0 的首帧、首尾帧和全模态参考是互斥模式。全模态最多 9 张图片、3 段视频、3 段音频，音频必须搭配图片或视频。角色和 JSON 示例见[生成模式示例](./modes)，素材来源及规格见[素材库](./assets)。
 
-全模态参考最多 9 张图片、3 段视频、3 段音频。音频必须与图片或视频一起输入，不支持仅音频或文本加音频。官方原生格式支持图片和音频 Data URL，视频不支持 Base64；平台素材上传只接收公网 URL。完整规范见[素材管理](./assets)。
-
-## 任务状态与结果保存
-
-| 状态 | 处理方式 |
+| `status` | 客户端处理 |
 | --- | --- |
-| `queued`、`running` | 继续轮询，示例间隔为 10 秒 |
-| `succeeded` | 读取 `content.video_url` 并及时转存 |
-| `failed` | 停止轮询，检查 `error.code` 和 `error.message` |
-| `expired` | 服务端任务已超时，停止轮询 |
-| `cancelled` | 任务已取消，停止轮询；官方仅允许取消排队中的任务，取消记录 24 小时后自动删除 |
+| `queued`、`running` | 继续轮询 |
+| `succeeded` | 读取 `content.video_url`，如有需要同时保存末帧与用量 |
+| `failed`、`expired`、`cancelled`、`canceled` | 停止轮询，检查 `error`；后两者均表示已取消 |
 
-官方仅支持查询最近 7 天的任务，视频 URL 有效期为 24 小时。平台缓存和渠道行为可能不同，应成功后立即下载。客户端停止轮询不代表任务被取消，恢复查询应复用原任务 ID，避免重复创建。完整示例见[Python 轮询与下载](./python-polling)。
+查询响应包含任务状态、结果链接和 `usage` 用量信息，成功时 `error` 可以为 `null`。
 
-创建响应只保证返回任务 `id`，不能假设已经有 `status` 或视频地址。官方查询响应还包括 `updated_at`、`duration`、`resolution`、`ratio`、`framespersecond`、`generate_audio` 及 `usage.total_tokens` 等信息；成功时 `error` 可以为 `null`。返回字段与创建参数并不一一对应，例如查询中的 `seed` 不代表 Seedance 2.0 支持传入 `seed`。
+请在任务创建后 7 天内查询结果，并在生成成功后及时下载；视频 URL 通常在 24 小时后失效。客户端停止轮询不会取消服务端任务。完整创建、恢复查询与下载示例见[Python 轮询与下载](./python-polling)。
 
 ## 官方参考
 
-- [Seedance 2.0 系列教程](https://docs.volcengine.com/docs/ark/seedance-2-0?lang=zh)
 - [创建视频生成任务](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)
 - [查询视频生成任务](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)
-- [私域虚拟人像素材资产库使用指南](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh)
+- [Seedance 2.0 系列教程](https://docs.volcengine.com/docs/ark/seedance-2-0?lang=zh)

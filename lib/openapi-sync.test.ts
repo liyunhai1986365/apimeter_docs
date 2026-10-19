@@ -29,6 +29,31 @@ describe('modelsell OpenAPI sync', () => {
     expect(task?.properties?.usage?.properties).toHaveProperty('total_tokens');
   });
 
+  it('exposes the official asset Action endpoint and envelope without replacing legacy routes', async () => {
+    const schemas = await openapi.getSchemas();
+    const document = Object.values(schemas)[0].dereferenced;
+    const operation = document.paths?.['/']?.post;
+
+    expect(operation?.operationId).toBe('seedanceAssetAction');
+    expect(operation?.parameters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'Action', in: 'query', required: true }),
+      expect.objectContaining({ name: 'Version', in: 'query', required: true }),
+    ]));
+    const examples = operation?.requestBody?.content?.['application/json']?.examples;
+    expect(Object.keys(examples ?? {})).toHaveLength(12);
+    expect(examples?.CreateAsset?.value).toMatchObject({
+      GroupId: 'group-example', AssetType: 'Image', URL: 'https://example.com/reference.png',
+    });
+    expect(examples?.GetAsset?.value).toHaveProperty('Id', 'asset-example');
+    const response = operation?.responses?.['200']?.content?.['application/json']?.schema;
+    expect(response?.properties).toHaveProperty('ResponseMetadata');
+    expect(response?.properties).toHaveProperty('Result');
+    expect(response?.properties).not.toHaveProperty('data');
+    expect(response?.properties?.ResponseMetadata?.properties).toHaveProperty('Error');
+    expect(document.paths?.['/api/assets/upload']?.post?.operationId).toBe('uploadSeedanceAsset');
+    expect(document.paths?.['/api/assets/{id}']?.get?.operationId).toBe('getSeedanceAsset');
+  });
+
   it('documents all EasyRouter API families in the generated API reference', () => {
     const requiredSnippets = [
       '/v1/chat/completions:',
@@ -83,6 +108,7 @@ describe('modelsell OpenAPI sync', () => {
       'operationId: getSeedance2VideoTask',
       'operationId: uploadSeedanceAsset',
       'operationId: getSeedanceAsset',
+      'operationId: seedanceAssetAction',
       'Seedance 2.0 时，通用字段会转换为官方 `content[]` 格式',
       '/api/log/self/stat:',
       '/api/log/token:',
@@ -128,7 +154,7 @@ describe('modelsell OpenAPI sync', () => {
       'summary: ChatCompletions 格式',
       'summary: 查询图片异步任务',
       'summary: 查询视频任务',
-      'summary: Seedance 2.0 视频生成',
+      'summary: Seedance 视频生成（官方格式）',
       'summary: 创建真人认证会话',
     ];
 
@@ -293,7 +319,7 @@ describe('modelsell OpenAPI sync', () => {
       'description: 用于生成向量的输入文本，部分模型支持字符串数组。',
       'description: 生成或编辑图像时使用的文本提示词。',
       'description: 视频生成提示词，描述希望生成的视频内容。',
-      'description: Seedance 2.0 官方格式的内容数组。',
+      'description: 兼容字节官方格式的 content 数组；下述基础媒体规则以 Seedance 2.0 为例。',
       'description: 素材公网 URL。素材上传接口只支持 URL，不支持 Base64。',
       'description: API 令牌名称。',
       'description: 令牌剩余额度，支持时可用 -1 表示不限额。',

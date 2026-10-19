@@ -13,9 +13,9 @@ function page(name: Item['name'], operationId: string): Item {
 describe('getLocalizedApiPageTree', () => {
   it.each(['zh', 'en'] as const)('consolidates asset operations into one %s navigation entry', (locale) => {
     for (const operationIds of [
-      ['uploadSeedanceAsset'],
-      ['getSeedanceAsset'],
-      ['uploadSeedanceAsset', 'getSeedanceAsset'],
+      ['seedanceAssetAction'],
+      ['seedanceAssetAction', 'uploadSeedanceAsset'],
+      ['seedanceAssetAction', 'uploadSeedanceAsset', 'getSeedanceAsset'],
     ]) {
       const tree: Root = {
         type: 'root', name: '',
@@ -34,7 +34,7 @@ describe('getLocalizedApiPageTree', () => {
       }
       collect(localized.children);
       expect(pages).toHaveLength(1);
-      expect(pages[0].name).toBe(locale === 'zh' ? '素材管理' : 'Asset Management');
+      expect(pages[0].name).toBe(locale === 'zh' ? '素材库（官方格式）' : 'Assets (Official Format)');
       expect(pages[0].url).toContain('/seedance-2/assets');
     }
   });
@@ -69,6 +69,7 @@ describe('getLocalizedApiPageTree', () => {
         page('查询视频生成任务', 'getVideoGeneration'),
         page('Seedance 2.0 视频生成', 'createSeedance2VideoTask'),
         page('查询 Seedance 2.0 视频任务', 'getSeedance2VideoTask'),
+        page('Seedance 素材库（官方格式）', 'seedanceAssetAction'),
         page('上传 Seedance 2.0 素材', 'uploadSeedanceAsset'),
         page('查询 Seedance 2.0 素材详情', 'getSeedanceAsset'),
         page('Kling 文生视频', 'createKlingText2Video'),
@@ -330,22 +331,17 @@ describe('getLocalizedApiPageTree', () => {
             },
             {
               type: 'folder',
-              name: 'Seedance 2.0',
+              name: 'Seedance（官方格式）',
               children: [
                 {
                   type: 'page',
-                  name: '接口概览与格式选择',
+                  name: '官方格式接口概览',
                   url: '/zh/docs/api-reference/seedance-2/overview',
                 },
                 {
                   type: 'page',
-                  name: '素材管理',
+                  name: '素材库（官方格式）',
                   url: '/zh/docs/api-reference/seedance-2/assets',
-                },
-                {
-                  type: 'page',
-                  name: '通用视频格式调用',
-                  url: '/zh/docs/api-reference/seedance-2/generic-video',
                 },
                 {
                   type: 'page',

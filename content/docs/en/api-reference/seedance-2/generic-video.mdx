@@ -1,9 +1,9 @@
 ---
 title: Generic Video Format
-description: Platform generic fields, Ark-native mappings, and task-query boundaries.
+description: Call Seedance 2.0 with generic video fields, request examples and task queries.
 ---
 
-`/v1/video/generations` is a platform wrapper, not an official Ark endpoint. Prefer [native content](./modes) for first/last-frame control and explicit media roles.
+This page describes Seedance 2.0 requests and results through `/v1/video/generations`. For the Seedance official format, see the [unified API overview](./overview).
 
 ## Endpoints and mappings
 
@@ -15,19 +15,19 @@ Create with `POST /v1/video/generations` and query with `GET /v1/video/generatio
 | `image` or `images[]` | `image_url` with `reference_image`; not strict first/last frames |
 | `metadata.video_url` | `video_url` with `reference_video` |
 | `metadata.audio_url` | `audio_url` with `reference_audio`; requires image or video |
-| `size` | `resolution`; Fast: 480p/720p; standard additionally 1080p; official standard 4k requires platform confirmation |
+| `size` | `resolution`; Fast: 480p/720p; standard also supports 1080p/4k |
 | `duration` or `seconds` | Integer output seconds, 4–15; send only one |
 | `metadata.ratio` | `ratio`: 21:9, 16:9, 4:3, 1:1, 3:4, 9:16, adaptive |
 | `metadata.generate_audio` | `generate_audio` |
 | `metadata.watermark` | `watermark` |
 
-Native `duration: -1` support does not confirm generic support. Do not invent metadata mappings for multiple video/audio clips, callbacks, tools, or last-frame return.
+Use `duration: -1` for models with automatic duration. `metadata.video_url` and `metadata.audio_url` accept URL arrays. Set `metadata.callback_url`, `metadata.tools` and `metadata.return_last_frame` according to the selected model's specifications.
 
 ## Example
 
 ```bash
-curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
+curl -X POST "$APIMETER_BASE_URL/v1/video/generations" \
+  -H "Authorization: Bearer $APIMETER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "doubao-seedance-2-0-fast-260128",
@@ -45,28 +45,29 @@ curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
   }'
 ```
 
-For text-only input remove image, video and audio. For image reference remove video and audio. Audio cannot be the only media input. Use same-channel `Active` asset URIs where supported; see [Assets](./assets). Official Base64 support is not a promise of generic-wrapper passthrough; prefer URLs.
+For text-only input remove image, video and audio. For image reference remove video and audio. Audio cannot be the only media input. You can use `Active` asset URIs that your account can access; see [Assets](./assets). The examples use public URLs for reference media.
 
 ## Poll and save results
 
 Save `id` or `task_id` from creation and query the same endpoint family:
 
 ```bash
-curl "$MODELSELL_BASE_URL/v1/video/generations/$TASK_ID" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY"
+curl "$APIMETER_BASE_URL/v1/video/generations/$TASK_ID" \
+  -H "Authorization: Bearer $APIMETER_API_KEY"
 ```
 
 ```json
 {
-  "id": "<TASK_ID>",
-  "task_id": "<TASK_ID>",
-  "object": "video.generation",
-  "status": "succeeded",
-  "model": "doubao-seedance-2-0-260128",
-  "metadata": {"url": "https://example.com/result.mp4"}
+  "code": "success",
+  "message": "",
+  "data": {
+    "task_id": "<TASK_ID>",
+    "status": "SUCCESS",
+    "result_url": "https://example.com/result.mp4"
+  }
 }
 ```
 
-The generic example returns `metadata.url`; native responses use `content.video_url`. Bound polling, handle terminal failures, and download promptly. Official URLs last 24 hours; platform behavior depends on the channel.
+Generic queries use `data.status` and `data.result_url`: wait for NOT_START/SUBMITTED/QUEUED/IN_PROGRESS, read results on SUCCESS, and inspect `data.fail_reason` on FAILURE. Creation and query have different shapes. Bound polling, handle terminal failures, and download promptly; video URLs usually expire after 24 hours.
 
 [Official create-task reference](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)

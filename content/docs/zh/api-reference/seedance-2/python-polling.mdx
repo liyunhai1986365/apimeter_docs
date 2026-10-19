@@ -3,7 +3,7 @@ title: Python 轮询与下载
 description: 创建并保存 Seedance 2.0 任务 ID，处理失败、过期、轮询超时和断点恢复查询。
 ---
 
-本示例使用原生格式及平台 API Key。先配置 `MODELSELL_BASE_URL`（平台 API 根地址，不含 `/api/v3`）和 `MODELSELL_API_KEY`，将下方代码保存为 `seedance_poll.py`。
+本示例兼容字节／火山方舟官方视频任务格式，使用平台 API Key。先配置 `APIMETER_BASE_URL`（平台 API 根地址，不含 `/api/v3`）和 `APIMETER_API_KEY`，将下方代码保存为 `seedance_poll.py`。
 
 轮询默认最多 30 分钟、间隔 10 秒，使用单调时钟计算耗时。临时连接错误、429 和 5xx 会在间隔后重试查询；401、403、404 等立即报错。创建任务不自动重试，避免网络超时导致重复提交。
 
@@ -19,8 +19,8 @@ from pathlib import Path
 
 import requests
 
-BASE_URL = os.environ["MODELSELL_BASE_URL"].rstrip("/")
-API_KEY = os.environ["MODELSELL_API_KEY"]
+BASE_URL = os.environ["APIMETER_BASE_URL"].rstrip("/")
+API_KEY = os.environ["APIMETER_API_KEY"]
 MODEL = "doubao-seedance-2-0-260128"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
@@ -121,10 +121,10 @@ python seedance_poll.py "<已有的任务ID>"
 
 第二条命令只查询已有任务，不重新创建。建议创建后立即持久化输出的任务 ID。
 
-`failed`、`expired`、官方的 `cancelled` 及部分渠道的 `canceled` 状态会终止轮询，错误中保留任务状态和服务端错误。成功响应缺少视频 URL 时也会明确报错。下载先写入 `.part`，完成后替换目标文件；下载失败可重新查询原任务获取地址后重试。
+`failed`、`expired`、`cancelled`、`canceled` 状态会终止轮询，后两者均表示已取消；错误中保留任务状态和服务端错误。成功响应缺少视频 URL 时也会明确报错。下载先写入 `.part`，完成后替换目标文件；下载失败可重新查询原任务获取地址后重试。
 
 客户端超时只表示停止等待，不会取消任务。官方任务记录仅保留最近 7 天，视频下载 URL 有效期为 24 小时，应及时转存。示例的总预算控制轮询调度与单次请求超时，网络底层行为可能使实际墙钟耗时略有超出。
 
-本例是[原生查询接口](./overview)，不能直接用于通用接口的 `metadata.url` 响应。
+本例读取[视频任务查询接口](./overview)的 `status` 与 `content.video_url`。素材库查询则使用 POST Action 请求，读取 `Result.Status`，见[素材库](./assets)。
 
 [官方查询任务文档](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)
