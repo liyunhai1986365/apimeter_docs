@@ -96,8 +96,8 @@ const titles: Record<string, Record<Locale, string>> = {
     zh: '接口概览与格式选择',
   },
   'seedance-2/assets': {
-    en: 'Asset Upload and Management',
-    zh: '素材上传与管理',
+    en: 'Asset Management',
+    zh: '素材管理',
   },
   'seedance-2/generic-video': {
     en: 'Generic Video Format',

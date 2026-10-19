@@ -1,43 +1,128 @@
 ---
 title: Python Polling and Download
-description: Create a Seedance 2.0 task, poll for completion, and download the result video with Python.
+description: Create and preserve a task ID, handle failure and expiry, and resume bounded polling.
 ---
 
-Seedance 2.0 is asynchronous. Poll the task endpoint until `status` becomes `succeeded`, then download `content.video_url`.
+Use native request bodies with the platform API key. Set `MODELSELL_BASE_URL` to the platform root without `/api/v3`, and set `MODELSELL_API_KEY`. Save the code as `seedance_poll.py`.
+
+Polling uses a monotonic clock, a 30-minute budget and a 10-second interval. Temporary connection errors, 429 and 5xx retry queries; 401/403/404 fail immediately. Creation is not automatically retried, preventing accidental duplicate submissions.
+
+```bash
+pip install requests
+```
 
 ```python
 import os
+import sys
 import time
+from pathlib import Path
+
 import requests
 
-BASE_URL = "https://api.modelsell.com"
+BASE_URL = os.environ["MODELSELL_BASE_URL"].rstrip("/")
 API_KEY = os.environ["MODELSELL_API_KEY"]
+MODEL = "doubao-seedance-2-0-260128"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-response = requests.post(
-    f"{BASE_URL}/api/v3/contents/generations/tasks",
-    headers={"Authorization": f"Bearer {API_KEY}"},
-    json={
-        "model": "doubao-seedance-2-0-260128",
-        "content": [{"type": "text", "text": "A cinematic city sunrise"}],
-        "resolution": "480p",
-        "ratio": "16:9",
-        "duration": 5,
-    },
-)
-response.raise_for_status()
-task_id = response.json()["id"]
 
-while True:
-    time.sleep(10)
-    result = requests.get(
-        f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
-        headers={"Authorization": f"Bearer {API_KEY}"},
+def create_task(prompt: str) -> str:
+    # Do not blindly retry task creation after a network timeout.
+    response = requests.post(
+        f"{BASE_URL}/api/v3/contents/generations/tasks",
+        headers=HEADERS,
+        json={
+            "model": MODEL,
+            "content": [{"type": "text", "text": prompt}],
+            "resolution": "720p",
+            "ratio": "16:9",
+            "duration": 5,
+            "generate_audio": True,
+            "watermark": False,
+        },
+        timeout=(10, 180),
     )
-    result.raise_for_status()
-    data = result.json()
-    if data["status"] == "succeeded":
-        print(data["content"]["video_url"])
-        break
-    if data["status"] == "failed":
-        raise RuntimeError(data.get("error", {}).get("message", "task failed"))
+    response.raise_for_status()
+    task_id = response.json().get("id")
+    if not task_id:
+        raise RuntimeError("Create response is missing id")
+    return task_id
+
+
+def wait_for_result(task_id: str, max_wait: int = 1800, interval: int = 10) -> str:
+    if max_wait <= 0 or interval <= 0:
+        raise ValueError("max_wait and interval must be positive")
+    deadline = time.monotonic() + max_wait
+    while time.monotonic() < deadline:
+        # Bound each request by the remaining polling budget.
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            response = requests.get(
+                f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
+                headers=HEADERS,
+                timeout=min(60, remaining),
+            )
+        except (requests.Timeout, requests.ConnectionError):
+            response = None
+
+        if response is not None:
+            if response.status_code != 429 and response.status_code < 500:
+                response.raise_for_status()
+                data = response.json()
+                status = data.get("status")
+                print(f"task_id={task_id} status={status}", flush=True)
+                if status == "succeeded":
+                    url = (data.get("content") or {}).get("video_url")
+                    if not url:
+                        raise RuntimeError("Successful task is missing content.video_url")
+                    return url
+                if status in {"failed", "expired", "cancelled", "canceled"}:
+                    raise RuntimeError(f"Task ended: {status}; error={data.get('error')}")
+                if status not in {"queued", "running"}:
+                    raise RuntimeError(f"Unexpected task status: {status}")
+
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(interval, remaining))
+
+    raise TimeoutError(f"Polling timed out; resume with task ID: {task_id}")
+
+
+def download_video(video_url: str, save_path: str) -> None:
+    target = Path(save_path)
+    partial = target.with_name(target.name + ".part")
+    # The signed media URL does not need the platform Authorization header.
+    with requests.get(video_url, stream=True, timeout=(10, 120)) as response:
+        response.raise_for_status()
+        with partial.open("wb") as output:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    output.write(chunk)
+    partial.replace(target)
+
+
+if __name__ == "__main__":
+    # Pass an existing task ID to resume instead of creating another task.
+    task_id = sys.argv[1] if len(sys.argv) > 1 else create_task(
+        "A golden dog runs beneath cherry blossoms; the camera slowly rises"
+    )
+    print(f"task_id={task_id}", flush=True)
+    video_url = wait_for_result(task_id)
+    download_video(video_url, "seedance-output.mp4")
 ```
+
+## Run or resume
+
+```bash
+python seedance_poll.py
+python seedance_poll.py "<EXISTING_TASK_ID>"
+```
+
+The second command only polls; persist the printed task ID immediately. Failure, expiry, official `cancelled`, and channel-specific `canceled` states stop polling. Missing result URLs fail explicitly. Downloads write to a `.part` file and replace the target only after completion.
+
+Client timeout does not cancel the server task. Ark tasks are queryable for 7 days and video URLs last 24 hours. Download promptly. The polling budget controls scheduling and request timeouts; underlying network behavior may slightly exceed it.
+
+This example reads native `content.video_url`, not generic `metadata.url`.
+
+[Official query reference](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)

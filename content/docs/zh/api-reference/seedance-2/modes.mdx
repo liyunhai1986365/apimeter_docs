@@ -1,9 +1,23 @@
 ---
 title: 生成模式示例
-description: Seedance 2.0 七种官方 content 组合模式示例。
+description: Seedance 2.0 文生视频、首帧、首尾帧、多模态参考、编辑与延长示例。
 ---
 
-Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和音频输入。图片素材的 `role` 使用 `reference_image`，视频素材使用 `reference_video`，音频素材使用 `reference_audio`。
+以下请求体均提交到 `POST /api/v3/contents/generations/tasks`。所有 URL 为占位示例，请替换为可访问的素材 URL 或同渠道下已为 `Active` 的 `asset://<asset_id>`。
+
+## 模式与角色规则
+
+| 模式 | 图片角色 | 组合要求 |
+| --- | --- | --- |
+| 首帧 | `first_frame`（官方也允许单图不填 role） | 1 张首帧图片 |
+| 首尾帧 | `first_frame` + `last_frame` | 2 张图片，明确指定角色 |
+| 全模态参考 | `reference_image` | 可组合图片、`reference_video` 视频、`reference_audio` 音频 |
+
+这三种模式互斥，不要把 `first_frame` / `last_frame` 与全模态参考角色混用。若需要参考多模态又希望指定首尾画面，可在提示词中描述“图片1作为首帧”，但不等同于首尾帧模式的严格约束。
+
+全模态参考最多 9 张图片、3 段视频、3 段音频；视频总时长不超过 15 秒，音频总时长不超过 15 秒。不支持仅音频或文本加音频，音频必须搭配参考图片或视频。
+
+提示词按同类素材顺序使用“图片1”“视频1”“音频1”，从 1 编号；不要在提示词中填写 Asset ID。真人人像需按授权流程使用，不能直接把未经授权处理的人脸 URL 作为普通参考图。详见[素材管理](./assets)。
 
 ## 文生视频
 
@@ -13,30 +27,90 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
   "content": [
     {
       "type": "text",
-      "text": "一只金色柴犬在樱花树下奔跑，镜头缓缓上升"
+      "text": "一只柴犬在樱花树下奔跑"
     }
   ],
-  "resolution": "480p",
+  "resolution": "720p",
   "ratio": "16:9",
   "duration": 5,
+  "generate_audio": true,
   "watermark": false
 }
 ```
 
-## 图生视频
+## 首帧图生视频
 
 ```json
 {
-  "model": "doubao-seedance-2-0-fast-260128",
+  "model": "doubao-seedance-2-0-260128",
   "content": [
     {
       "type": "text",
-      "text": "让画面中的人物缓缓转身微笑"
+      "text": "镜头环绕图片中的玩具机器人"
     },
     {
       "type": "image_url",
       "image_url": {
-        "url": "https://example.com/photo.jpg"
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "first_frame"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "adaptive",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 首尾帧图生视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "镜头从花园入口推进到喷泉"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/start.png"
+      },
+      "role": "first_frame"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/end.png"
+      },
+      "role": "last_frame"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "adaptive",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 图片参考
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "参考图片1的配色，生成一座未来城市"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
       },
       "role": "reference_image"
     }
@@ -44,11 +118,12 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
   "resolution": "720p",
   "ratio": "16:9",
   "duration": 5,
+  "generate_audio": true,
   "watermark": false
 }
 ```
 
-## 视频生视频
+## 视频参考
 
 ```json
 {
@@ -56,7 +131,7 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
   "content": [
     {
       "type": "text",
-      "text": "让视频中的人物变成卡通风格"
+      "text": "参考视频1的运镜，生成雪山航拍"
     },
     {
       "type": "video_url",
@@ -66,7 +141,7 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
       "role": "reference_video"
     }
   ],
-  "resolution": "480p",
+  "resolution": "720p",
   "ratio": "16:9",
   "duration": 5,
   "generate_audio": true,
@@ -74,7 +149,7 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
 }
 ```
 
-## 音画协同
+## 图片与音频参考
 
 ```json
 {
@@ -82,7 +157,7 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
   "content": [
     {
       "type": "text",
-      "text": "让人物根据音频内容说话"
+      "text": "图片1中的玩具机器人随音频1的节奏舞动"
     },
     {
       "type": "image_url",
@@ -99,113 +174,179 @@ Seedance 2.0 的官方格式通过 `content[]` 表达文本、图片、视频和
       "role": "reference_audio"
     }
   ],
-  "resolution": "480p",
-  "ratio": "16:9",
-  "duration": 5,
-  "watermark": false
-}
-```
-
-## 多重引用
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "content": [
-    {
-      "type": "text",
-      "text": "按照图片的风格，修改这个视频"
-    },
-    {
-      "type": "image_url",
-      "image_url": {
-        "url": "https://example.com/reference-image.jpg"
-      },
-      "role": "reference_image"
-    },
-    {
-      "type": "video_url",
-      "video_url": {
-        "url": "https://example.com/reference-video.mp4"
-      },
-      "role": "reference_video"
-    }
-  ],
-  "resolution": "480p",
-  "ratio": "16:9",
-  "duration": 5,
-  "watermark": false
-}
-```
-
-## 动态音效
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "content": [
-    {
-      "type": "text",
-      "text": "根据音频内容为视频添加匹配的音效"
-    },
-    {
-      "type": "video_url",
-      "video_url": {
-        "url": "https://example.com/reference-video.mp4"
-      },
-      "role": "reference_video"
-    },
-    {
-      "type": "audio_url",
-      "audio_url": {
-        "url": "https://example.com/reference-audio.mp3"
-      },
-      "role": "reference_audio"
-    }
-  ],
-  "resolution": "480p",
-  "ratio": "16:9",
-  "duration": 5,
-  "watermark": false
-}
-```
-
-## 全模态生成
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "content": [
-    {
-      "type": "text",
-      "text": "使用图片的风格，把这个声音应用在女主说话的场景，并修改这个视频"
-    },
-    {
-      "type": "image_url",
-      "image_url": {
-        "url": "https://example.com/reference-image.jpg"
-      },
-      "role": "reference_image"
-    },
-    {
-      "type": "video_url",
-      "video_url": {
-        "url": "https://example.com/reference-video.mp4"
-      },
-      "role": "reference_video"
-    },
-    {
-      "type": "audio_url",
-      "audio_url": {
-        "url": "https://example.com/reference-audio.mp3"
-      },
-      "role": "reference_audio"
-    }
-  ],
-  "resolution": "480p",
+  "resolution": "720p",
   "ratio": "16:9",
   "duration": 5,
   "generate_audio": true,
   "watermark": false
 }
 ```
+
+## 图片与视频参考
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "参考图片1的视觉风格和视频1的运镜"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 视频与音频参考
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "参考视频1的画面节奏，使用音频1作为背景音乐"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 全模态参考
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "参考图片1的色彩和视频1的运镜，使用音频1作为背景音乐"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 编辑视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "将视频1中的产品替换为图片1中的产品，运镜不变"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## 延长视频
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "向后延长视频1，镜头继续穿过森林到达湖面"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+编辑和延长沿用参考视频角色，通过提示词表达意图，不使用 Seedance 2.5 专用的 `omni_reference_task_type`。延长可输入最多 3 段视频并描述衔接，输出仍受 4–15 秒限制，不保证默认包含全部原片。
+
+[官方 Seedance 2.0 系列教程](https://docs.volcengine.com/docs/ark/seedance-2-0?lang=zh)

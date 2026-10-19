@@ -1,9 +1,25 @@
 ---
 title: Generation Mode Examples
-description: Official Seedance 2.0 content combinations for text, image, video, and audio references.
+description: Seedance 2.0 text, first-frame, first/last-frame, multimodal reference, editing and extension examples.
 ---
 
-Seedance 2.0 official requests use `content[]` to combine text, image, video, and audio inputs. Use `reference_image`, `reference_video`, and `reference_audio` for media roles.
+Submit these JSON bodies to `POST /api/v3/contents/generations/tasks`. Replace placeholder URLs with accessible media or an `Active` asset URI from the same channel.
+
+## Roles and exclusive modes
+
+| Mode | Image roles | Requirement |
+| --- | --- | --- |
+| First frame | `first_frame` (official API also allows an omitted role for one image) | One image |
+| First and last frames | `first_frame` + `last_frame` | Two images with explicit roles |
+| Multimodal reference | `reference_image` | Combine with `reference_video` and/or `reference_audio` |
+
+These three modes are mutually exclusive. Do not mix first/last-frame roles with reference roles. You can describe a reference image as the first or last frame in the prompt, but this is not the strict first/last-frame mode.
+
+Reference limits: 9 images, 3 videos totaling at most 15 seconds, and 3 audio clips totaling at most 15 seconds. Audio requires an image or video; audio-only and text-plus-audio inputs are unsupported.
+
+Refer to “image 1”, “video 1”, and “audio 1” by order within each media type, starting at 1. Do not use asset IDs in prompts. Real-person portraits require the separate authorization flow; see [Assets](./assets).
+
+## Text to video
 
 ```json
 {
@@ -11,14 +27,326 @@ Seedance 2.0 official requests use `content[]` to combine text, image, video, an
   "content": [
     {
       "type": "text",
-      "text": "A golden Shiba Inu runs under cherry blossoms as the camera slowly rises"
+      "text": "A dog runs beneath cherry blossoms"
     }
   ],
-  "resolution": "480p",
+  "resolution": "720p",
   "ratio": "16:9",
   "duration": 5,
+  "generate_audio": true,
   "watermark": false
 }
 ```
 
-For image, video, and audio references, add `image_url`, `video_url`, and `audio_url` content items with the matching role.
+## First-frame image to video
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Orbit the toy robot in the image"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "first_frame"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "adaptive",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## First and last frames
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Move the camera from the garden entrance to the fountain"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/start.png"
+      },
+      "role": "first_frame"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/end.png"
+      },
+      "role": "last_frame"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "adaptive",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Image reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Use the colors in image 1 to create a futuristic city"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Video reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Use the camera movement in video 1 for an aerial shot of snowy mountains"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Image and audio reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "The toy robot in image 1 dances to audio 1"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Image and video reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Use the visual style of image 1 and camera movement of video 1"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Video and audio reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Use the pacing of video 1 and audio 1 as background music"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## All-modality reference
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Use image 1 for colors, video 1 for camera movement, and audio 1 for background music"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    },
+    {
+      "type": "audio_url",
+      "audio_url": {
+        "url": "https://example.com/reference-audio.mp3"
+      },
+      "role": "reference_audio"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Video editing
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Replace the product in video 1 with the product in image 1, preserving camera movement"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://example.com/reference-image.jpg"
+      },
+      "role": "reference_image"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+## Video extension
+
+```json
+{
+  "model": "doubao-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "Extend video 1 forward in time as the camera moves through the forest toward a lake"
+    },
+    {
+      "type": "video_url",
+      "video_url": {
+        "url": "https://example.com/reference-video.mp4"
+      },
+      "role": "reference_video"
+    }
+  ],
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "generate_audio": true,
+  "watermark": false
+}
+```
+
+Editing and extension use reference-video roles and prompt instructions, not the Seedance 2.5-only `omni_reference_task_type`. Extension can connect up to 3 clips; output remains within 4–15 seconds and does not necessarily include the entire original clip.
+
+[Official Seedance 2.0 tutorial](https://docs.volcengine.com/docs/ark/seedance-2-0?lang=zh)

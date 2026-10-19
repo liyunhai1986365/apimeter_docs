@@ -1,9 +1,11 @@
 ---
 title: Python 轮询与下载
-description: 使用 Python 创建 Seedance 2.0 任务、轮询状态并下载结果视频。
+description: 创建并保存 Seedance 2.0 任务 ID，处理失败、过期、轮询超时和断点恢复查询。
 ---
 
-Seedance 2.0 是异步任务接口。建议按固定间隔轮询任务状态，常见生成耗时为数分钟；示例中使用 10 秒轮询间隔。
+本示例使用原生格式及平台 API Key。先配置 `MODELSELL_BASE_URL`（平台 API 根地址，不含 `/api/v3`）和 `MODELSELL_API_KEY`，将下方代码保存为 `seedance_poll.py`。
+
+轮询默认最多 30 分钟、间隔 10 秒，使用单调时钟计算耗时。临时连接错误、429 和 5xx 会在间隔后重试查询；401、403、404 等立即报错。创建任务不自动重试，避免网络超时导致重复提交。
 
 ```bash
 pip install requests
@@ -11,80 +13,118 @@ pip install requests
 
 ```python
 import os
+import sys
 import time
+from pathlib import Path
+
 import requests
 
-BASE_URL = "https://api.modelsell.com"
+BASE_URL = os.environ["MODELSELL_BASE_URL"].rstrip("/")
 API_KEY = os.environ["MODELSELL_API_KEY"]
 MODEL = "doubao-seedance-2-0-260128"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 
 def create_task(prompt: str) -> str:
+    # Do not blindly retry task creation after a network timeout.
     response = requests.post(
         f"{BASE_URL}/api/v3/contents/generations/tasks",
-        headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json",
-        },
+        headers=HEADERS,
         json={
             "model": MODEL,
-            "content": [
-                {
-                    "type": "text",
-                    "text": prompt,
-                }
-            ],
-            "resolution": "480p",
+            "content": [{"type": "text", "text": prompt}],
+            "resolution": "720p",
             "ratio": "16:9",
             "duration": 5,
             "generate_audio": True,
             "watermark": False,
         },
-        timeout=180,
+        timeout=(10, 180),
     )
     response.raise_for_status()
-    return response.json()["id"]
+    task_id = response.json().get("id")
+    if not task_id:
+        raise RuntimeError("Create response is missing id")
+    return task_id
 
 
-def wait_for_result(task_id: str, max_wait: int = 600, interval: int = 10) -> str:
-    elapsed = 0
-    while elapsed < max_wait:
-        time.sleep(interval)
-        elapsed += interval
+def wait_for_result(task_id: str, max_wait: int = 1800, interval: int = 10) -> str:
+    if max_wait <= 0 or interval <= 0:
+        raise ValueError("max_wait and interval must be positive")
+    deadline = time.monotonic() + max_wait
+    while time.monotonic() < deadline:
+        # Bound each request by the remaining polling budget.
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            response = requests.get(
+                f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
+                headers=HEADERS,
+                timeout=min(60, remaining),
+            )
+        except (requests.Timeout, requests.ConnectionError):
+            response = None
 
-        response = requests.get(
-            f"{BASE_URL}/api/v3/contents/generations/tasks/{task_id}",
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            timeout=60,
-        )
-        response.raise_for_status()
-        data = response.json()
-        status = data.get("status")
-        print(f"[{elapsed}s] status={status}")
+        if response is not None:
+            if response.status_code != 429 and response.status_code < 500:
+                response.raise_for_status()
+                data = response.json()
+                status = data.get("status")
+                print(f"task_id={task_id} status={status}", flush=True)
+                if status == "succeeded":
+                    url = (data.get("content") or {}).get("video_url")
+                    if not url:
+                        raise RuntimeError("Successful task is missing content.video_url")
+                    return url
+                if status in {"failed", "expired", "cancelled", "canceled"}:
+                    raise RuntimeError(f"Task ended: {status}; error={data.get('error')}")
+                if status not in {"queued", "running"}:
+                    raise RuntimeError(f"Unexpected task status: {status}")
 
-        if status == "succeeded":
-            return data["content"]["video_url"]
-        if status == "failed":
-            error = data.get("error") or {}
-            raise RuntimeError(error.get("message", "视频生成失败"))
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(interval, remaining))
 
-    raise TimeoutError(f"任务超时: {task_id}")
+    raise TimeoutError(f"Polling timed out; resume with task ID: {task_id}")
 
 
 def download_video(video_url: str, save_path: str) -> None:
-    response = requests.get(video_url, stream=True, timeout=120)
-    response.raise_for_status()
-
-    with open(save_path, "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                file.write(chunk)
+    target = Path(save_path)
+    partial = target.with_name(target.name + ".part")
+    # The signed media URL does not need the platform Authorization header.
+    with requests.get(video_url, stream=True, timeout=(10, 120)) as response:
+        response.raise_for_status()
+        with partial.open("wb") as output:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    output.write(chunk)
+    partial.replace(target)
 
 
 if __name__ == "__main__":
-    task_id = create_task("一只金色柴犬在樱花树下奔跑，镜头缓缓上升")
+    # Pass an existing task ID to resume instead of creating another task.
+    task_id = sys.argv[1] if len(sys.argv) > 1 else create_task(
+        "A golden dog runs beneath cherry blossoms; the camera slowly rises"
+    )
+    print(f"task_id={task_id}", flush=True)
     video_url = wait_for_result(task_id)
     download_video(video_url, "seedance-output.mp4")
 ```
 
-查询结果中 `content.video_url` 通常具有时效性，生产环境建议获取后立即转存到自己的对象存储。
+## 运行与恢复查询
+
+```bash
+python seedance_poll.py
+python seedance_poll.py "<已有的任务ID>"
+```
+
+第二条命令只查询已有任务，不重新创建。建议创建后立即持久化输出的任务 ID。
+
+`failed`、`expired`、官方的 `cancelled` 及部分渠道的 `canceled` 状态会终止轮询，错误中保留任务状态和服务端错误。成功响应缺少视频 URL 时也会明确报错。下载先写入 `.part`，完成后替换目标文件；下载失败可重新查询原任务获取地址后重试。
+
+客户端超时只表示停止等待，不会取消任务。官方任务记录仅保留最近 7 天，视频下载 URL 有效期为 24 小时，应及时转存。示例的总预算控制轮询调度与单次请求超时，网络底层行为可能使实际墙钟耗时略有超出。
+
+本例是[原生查询接口](./overview)，不能直接用于通用接口的 `metadata.url` 响应。
+
+[官方查询任务文档](https://docs.volcengine.com/docs/ark/get-video-generation-task-api?lang=zh)

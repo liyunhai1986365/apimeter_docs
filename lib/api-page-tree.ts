@@ -7,6 +7,7 @@ type ApiMenuItem = {
     en: string;
   };
   operationIds?: string[];
+  embeddedOperationIds?: string[];
   visibleWhenOperationIds?: string[];
   pages?: Array<{
     title: LocalizedTitle;
@@ -168,16 +169,6 @@ const apiMenuGroups: ApiMenuGroup[] = [
               },
             ],
           },
-          {
-            title: { zh: 'Seedance 2.0 素材上传', en: 'Seedance 2.0 Assets' },
-            visibleWhenOperationIds: ['uploadSeedanceAsset'],
-            pages: [
-              {
-                title: { zh: 'Seedance 2.0 素材上传', en: 'Seedance 2.0 Assets' },
-                href: '/docs/api-reference/seedance-2/assets',
-              },
-            ],
-          },
           { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createVideoGeneration'] },
           { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getVideoGeneration'] },
         ],
@@ -261,11 +252,12 @@ const apiMenuGroups: ApiMenuGroup[] = [
             ],
           },
           {
-            title: { zh: '素材上传与管理', en: 'Asset Upload and Management' },
-            visibleWhenOperationIds: ['uploadSeedanceAsset'],
+            title: { zh: '素材管理', en: 'Asset Management' },
+            visibleWhenOperationIds: ['uploadSeedanceAsset', 'getSeedanceAsset'],
+            embeddedOperationIds: ['uploadSeedanceAsset', 'getSeedanceAsset'],
             pages: [
               {
-                title: { zh: '素材上传与管理', en: 'Asset Upload and Management' },
+                title: { zh: '素材管理', en: 'Asset Management' },
                 href: '/docs/api-reference/seedance-2/assets',
               },
             ],
@@ -302,17 +294,6 @@ const apiMenuGroups: ApiMenuGroup[] = [
           },
           { title: { zh: '视频生成', en: 'Video Generation' }, operationIds: ['createSeedance2VideoTask'] },
           { title: { zh: '查询视频任务', en: 'Video Task Status' }, operationIds: ['getSeedance2VideoTask'] },
-          {
-            title: { zh: '素材管理', en: 'Assets' },
-            operationIds: [
-              'uploadSeedanceAsset',
-              'getSeedanceAsset',
-            ],
-            pageTitles: {
-              uploadSeedanceAsset: { zh: '上传素材', en: 'Upload Asset' },
-              getSeedanceAsset: { zh: '查询素材详情', en: 'Get Asset' },
-            },
-          },
         ],
       },
       {
@@ -714,6 +695,10 @@ export function getLocalizedApiPageTree(tree: Root, locale: Locale): Root {
           }
         }
 
+        for (const operationId of item.embeddedOperationIds ?? []) {
+          const page = pageByOperationId.get(operationId);
+          if (page) usedPages.add(page);
+        }
         itemPages.forEach(({ page }) => usedPages.add(page));
 
         if (itemPages.length === 1) {

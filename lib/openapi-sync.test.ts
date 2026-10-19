@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -11,6 +12,23 @@ const openApiText = readFileSync(
 );
 
 describe('modelsell OpenAPI sync', () => {
+  it('separates Seedance creation from query results and includes official cancellation and nullable errors', async () => {
+    const schemas = await openapi.getSchemas();
+    const document = Object.values(schemas)[0].dereferenced;
+    const created = document.paths?.['/api/v3/contents/generations/tasks']?.post
+      ?.responses?.['200']?.content?.['application/json']?.schema;
+    const task = document.paths?.['/api/v3/contents/generations/tasks/{task_id}']?.get
+      ?.responses?.['200']?.content?.['application/json']?.schema;
+
+    expect(created).toMatchObject({ required: ['id'] });
+    expect(created?.properties).not.toHaveProperty('status');
+    expect(task?.properties?.status?.enum).toEqual(expect.arrayContaining([
+      'queued', 'running', 'succeeded', 'failed', 'expired', 'cancelled',
+    ]));
+    expect(task?.properties?.error?.type).toEqual(['object', 'null']);
+    expect(task?.properties?.usage?.properties).toHaveProperty('total_tokens');
+  });
+
   it('documents all EasyRouter API families in the generated API reference', () => {
     const requiredSnippets = [
       '/v1/chat/completions:',

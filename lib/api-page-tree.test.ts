@@ -11,6 +11,34 @@ function page(name: Item['name'], operationId: string): Item {
 }
 
 describe('getLocalizedApiPageTree', () => {
+  it.each(['zh', 'en'] as const)('consolidates asset operations into one %s navigation entry', (locale) => {
+    for (const operationIds of [
+      ['uploadSeedanceAsset'],
+      ['getSeedanceAsset'],
+      ['uploadSeedanceAsset', 'getSeedanceAsset'],
+    ]) {
+      const tree: Root = {
+        type: 'root', name: '',
+        children: [
+          { type: 'separator', name: '视频系列' },
+          ...operationIds.map((id) => page(id, id)),
+        ],
+      };
+      const localized = getLocalizedApiPageTree(tree, locale);
+      const pages: Item[] = [];
+      function collect(nodes: Root['children']) {
+        for (const node of nodes) {
+          if (node.type === 'page') pages.push(node);
+          if (node.type === 'folder') collect(node.children);
+        }
+      }
+      collect(localized.children);
+      expect(pages).toHaveLength(1);
+      expect(pages[0].name).toBe(locale === 'zh' ? '素材管理' : 'Asset Management');
+      expect(pages[0].url).toContain('/seedance-2/assets');
+    }
+  });
+
   it('builds a four-level Chinese API reference tree from generated OpenAPI pages', () => {
     const tree: Root = {
       type: 'root',
@@ -247,11 +275,6 @@ describe('getLocalizedApiPageTree', () => {
                 },
                 {
                   type: 'page',
-                  name: 'Seedance 2.0 素材上传',
-                  url: '/zh/docs/api-reference/seedance-2/assets',
-                },
-                {
-                  type: 'page',
                   name: '视频生成',
                   url: '/zh/docs/api-reference/createVideoGeneration',
                 },
@@ -316,7 +339,7 @@ describe('getLocalizedApiPageTree', () => {
                 },
                 {
                   type: 'page',
-                  name: '素材上传与管理',
+                  name: '素材管理',
                   url: '/zh/docs/api-reference/seedance-2/assets',
                 },
                 {
@@ -343,16 +366,6 @@ describe('getLocalizedApiPageTree', () => {
                   type: 'page',
                   name: '查询视频任务',
                   url: '/zh/docs/api-reference/getSeedance2VideoTask',
-                },
-                {
-                  type: 'page',
-                  name: '上传素材',
-                  url: '/zh/docs/api-reference/uploadSeedanceAsset',
-                },
-                {
-                  type: 'page',
-                  name: '查询素材详情',
-                  url: '/zh/docs/api-reference/getSeedanceAsset',
                 },
               ],
             },

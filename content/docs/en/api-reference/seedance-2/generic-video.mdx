@@ -1,181 +1,72 @@
 ---
 title: Generic Video Format
-description: Use /v1/video/generations with Seedance 2.0 and let ModelSell convert it to the official content format.
+description: Platform generic fields, Ark-native mappings, and task-query boundaries.
 ---
 
-`/v1/video/generations` is ModelSell's generic async video task endpoint. When you call a Seedance 2.0 model, you can express the official `content[]` inputs with `prompt`, `image`, `images`, `metadata.video_url`, and `metadata.audio_url`; ModelSell converts the request to the official `/api/v3/contents/generations/tasks` format.
+`/v1/video/generations` is a platform wrapper, not an official Ark endpoint. Prefer [native content](./modes) for first/last-frame control and explicit media roles.
 
-## Endpoints
+## Endpoints and mappings
 
-| Operation | Endpoint |
+Create with `POST /v1/video/generations` and query with `GET /v1/video/generations/{task_id}`. Do not mix this contract with `/v1/videos`.
+
+| Generic field | Native mapping |
 | --- | --- |
-| Create task | `POST /v1/video/generations` |
-| Poll task | `GET /v1/video/generations/{task_id}` |
-| Upload asset | `POST /api/assets/upload` |
-
-## Field Mapping
-
-| Generic field | Official Seedance 2.0 field |
-| --- | --- |
-| `prompt` | `content[]` item with `type: "text"` |
-| `image` or `images[]` | `content[]` item with `type: "image_url"` and `role: "reference_image"` |
-| `metadata.video_url` | `content[]` item with `type: "video_url"` and `role: "reference_video"` |
-| `metadata.audio_url` | `content[]` item with `type: "audio_url"` and `role: "reference_audio"` |
-| `size` | `resolution`, for example `480p`, `720p`, or `1080p` |
-| `duration` or `seconds` | `duration`, in seconds, from 4 to 15 |
-| `metadata.ratio` | `ratio`, for example `16:9`, `9:16`, `3:4`, `1:1`, or `4:3` |
+| `prompt` | Text content |
+| `image` or `images[]` | `image_url` with `reference_image`; not strict first/last frames |
+| `metadata.video_url` | `video_url` with `reference_video` |
+| `metadata.audio_url` | `audio_url` with `reference_audio`; requires image or video |
+| `size` | `resolution`; Fast: 480p/720p; standard additionally 1080p; official standard 4k requires platform confirmation |
+| `duration` or `seconds` | Integer output seconds, 4–15; send only one |
+| `metadata.ratio` | `ratio`: 21:9, 16:9, 4:3, 1:1, 3:4, 9:16, adaptive |
 | `metadata.generate_audio` | `generate_audio` |
 | `metadata.watermark` | `watermark` |
 
-## Common Request Patterns
+Native `duration: -1` support does not confirm generic support. Do not invent metadata mappings for multiple video/audio clips, callbacks, tools, or last-frame return.
 
-### Text to Video
+## Example
 
 ```bash
 curl -X POST "$MODELSELL_BASE_URL/v1/video/generations" \
   -H "Authorization: Bearer $MODELSELL_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "doubao-seedance-2-0-260128",
-    "prompt": "A golden Shiba Inu runs under cherry blossoms as the camera slowly rises",
+    "model": "doubao-seedance-2-0-fast-260128",
+    "prompt": "Use image 1 for colors, video 1 for camera movement, and audio 1 as background music",
+    "image": "https://example.com/reference-image.jpg",
     "duration": 5,
-    "size": "480p",
+    "size": "720p",
     "metadata": {
       "ratio": "16:9",
+      "video_url": "https://example.com/reference-video.mp4",
+      "audio_url": "https://example.com/reference-audio.mp3",
       "generate_audio": true,
       "watermark": false
     }
   }'
 ```
 
-### Image to Video
+For text-only input remove image, video and audio. For image reference remove video and audio. Audio cannot be the only media input. Use same-channel `Active` asset URIs where supported; see [Assets](./assets). Official Base64 support is not a promise of generic-wrapper passthrough; prefer URLs.
 
-```json
-{
-  "model": "doubao-seedance-2-0-fast-260128",
-  "prompt": "Make the person in the image slowly turn around and smile",
-  "image": "https://example.com/photo.jpg",
-  "duration": 5,
-  "size": "720p",
-  "metadata": {
-    "ratio": "16:9",
-    "generate_audio": true,
-    "watermark": false
-  }
-}
-```
+## Poll and save results
 
-### Video to Video
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "prompt": "Turn the person in the video into a cartoon style",
-  "duration": 5,
-  "size": "480p",
-  "metadata": {
-    "ratio": "16:9",
-    "video_url": "https://example.com/reference-video.mp4",
-    "generate_audio": true,
-    "watermark": false
-  }
-}
-```
-
-### Image and Audio
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "prompt": "Make the character speak according to the audio",
-  "image": "https://example.com/reference-image.jpg",
-  "duration": 5,
-  "size": "480p",
-  "metadata": {
-    "ratio": "16:9",
-    "audio_url": "https://example.com/reference-audio.mp3",
-    "watermark": false
-  }
-}
-```
-
-### Image and Video References
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "prompt": "Modify this video using the style of the reference image",
-  "image": "https://example.com/reference-image.jpg",
-  "duration": 5,
-  "size": "480p",
-  "metadata": {
-    "ratio": "16:9",
-    "video_url": "https://example.com/reference-video.mp4",
-    "watermark": false
-  }
-}
-```
-
-### Video and Audio References
-
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "prompt": "Add matching sound effects to the video based on the audio",
-  "duration": 5,
-  "size": "480p",
-  "metadata": {
-    "ratio": "16:9",
-    "video_url": "https://example.com/reference-video.mp4",
-    "audio_url": "https://example.com/reference-audio.mp3",
-    "watermark": false
-  }
-}
-```
-
-### Full Multimodal Reference
-
-```json
-{
-  "model": "doubao-seedance-2-0-fast-260128",
-  "prompt": "Use the image style, apply the voice to the speaker, and modify the video",
-  "image": "https://example.com/reference-image.jpg",
-  "duration": 5,
-  "size": "720p",
-  "metadata": {
-    "ratio": "16:9",
-    "video_url": "https://example.com/reference-video.mp4",
-    "audio_url": "https://example.com/reference-audio.mp3",
-    "generate_audio": true,
-    "watermark": false
-  }
-}
-```
-
-## Polling
-
-Save the returned `id` or `task_id`, then poll the task endpoint:
+Save `id` or `task_id` from creation and query the same endpoint family:
 
 ```bash
-curl "$MODELSELL_BASE_URL/v1/video/generations/task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6" \
+curl "$MODELSELL_BASE_URL/v1/video/generations/$TASK_ID" \
   -H "Authorization: Bearer $MODELSELL_API_KEY"
 ```
 
-When the task succeeds, the generic response includes the final video URL:
-
 ```json
 {
-  "id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
-  "task_id": "task_UPUfjg0S3UXekH2OgTZBXyqgGhsxgkp6",
+  "id": "<TASK_ID>",
+  "task_id": "<TASK_ID>",
   "object": "video.generation",
   "status": "succeeded",
   "model": "doubao-seedance-2-0-260128",
-  "metadata": {
-    "url": "https://example.com/doubao-seedance-2-0/result.mp4"
-  }
+  "metadata": {"url": "https://example.com/result.mp4"}
 }
 ```
 
-Video generation is asynchronous. Poll every 10 seconds in typical integrations. Reference videos must be publicly reachable URLs and cannot be Base64; images can be public URLs, and small images can also use Base64 Data URLs.
+The generic example returns `metadata.url`; native responses use `content.video_url`. Bound polling, handle terminal failures, and download promptly. Official URLs last 24 hours; platform behavior depends on the channel.
 
-For reusable image, video, or audio references, upload the asset with `/api/assets/upload`, then pass the returned `asset://<asset_id>` in `image`, `metadata.video_url`, or `metadata.audio_url`.
+[Official create-task reference](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)

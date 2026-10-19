@@ -1,139 +1,98 @@
 ---
-title: Asset Upload and Management
-description: Upload image, video, and audio assets with /api/assets/upload, then reference them in Seedance 2.0 tasks with asset:// URLs.
+title: Asset Management
+description: Media input limits, private virtual portraits, platform asset wrappers, and asset URI usage.
 ---
 
-Seedance 2.0 image, video, and audio references can be uploaded to the asset library first, then reused in video generation requests with `asset://<asset_id>`. Asset APIs use the same user API key authentication as the rest of the API.
+Reviewed on **2026-10-19** against the [official private virtual portrait guide](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh).
 
-The asset upload API supports both domestic and overseas model versions. Domestic models do not need the `model` query parameter. For the overseas `dreamina-seedance-2-0-fast-260128` model, add `?model=dreamina-seedance-2-0-fast-260128` so the request is routed to the matching overseas asset channel.
+Follow **upload → wait for Active → reference in a video task**. Both API references and live debugging are available on this page.
 
-## Endpoints
+## Choose the media workflow
 
-| Operation | Endpoint |
+Ordinary non-portrait references may use public URLs directly; not all media needs to enter the private library. The private virtual portrait library is for virtual portraits. Real-person portraits require a separate authorization process. Preset portraits and trusted model outputs follow the [official portrait guide](https://docs.volcengine.com/docs/ark/seedance-portrait-asset-guide?lang=zh).
+
+## Upload an asset
+
+Only public URLs are supported here, not Base64. Keep the source accessible throughout asynchronous processing. Type values are case-sensitive: `Image`, `Video`, `Audio`.
+
+For the existing overseas channel, append `?model=dreamina-seedance-2-0-fast-260128` to both upload and detail requests. Domestic routes omit it under the platform's existing contract. This is platform channel selection, not an official CreateAsset parameter.
+
+Check business `code` and save `data.Id`; upload success does not mean the asset is ready. Parameters, examples and live debugging:
+
+<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/uploadSeedanceAsset" title="Upload asset · POST /api/assets/upload" />
+
+## Query asset status
+
+Use the returned `data.Id` as path parameter `id`. Use the same `model` query parameter for overseas upload and lookup.
+
+<ApiPlaygroundEmbed href="/docs/api-reference/视频系列/getSeedanceAsset" title="Get asset · GET /api/assets/{id}" />
+
+| `data.Status` | Action |
 | --- | --- |
-| Upload asset | `POST /api/assets/upload` |
-| Get asset | `GET /api/assets/{id}` |
+| `Processing` | Keep polling |
+| `Active` | Ready for video generation |
+| `Failed` | Stop and inspect the result |
 
-## Upload Rules
+HTTP success is not business success or readiness. Ingestion has no official processing-time SLA; bound polling and preserve the ID to resume.
 
-Asset upload accepts URLs only. Base64 input is not supported for this endpoint.
+## Reference an active asset
 
-| Type | Formats | Limits |
-| --- | --- | --- |
-| `Image` | jpeg, png, webp, bmp, tiff, gif, heic, heif | Aspect ratio 0.4 to 2.5; width or height 300 to 6000 px; under 30MB |
-| `Video` | mp4, mov | 480p or 720p; 2 to 15 seconds; aspect ratio 0.4 to 2.5; width or height 300 to 6000 px; up to 50MB; 24 to 60 FPS |
-| `Audio` | wav, mp3 | 2 to 15 seconds; up to 15MB |
-
-## Upload an Asset
-
-### Domestic Model
-
-```bash
-curl -X POST "$MODELSELL_BASE_URL/api/assets/upload" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com/image.png",
-    "asset_type": "Image",
-    "name": "Example image"
-  }'
-```
-
-### Overseas Model
-
-```bash
-curl -X POST "$MODELSELL_BASE_URL/api/assets/upload?model=dreamina-seedance-2-0-fast-260128" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com/image.png",
-    "asset_type": "Image",
-    "name": "Example image"
-  }'
-```
-
-Save `data.Id` from the response:
-
-```json
-{
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "Id": "asset-20260325152211-vcchd"
-  }
-}
-```
-
-## Get Asset Details
-
-```bash
-curl "$MODELSELL_BASE_URL/api/assets/asset-20260325152211-vcchd?model=dreamina-seedance-2-0-fast-260128" \
-  -H "Authorization: Bearer $MODELSELL_API_KEY"
-```
-
-Example response:
-
-```json
-{
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "AssetType": "Image",
-    "CreateTime": "2026-03-25T15:22:11Z",
-    "GroupId": "group-20260324135506-xxxxx",
-    "Id": "asset-20260325152211-vcchd",
-    "Name": "Example image",
-    "ProjectName": "default",
-    "Status": "Active",
-    "URL": "https://example.com/image.png",
-    "UpdateTime": "2026-03-25T15:22:11Z"
-  }
-}
-```
-
-When the detail response has `Status: "Active"`, the asset can be used in generation requests.
-
-## Use Assets in Video Generation
-
-Official Seedance 2.0 `content[]` format:
+Use `asset://<asset_id>`, not the GroupId, in the matching `image_url.url`, `video_url.url`, or `audio_url.url` field.
 
 ```json
 {
   "model": "doubao-seedance-2-0-260128",
   "content": [
-    {
-      "type": "text",
-      "text": "Make the character dance"
-    },
-    {
-      "type": "image_url",
-      "image_url": {
-        "url": "asset://asset-20260325152211-vcchd"
-      },
-      "role": "reference_image"
-    }
+    {"type":"text","text":"The virtual character in image 1 walks through a garden"},
+    {"type":"image_url","image_url":{"url":"asset://asset-20260325152211-vcchd"},"role":"reference_image"}
   ],
-  "resolution": "480p",
-  "ratio": "16:9",
-  "duration": 5,
-  "watermark": false
+  "resolution":"720p",
+  "ratio":"16:9",
+  "duration":5,
+  "generate_audio":true,
+  "watermark":false
 }
 ```
 
-Generic `/v1/video/generations` format:
+Prompts reference media by type and order within that type, starting at 1; never put asset IDs in prompts. Generic format uses `image`/`images[]`, `metadata.video_url`, and `metadata.audio_url`. Assets are not guaranteed portable across accounts or channels.
 
-```json
-{
-  "model": "doubao-seedance-2-0-260128",
-  "prompt": "Make the character dance",
-  "image": "asset://asset-20260325152211-vcchd",
-  "duration": 5,
-  "size": "480p",
-  "metadata": {
-    "ratio": "16:9",
-    "watermark": false
-  }
-}
-```
+Real-person authorization is separate: this project defines `/api/resource-channel/byteplus/visual-validate/...` operations for verification sessions and portrait management. Ordinary upload does not replace authorization.
 
-Video and audio assets use the same `asset://<asset_id>` format in `metadata.video_url` and `metadata.audio_url`.
+If an asset fails, check business code, status, media type, asset versus group ID, matching model route, and project/account permissions.
+
+## Official API versus platform wrapper
+
+| Item | Official Ark control plane | Platform |
+| --- | --- | --- |
+| Upload | CreateAsset after CreateAssetGroup | `POST /api/assets/upload` |
+| Query | GetAsset | `GET /api/assets/{id}` |
+| Authentication | AK/SK signing and IAM | Platform Bearer API key |
+| Fields | `GroupId`, `URL`, `AssetType`, `Name`, `ProjectName` | `url`, `asset_type`, `name` |
+| Returned asset ID | `Result.Id` | `data.Id` |
+
+Official asset APIs use `https://ark.cn-beijing.volcengineapi.com/`, a different host from video generation. CreateAsset uses `POST /?Action=CreateAsset&Version=2024-01-01`. GetAsset also uses **POST**: `POST /?Action=GetAsset&Version=2024-01-01`, with `Id` and optional `ProjectName` in the JSON body. The platform's `GET /api/assets/{id}` is a separate contract.
+
+Official GetAsset `Result.URL` is an access URL valid for 12 hours and need not equal the original upload URL. Preserve the asset ID and reference `asset://<asset_id>` for reuse. HTTP 200 may still describe a failed asset: inspect `Result.Status` and `Result.Error.Code` / `Result.Error.Message`. Platform passthrough of these additional fields depends on its actual response.
+
+Official assets and groups must share a ProjectName, and generation must use an API key in that project. Official library entitlements, capacity and quotas are account-dependent. Platform resources are channel-dependent. Official list/update/delete operations are not established platform REST routes.
+
+## Native video-task input limits
+
+These are inference limits, not a guarantee about platform upload limits or overseas channels.
+
+| Media | Sources and formats | Seedance 2.0 limits |
+| --- | --- | --- |
+| Image | jpeg/png/webp/bmp/tiff/gif/heic/heif; public URL, Data URL, usable asset URI | Under 30 MB each; aspect ratio [0.4, 2.5]; width and height [300, 6000] px; up to 9 reference images |
+| Video | mp4/mov; public URL or usable asset URI; no Base64 | 2–15 seconds each, up to 3 totaling at most 15 seconds; at most 200 MB each; 24–60 FPS |
+| Audio | wav/mp3; public URL, Data URL, usable asset URI | 2–15 seconds each, up to 3 totaling at most 15 seconds; at most 15 MB each; requires image/video |
+
+Reference videos support 480p/720p/1080p/4k. Aspect ratio is [0.4, 2.5], each dimension [300, 6000] px, and pixel count [407696, 8295044]. MP4/MOV support H.264/AVC and H.265/HEVC; see the official API for audio codecs.
+
+The native request body limit is 64 MB. Use URLs for large files; the former 2 MB Base64 rule is obsolete. Private-library ingestion has separate image rules: jpeg/png/webp/tiff/gif/heic/heif, aspect ratio (0.4, 2.5), dimensions (300, 6000) px, and under 30 MB.
+
+## Official sources
+
+- [Private virtual portrait library](https://docs.volcengine.com/docs/ark/private-virtual-avatar-library-guide-preview?lang=zh#f96dab35)
+- [CreateAsset](https://ark.volcengine.com/region:cn-beijing/docs/ark/create-asset-api)
+- [GetAsset](https://ark.volcengine.com/region:cn-beijing/docs/ark/get-asset-api)
+- [Create video task and media limits](https://docs.volcengine.com/docs/ark/create-video-generation-task-api?lang=zh)

@@ -951,11 +951,11 @@ paths:
       operationId: createSeedance2VideoTask
       summary: Seedance 2.0 视频生成
       description: |
-        使用 Seedance 2.0 官方 `content[]` 格式创建异步视频生成任务。支持文生视频、图生视频、视频生视频、图像与音频组合、视频与音频组合，以及图像、视频、音频全模态引用。
+        使用 Seedance 2.0 原生 `content[]` 格式创建异步任务。支持文生视频、首帧、首尾帧和全模态参考；首帧/首尾帧与全模态参考不能混用。音频必须搭配图片或视频。图片参考、视频编辑与延长通过对应参考角色及提示词表达。
 
-        若希望使用 ModelSell 的通用视频格式，也可以调用 `/v1/video/generations` 或 `/v1/videos`，通过 `prompt`、`image`、`images`、`metadata.video_url`、`metadata.audio_url` 等字段提交。
+        若希望使用 ModelSell 的通用视频格式，也可以调用 `/v1/video/generations`，通过 `prompt`、`image`、`images`、`metadata.video_url`、`metadata.audio_url` 等字段提交。
 
-        需要复用图片、视频或音频素材时，先调用 `/api/assets/upload` 上传素材，素材状态为 `Active` 后可在 `content[].*_url.url` 中传入 `asset://<asset_id>`。
+        普通非人像参考素材可直接使用公网 URL，无需全部入库。需要使用私域虚拟人像素材时，按素材管理流程上传并查询至 `Active` 后，在 `content[].*_url.url` 中传入 `asset://<asset_id>`；真人素材需另走授权流程。`/api/assets/upload` 是平台封装，不是官方 CreateAsset。
       tags:
         - 视频系列
       requestBody:
@@ -977,7 +977,7 @@ paths:
                   duration: 5
                   watermark: false
               imageToVideo:
-                summary: 图生视频
+                summary: 图片参考生成视频
                 value:
                   model: doubao-seedance-2-0-fast-260128
                   content:
@@ -990,6 +990,42 @@ paths:
                   resolution: 720p
                   ratio: '16:9'
                   duration: 5
+                  watermark: false
+              firstFrame:
+                summary: 首帧图生视频
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 镜头环绕玩具机器人
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/start.png
+                      role: first_frame
+                  resolution: 720p
+                  ratio: adaptive
+                  duration: 5
+                  generate_audio: true
+                  watermark: false
+              firstLastFrames:
+                summary: 首尾帧图生视频
+                value:
+                  model: doubao-seedance-2-0-260128
+                  content:
+                    - type: text
+                      text: 镜头从花园入口推进到喷泉
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/start.png
+                      role: first_frame
+                    - type: image_url
+                      image_url:
+                        url: https://example.com/end.png
+                      role: last_frame
+                  resolution: 720p
+                  ratio: adaptive
+                  duration: 5
+                  generate_audio: true
                   watermark: false
               videoToVideo:
                 summary: 视频生视频
@@ -1094,7 +1130,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Seedance2VideoTask'
+                $ref: '#/components/schemas/Seedance2VideoTaskCreated'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '429':
@@ -1104,7 +1140,7 @@ paths:
       operationId: getSeedance2VideoTask
       summary: 查询 Seedance 2.0 视频任务
       description: |
-        查询 Seedance 2.0 异步视频任务状态。任务成功后读取 `content.video_url` 下载生成视频；该地址通常具有时效性，建议获取后及时转存。
+        查询 Seedance 2.0 异步视频任务。queued/running 继续轮询，succeeded 读取 content.video_url，failed/expired 停止轮询并检查 error，cancelled 表示已取消并停止轮询。官方仅支持查询最近 7 天任务，取消记录 24 小时后自动删除，视频 URL 有效期为 24 小时；平台渠道行为可能不同，应及时下载或转存。客户端停止轮询不会取消服务端任务。
       tags:
         - 视频系列
       parameters:
@@ -1144,7 +1180,7 @@ paths:
       description: |
         上传图片、视频或音频素材到当前用户素材库。素材上传接口同时支持国内版本和海外版本模型：国内版本模型不需要传入 `model` 查询参数；海外版本 `dreamina-seedance-2-0-fast-260128` 需要在请求地址添加 `?model=dreamina-seedance-2-0-fast-260128`，系统会选择对应的海外版本素材渠道。
 
-        该接口只接受公网 URL，不支持 Base64；上传成功后可在 Seedance 2.0 官方 `content[]` 格式或 `/v1/video/generations` 通用视频格式中使用 `asset://<asset_id>` 引用。
+        该接口为平台封装，使用平台 Bearer API Key；不同于官方 AK/SK 签名的 CreateAsset。只接受公网 URL，不支持 Base64。上传返回 data.Id 不代表素材已就绪，需查询 Status：Processing 继续等待、Active 可用、Failed 停止。普通非人像素材可直接用 URL；私域虚拟人像库不替代真人授权。仅将同渠道下 Active 的 asset://<asset_id> 用于后续生成。
       tags:
         - 视频系列
       parameters:
@@ -1209,7 +1245,7 @@ paths:
       operationId: getSeedanceAsset
       summary: 查询 Seedance 2.0 素材详情
       description: |
-        根据素材 ID 查询单个素材详情。素材状态为 `Active` 后，可在视频生成请求中使用 `asset://<asset_id>` 引用。
+        根据素材 ID 查询平台素材详情，同时检查业务 code 与 data.Status。Processing 继续等待，Active 可用，Failed 停止。上传与查询必须使用一致渠道；方舟素材及素材组按 ProjectName 隔离，生成时也需同项目权限。使用 asset://<asset_id>，不要误用 GroupId。
       tags:
         - 视频系列
       parameters:
@@ -4579,37 +4615,51 @@ components:
           default: true
         resolution:
           type: string
-          description: 输出分辨率。
+          description: 输出分辨率，默认 720p。标准版官方支持 480p、720p、1080p、4k；Fast 仅支持 480p、720p。4k 需确认平台渠道已开放。
           enum:
             - 480p
             - 720p
             - 1080p
+            - 4k
           default: 720p
           example: 480p
         ratio:
           type: string
-          description: 输出宽高比。
+          description: 输出宽高比，adaptive 根据输入与任务自动选择。
           enum:
             - '16:9'
             - '9:16'
             - '3:4'
             - '1:1'
             - '4:3'
-          default: '16:9'
+            - '21:9'
+            - adaptive
+          default: adaptive
           example: '16:9'
         duration:
           type: integer
-          description: 生成视频时长，单位秒，支持 4 到 15 秒，默认 5 秒。
-          minimum: 4
-          maximum: 15
-          default: 5
+          description: 生成视频时长，整数 4 到 15 秒；-1 表示模型智能选择。示例显式指定 5 秒。
+          anyOf:
+            - minimum: 4
+              maximum: 15
+            - const: -1
+          example: 5
         watermark:
           type: boolean
           description: 是否添加水印，默认 false。
           default: false
+      allOf:
+        - if:
+            properties:
+              model:
+                const: doubao-seedance-2-0-fast-260128
+          then:
+            properties:
+              resolution:
+                enum: [480p, 720p]
     Seedance2ContentItem:
       type: object
-      description: Seedance 2.0 输入内容。文本使用 `text`；图片、视频、音频使用对应的 `*_url.url`，并设置对应 role。
+      description: Seedance 2.0 输入内容。首帧、首尾帧、全模态参考为互斥模式；全模态最多 9 张图片、3 段视频、3 段音频，音频必须搭配图片或视频。视频总时长与音频总时长分别不超过 15 秒。
       required:
         - type
       properties:
@@ -4627,37 +4677,50 @@ components:
           example: 一只金色柴犬在樱花树下奔跑，镜头缓缓上升
         image_url:
           type: object
-          description: 参考图片。支持公网 URL；小于 2MB 的图片可使用 Base64 Data URL。
+          required: [url]
+          description: 图片支持公网 URL、Base64 Data URL 或 asset://<asset_id>。单张小于 30 MB，原生请求体不超过 64 MB，大文件优先用 URL。
           properties:
             url:
               type: string
-              description: 图片 URL 或 Base64 Data URL。
+              description: 图片公网 URL、data:image/<format>;base64,... 或可用的 asset://<asset_id>。
               example: https://example.com/photo.jpg
         video_url:
           type: object
-          description: 参考视频，必须是公网可访问 URL，不支持 Base64。
+          required: [url]
+          description: 参考视频支持公网 URL 或 asset://<asset_id>，不支持 Base64。单个 2 到 15 秒且不超过 200 MB，24 到 60 FPS；最多 3 段且总时长不超过 15 秒。
           properties:
             url:
               type: string
               format: uri
-              description: 参考视频 URL。
+              description: 参考视频公网 URL 或可用的 asset://<asset_id>。
               example: https://example.com/reference-video.mp4
         audio_url:
           type: object
-          description: 参考音频 URL。
+          required: [url]
+          description: 参考音频支持公网 URL、Base64 Data URL 或 asset://<asset_id>。wav/mp3，单个 2 到 15 秒且不超过 15 MB；最多 3 段且总时长不超过 15 秒。
           properties:
             url:
               type: string
-              format: uri
-              description: 参考音频 URL。
+              description: 音频公网 URL、data:audio/<format>;base64,... 或可用的 asset://<asset_id>。
               example: https://example.com/reference_audio.mp3
         role:
           type: string
-          description: 素材角色。图片使用 `reference_image`，视频使用 `reference_video`，音频使用 `reference_audio`。
+          description: 首帧图片用 first_frame（单图可省略），首尾帧图片分别用 first_frame/last_frame；全模态图片用 reference_image，视频用 reference_video，音频用 reference_audio。首尾帧不能与全模态参考混用。
           enum:
+            - first_frame
+            - last_frame
             - reference_image
             - reference_video
             - reference_audio
+    Seedance2VideoTaskCreated:
+      type: object
+      description: 创建任务的响应。创建为异步操作，此时仅返回任务 ID，需另行查询任务状态和结果。
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: 视频生成任务 ID，原样保存并用于查询，不依赖固定前缀。
+          example: cgt-2026xxxx-xxxx
     Seedance2VideoTask:
       type: object
       description: Seedance 2.0 视频任务对象。
@@ -4674,6 +4737,8 @@ components:
             - running
             - succeeded
             - failed
+            - expired
+            - cancelled
           example: queued
         model:
           type: string
@@ -4682,6 +4747,24 @@ components:
         created_at:
           type: integer
           description: 创建时间，Unix 秒级时间戳。
+        updated_at:
+          type: integer
+          description: 任务状态更新时间，Unix 秒级时间戳。
+        duration:
+          type: integer
+          description: 生成视频的时长约数（整数秒），实际总帧数除以 24 后向下取整，可能与精确时长不同。
+        resolution:
+          type: string
+          description: 实际生成视频的分辨率。
+        ratio:
+          type: string
+          description: 实际生成视频的宽高比。
+        framespersecond:
+          type: integer
+          description: 实际生成视频的帧率。
+        generate_audio:
+          type: boolean
+          description: 生成的视频是否包含同步音频。
         content:
           type: object
           description: 成功后的生成结果。
@@ -4689,7 +4772,7 @@ components:
             video_url:
               type: string
               format: uri
-              description: 生成视频下载 URL，通常具有时效性。
+              description: 生成视频下载 URL，官方有效期为 24 小时，应及时下载或转存；平台渠道行为以实际返回为准。
               example: https://example.com/doubao-seedance-2-0/result.mp4
         usage:
           type: object
@@ -4699,9 +4782,12 @@ components:
               type: integer
               description: 任务消耗的 completion tokens。
               example: 100858
+            total_tokens:
+              type: integer
+              description: 总 token 数；官方视频生成不统计输入 token，因此与 completion_tokens 相同。平台计费以渠道规则为准。
         error:
-          type: object
-          description: 任务失败时的错误信息。
+          type: [object, 'null']
+          description: 任务失败时的错误信息；任务成功时可返回 null。
           properties:
             code:
               type: string
